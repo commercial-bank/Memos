@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <!-- Gold gradient -->
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#D6B146;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#b89636;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Black to gray gradient -->
+    <linearGradient id="darkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#000000;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1a1a;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gray gradient -->
+    <linearGradient id="grayGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#808080;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#666666;stop-opacity:1" />
+    </linearGradient>
+    
+    <filter id="softShadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+    
+    <filter id="goldGlow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Outer decorative ring in gray -->
+  <circle cx="200" cy="200" r="165" fill="none" stroke="#808080" stroke-width="2" opacity="0.4"/>
+  
+  <!-- Main background shape - gold rounded square -->
+  <rect x="60" y="60" width="280" height="280" rx="70" ry="70" 
+        fill="url(#goldGradient)" filter="url(#softShadow)"/>
+  
+  <!-- Connection nodes in black -->
+  <circle cx="120" cy="120" r="12" fill="#000000" opacity="0.9"/>
+  <circle cx="280" cy="120" r="12" fill="#000000" opacity="0.9"/>
+  <circle cx="120" cy="280" r="12" fill="#000000" opacity="0.9"/>
+  <circle cx="280" cy="280" r="12" fill="#000000" opacity="0.9"/>
+  
+  <!-- Connection lines in gray -->
+  <line x1="120" y1="120" x2="200" y2="200" stroke="#808080" stroke-width="2" opacity="0.5"/>
+  <line x1="280" y1="120" x2="200" y2="200" stroke="#808080" stroke-width="2" opacity="0.5"/>
+  <line x1="120" y1="280" x2="200" y2="200" stroke="#808080" stroke-width="2" opacity="0.5"/>
+  <line x1="280" y1="280" x2="200" y2="200" stroke="#808080" stroke-width="2" opacity="0.5"/>
+  
+  <!-- Central hub circle in gray -->
+  <circle cx="200" cy="200" r="90" fill="#808080" opacity="0.15"/>
+  
+  <!-- Stylized "N" made of geometric shapes -->
+  <g transform="translate(200, 200)">
+    <!-- Left vertical bar of N in black -->
+    <rect x="-55" y="-70" width="20" height="140" rx="3" fill="#000000"/>
+    
+    <!-- Diagonal bar of N in black with subtle effect -->
+    <rect x="-35" y="-15" width="70" height="20" rx="3" 
+          fill="#000000" 
+          transform="rotate(55)"/>
+    
+    <!-- Right vertical bar of N in black -->
+    <rect x="35" y="-70" width="20" height="140" rx="3" fill="#000000"/>
+    
+    <!-- Small accent dot on diagonal in black -->
+    <circle cx="0" cy="0" r="8" fill="#000000"/>
+  </g>
+  
+  <!-- Decorative corner accents in black -->
+  <path d="M 80,80 L 80,100 M 80,80 L 100,80" stroke="#000000" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <path d="M 320,80 L 320,100 M 320,80 L 300,80" stroke="#000000" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <path d="M 80,320 L 80,300 M 80,320 L 100,320" stroke="#000000" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <path d="M 320,320 L 320,300 M 320,320 L 300,320" stroke="#000000" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  
+  <!-- Small tech dots pattern in black -->
+  <circle cx="150" cy="150" r="3" fill="#000000" opacity="0.6"/>
+  <circle cx="250" cy="150" r="3" fill="#000000" opacity="0.6"/>
+  <circle cx="150" cy="250" r="3" fill="#000000" opacity="0.6"/>
+  <circle cx="250" cy="250" r="3" fill="#000000" opacity="0.6"/>
+</svg>

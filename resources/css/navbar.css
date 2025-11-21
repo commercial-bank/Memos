@@ -1,0 +1,168 @@
+/* Variables (à garder si elles sont globales, sinon, les définir ici ou dans un fichier de variables partagé) */
+:root {
+    --sidebar-width-expanded: 250px;
+    --sidebar-width-collapsed: 70px;
+    --navbar-height: 90px;
+    --navbar-bg: #ffffff;
+    --navbar-text-color: #333333;
+    --navbar-icon-color: #5c5c5c;
+    --primary-color: #b8962f; /* Ajoutée car utilisée ici */
+    --secondary-color: #5c5c5c; /* Ajoutée car utilisée ici */
+}
+
+/* Styles pour le conteneur principal de l'application */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif; /* Exemple, utilisez votre police */
+    display: flex; /* Permet à la sidebar et au main-content-area d'être côte à côte */
+    height: 100vh; /* La hauteur de la vue pour le conteneur principal */
+    overflow: hidden; /* Empêche le scroll du body */
+}
+
+/* Nouveau conteneur pour la navbar et le contenu */
+.main-content-area {
+    flex-grow: 1; /* Prend l'espace restant à côté de la sidebar */
+    display: flex;
+    flex-direction: column; /* La navbar au-dessus du contenu */
+    height: 100vh; /* Prend toute la hauteur disponible */
+    overflow: hidden; /* Empêche le défilement du main-content-area lui-même */
+    /* Pas de margin-left ici, c'est le body flex qui gère l'espace */
+}
+
+/* Styles de la Navbar */
+.navbar {
+    height: var(--navbar-height);
+    background-color: var(--navbar-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0; /* Empêche la navbar de rétrécir */
+    z-index: 500; /* Positionne la navbar au-dessus du contenu */
+    width: 100%; /* S'assure que la navbar prend toute la largeur disponible de son parent (.main-content-area) */
+}
+
+.navbar-left, .navbar-right {
+    display: flex;
+    align-items: center;
+}
+
+.navbar-title {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: var(--navbar-text-color);
+    margin-left: 20px; /* Espace après le bouton toggle */
+}
+
+.navbar-icon {
+    color: var(--navbar-icon-color);
+    font-size: 1.2em;
+    margin-left: 20px;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.navbar-icon:hover {
+    color: var(--primary-color); /* Icônes en couleur primaire au survol */
+}
+
+.navbar-user-dropdown {
+    display: flex;
+    align-items: center;
+    margin-left: 20px;
+    cursor: pointer;
+    position: relative;
+}
+
+.navbar-user-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 10px;
+    border: 1px solid var(--secondary-color); /* Bordure d'avatar en gris du logo */
+}
+
+.navbar-user-name {
+    font-weight: 500;
+    color: var(--navbar-text-color);
+    margin-right: 8px;
+}
+
+.dropdown-arrow {
+    color: var(--navbar-icon-color);
+    font-size: 0.8em;
+}
+
+/* Bouton de bascule de la sidebar dans la navbar (visible sur mobile) */
+.navbar-toggle-sidebar-btn {
+    background: none;
+    border: none;
+    color: var(--navbar-icon-color);
+    font-size: 1.2em;
+    cursor: pointer;
+    padding: 5px;
+    display: none; /* Caché par défaut sur desktop */
+}
+
+/* Contenu principal (avec la navbar) */
+.content {
+    flex-grow: 1; /* Prend tout l'espace vertical restant sous la navbar */
+    padding: 30px;
+    overflow-y: auto; /* Permet le défilement vertical du contenu */
+    overflow-x: hidden;
+    scrollbar-width: none;
+}
+/* Masque la scrollbar pour webkit */
+.content::-webkit-scrollbar {
+    display: none;
+}
+
+/* Ajoutez ces styles au début de votre fichier CSS */
+.toggle-desktop-sidebar-btn {
+    background: none;
+    border: none;
+    color: var(--navbar-icon-color); /* Utilise la même couleur que les icônes de la navbar */
+    font-size: 1.2em;
+    cursor: pointer;
+    padding: 5px;
+    margin-right: 15px; /* Espace entre ce bouton et le titre */
+    display: block; /* Visible par défaut sur desktop */
+}
+
+/* Cache le bouton de bascule desktop sur les petits écrans */
+@media (max-width: 768px) {
+    .toggle-desktop-sidebar-btn {
+        display: none;
+    }
+    /* S'assurer que le bouton de bascule mobile est visible ici */
+    .navbar-toggle-sidebar-btn {
+        display: block;
+    }
+}
+
+/* Cache le bouton de bascule mobile sur les grands écrans */
+@media (min-width: 769px) {
+    .navbar-toggle-sidebar-btn {
+        display: none;
+    }
+}
+
+/* Notification Badge */
+.notification-badge {
+    position: absolute;
+    top: 22px; /* Ajustez la position verticale */
+    right: 205px; /* Ajustez la position horizontale */
+    background-color: #b8962f; /* Couleur du cercle */
+    color: white; /* Couleur du texte */
+    border-radius: 50%; /* Pour faire un cercle */
+    padding: 3px 6px; /* Taille du cercle et espacement du texte */
+    font-size: 0.7em; /* Taille du texte */
+    line-height: 1; /* Pour un bon alignement vertical du texte */
+    text-align: center;
+    min-width: 15px; /* Assurez-vous que le cercle est assez grand pour les nombres à deux chiffres */
+    box-shadow: 0 0 0 2px white; /* Optionnel : une petite bordure blanche pour mieux le faire ressortir */
+    /* Nécessaire si le badge est dans un conteneur non positionné */
+    z-index: 501;
+}

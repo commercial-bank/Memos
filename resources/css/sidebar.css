@@ -1,0 +1,91 @@
+/* Custom scrollbar for better appearance */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #3a3a3a;
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #5c5c5c;
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #b8962f;
+}
+
+/* Tooltip styles for collapsed mode */
+.tooltip {
+    /* Initially hidden by default via invisible */
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #2a2a2a;
+    padding: 8px 15px;
+    border-radius: 5px;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+    z-index: 10;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none; /* Allows clicks on elements behind the tooltip */
+    transition: opacity 0.3s ease;
+    left: 70px; /* Aligné avec la largeur réduite de la sidebar */
+}
+
+/* Show tooltip on hover */
+.group:hover .tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+/* Ensure `a` tags are relative for tooltip positioning */
+.sidebar-nav a {
+    position: relative;
+}
+
+/* Media Queries for responsiveness */
+@media (max-width: 768px) {
+    #sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 1000;
+        transform: translateX(-100%);
+        width: 250px; /* Full width when visible on mobile */
+        box-shadow: 5px 0 15px rgba(0,0,0,0.2);
+    }
+    /* Mobile specific: Show sidebar */
+    #sidebar.open-mobile {
+        transform: translateX(0%);
+    }
+    /* Forcing visibility of text elements when sidebar is open on mobile */
+    #sidebar.open-mobile .opacity-0 {
+        opacity: 1;
+        width: auto;
+        margin-left: 0;
+        padding-left: 0;
+        height: auto;
+        display: block; /* Ensure it's not hidden by display: none */
+    }
+    #sidebar.open-mobile .logo-text,
+    #sidebar.open-mobile .section-title,
+    #sidebar.open-mobile .nav-text,
+    #sidebar.open-mobile .user-details {
+        opacity: 1 !important;
+        width: auto !important;
+    }
+    #sidebar.open-mobile .sidebar-header,
+    #sidebar.open-mobile .sidebar-nav a,
+    #sidebar.open-mobile .sidebar-footer .user-info {
+        justify-content: flex-start !important;
+        padding-left: 20px !important; /* Reset padding for mobile */
+        padding-right: 20px !important;
+    }
+    #sidebar.open-mobile .sidebar-nav a i,
+    #sidebar.open-mobile .user-avatar {
+        margin-right: 15px !important;
+    }
+}
