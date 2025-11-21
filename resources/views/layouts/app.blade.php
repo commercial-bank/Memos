@@ -20,6 +20,7 @@
 
         {{ $slot }}
 
+     <livewire:notif.toast />  
      @livewireScripts   
     </body>
 </html>

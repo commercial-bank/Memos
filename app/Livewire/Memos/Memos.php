@@ -48,6 +48,11 @@ class Memos extends Component
 
         WrittenMemo::create($data);
 
+        
+
+        // Déclencheur du message flash
+        $this->dispatch('dispatch-notify', title: 'Succès', message: 'Le mémo a été créé avec succès !', type: 'success');
+        
         // 3. Correction UX : On redirige l'utilisateur avec un message
         return redirect()->back()->with('success', 'Le mémo a été enregistré avec succès !');
     }
@@ -67,7 +72,7 @@ class Memos extends Component
         $this->showCreateFormModal = false;
     }
 
-    
+
     public function render()
     {
         return view('livewire.memos.memos');
