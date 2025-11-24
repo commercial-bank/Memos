@@ -11,6 +11,7 @@ class WrittenMemo extends Model
         'object',
         'content',
         'type_memo',
+        'dest_status',
         'user_id',
     ];
 

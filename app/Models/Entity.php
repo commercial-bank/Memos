@@ -8,5 +8,6 @@ class Entity extends Model
 {
     protected $fillable = [
         'name',
+        'acronym'
     ];
 }

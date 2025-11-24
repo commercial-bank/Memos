@@ -2,25 +2,38 @@
 
 namespace App\Livewire\Memos;
 
-use auth;
+
 use Livewire\Component;
 use App\Models\WrittenMemo;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Rule;
 
 class Memos extends Component
 {
+    public $writtenMemo;
     public string $activeTab = 'incoming'; // tabs par defaut selectionner
-    public bool   $showCreateFormModal = false; // Nouvelle propriété pour le modal
+
+    #[Rule('required')]
     public string $object = '';
+
+    #[Rule('required')]
     public string $type_memo = '';
+
+    #[Rule('required')]
     public string $content = '';
+
+    public $writtenMemoId = null;
+    public $dest_status = false;
+    public $isOpen = false; // Pour gérer l'ouverture du Modal
 
     public int $countB;
 
     public function mount()
     {
          $this->countB = auth()->user()->writtenMemos()->count();
+         $this->writtenMemo =  WrittenMemo::all();
     }
 
     public function selectTab(string $tab)
@@ -28,53 +41,52 @@ class Memos extends Component
         $this->activeTab = $tab;
     }
 
-   public function store(Request $request)
+   public function save()
     {
         
-        // 1. Correction Syntaxe : On utilise $request->validate()
-        $validated = $request->validate([
-            'object' => ['required', 'string', 'max:255'],
-            'type_memo' => ['required', 'string', 'max:255'],
-            'content' => ['required', 'string'],
-        ]);
 
+        WrittenMemo::updateOrCreate(
+            ['id' => $this->writtenMemoId],
+            [
+                'object' => $this->object,
+                'type_memo' => $this->type_memo,
+                'content' => $this->content,
+                'dest_status' => $this->dest_status,
+                'user_id' => Auth::id()
+            ]
+        );
+
+        $action = $this->writtenMemoId ? 'modifié' : 'créé';
         
-
-        // 2. Correction Logique : On ajoute l'ID de l'utilisateur connecté
-        // On fusionne les données validées avec l'ID user
-        $data = array_merge($validated, [
-            'user_id' => auth()->id() // ou $request->user()->id
-        ]);
-
-        WrittenMemo::create($data);
-
+        $this->closeModal();
         
-
-        // Déclencheur du message flash
-        $this->dispatch('dispatch-notify', title: 'Succès', message: 'Le mémo a été créé avec succès !', type: 'success');
-        
-        // 3. Correction UX : On redirige l'utilisateur avec un message
-        return redirect()->back()->with('success', 'Le mémo a été enregistré avec succès !');
+        // Envoi de l'événement pour le Toast
+        $this->dispatch('notify', message: "Brouillon $action avec succès !");
     }
 
   
 
-    // Méthodes pour ouvrir/fermer le modal
-    public function openCreateForm()
+    // Ouvrir le modal
+    public function openModal()
     {
-        $this->showCreateFormModal = true;
+        $this->resetValidation();
+        $this->isOpen = true;
     }
 
     
 
-    public function closeCreateForm()
+    // Fermer le modal et reset les champs
+    public function closeModal()
     {
-        $this->showCreateFormModal = false;
+        $this->isOpen = false;
+        $this->reset(['object', 'content', 'type_memo', 'dest_status', 'writtenMemoId']);
     }
 
 
     public function render()
     {
+        // Rafraichir la liste à chaque rendu
+        $this->writtenMemo = WrittenMemo::latest()->get(); 
         return view('livewire.memos.memos');
     }
 }

@@ -20,7 +20,26 @@
 
         {{ $slot }}
 
-     <livewire:notif.toast />  
+        <!-- Système de Notification Flash (Toast) -->
+        <div 
+            x-data="{ show: false, message: '' }"
+            x-on:notify.window="show = true; message = $event.detail.message; setTimeout(() => show = false, 5000)"
+            class="fixed bottom-5 right-5 z-50"
+            style="display: none;"
+            x-show="show"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 transform translate-y-2"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 transform translate-y-0"
+            x-transition:leave-end="opacity-0 transform translate-y-2"
+        >
+            <div class="bg-green-500 text-white px-6 py-4 rounded shadow-lg flex items-center">
+                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span x-text="message"></span>
+            </div>
+        </div> 
+        
      @livewireScripts   
     </body>
 </html>
