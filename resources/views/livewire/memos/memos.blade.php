@@ -59,7 +59,7 @@
         @elseif ($activeTab === 'drafted')
             <livewire:memos.drafted-memos />
         @elseif ($activeTab === 'document')
-            tytytydoc
+            <livewire:memos.docs-memos />
         @elseif ($activeTab === 'sent')
            tytyty
         @endif

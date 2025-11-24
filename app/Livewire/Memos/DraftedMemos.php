@@ -6,6 +6,7 @@ use App\Models\Memo;
 use App\Models\Entity;
 use Livewire\Component;
 use App\Models\WrittenMemo;
+use Illuminate\Http\Request;
 use Livewire\Attributes\Rule;
 use Illuminate\Validation\Rules;
 use Illuminate\Support\Facades\Auth;
@@ -28,6 +29,7 @@ class DraftedMemos extends Component
     public $isOpen = false; // Pour gérer l'ouverture du Modal
     public $isOpen2 = false; // Pour gérer l'ouverture du Modal2
     public $isOpen3 = false; // Pour gérer l'ouverture du Modal3
+    public $isOpen4 = false; // Pour gérer l'ouverture du Modal4
 
     public $date;
     public $user_service;
@@ -91,6 +93,26 @@ class DraftedMemos extends Component
         $this->closeModalTrois();
     }
 
+    public function del()
+    {
+        
+         $memo = WrittenMemo::find($this->writtenMemoId);
+        // 2. Sécurité : On vérifie s'il existe et si c'est bien celui de l'utilisateur connecté
+        if ($memo && $memo->user_id === Auth::id()) {
+            
+            // 3. Suppression (Grâce au 'onDelete cascade' dans ta migration, 
+            // les liaisons dans la table pivot 'memos' seront supprimées automatiquement)
+            $memo->delete();
+        }
+
+        $this->closeModalQuatre();
+
+        // Envoi de l'événement pour le Toast
+        $this->dispatch('notify', message: "Brouillon supprimer avec succès !");
+    }
+
+    
+
     
     // Ouvrir le modal
     public function openModal()
@@ -131,6 +153,12 @@ class DraftedMemos extends Component
         $this->isOpen3 = true;
     }
 
+    // Ouvrir le modal
+    public function openModalQuatre()
+    {
+        $this->isOpen4 = true;
+    }
+
     // Fermer le modal et reset les champs
     public function closeModal()
     {
@@ -149,6 +177,12 @@ class DraftedMemos extends Component
     {
         $this->isOpen3 = false;
         $this->selections = []; // Reset
+    }
+
+    // Fermer le modal et reset les champs
+    public function closeModalQuatre()
+    {
+        $this->isOpen4 = false;
     }
 
     
@@ -184,6 +218,13 @@ class DraftedMemos extends Component
         $this->user_service = $written->user->service;
         $this->user_entity = $written->user->entity;
         $this->openModalDeux();
+    }
+
+
+    public function deleteWritten($id)
+    {
+         $this->writtenMemoId = $id;
+         $this->openModalQuatre();
     }
 
 

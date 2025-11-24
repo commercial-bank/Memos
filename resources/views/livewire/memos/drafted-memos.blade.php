@@ -50,7 +50,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
                                     </svg>
                               </button>
-                              <button wire:click="" class="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition duration-150 ease-in-out" title="Rejeter">
+                              <button wire:click="deleteWritten({{ $memo->id }})" class="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition duration-150 ease-in-out" title="Rejeter">
                                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                               </button>
 
@@ -64,45 +64,57 @@
         @if($isOpen)
             <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
                 
-                <!-- L'arrière-plan sombre (Overlay) -->
-                <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
+                <!-- 1. OVERLAY (Fond sombre) -->
+                <div 
+                    wire:click="closeModal" 
+                    class="fixed inset-0 bg-gray-900 bg-opacity-90 transition-opacity backdrop-blur-sm cursor-pointer"
+                ></div>
 
-                <!-- Le conteneur de positionnement (Scrollable) -->
-                <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-                    <!-- CORRECTION ICI : 'items-start' au lieu de 'items-center' pour ne pas couper le haut -->
-                    <!-- 'py-12' pour donner de l'espace en haut et en bas -->
-                    <div class="flex min-h-full items-start justify-center p-4 text-center sm:p-0 py-12">
+                <!-- 2. BARRE D'OUTILS FLOTTANTE (Fixe à l'écran) -->
+                <!-- Je l'ai sortie du scroll pour qu'elle soit toujours visible en haut -->
+                <div class="fixed top-0 left-0 w-full z-50 pointer-events-none p-4 flex justify-between items-start print:hidden">
+                    
+                    <!-- Bouton Retour -->
+                    <button wire:click="closeModal" class="pointer-events-auto bg-gray-800 text-white hover:bg-gray-700 px-6 py-2 rounded-full shadow-xl font-bold flex items-center gap-2 transition transform hover:scale-105 border border-gray-600">
+                        <span>&larr; Retour</span>
+                    </button>
+
+                    <!-- Bouton Imprimer -->
+                    <button onclick="window.print()" class="pointer-events-auto bg-white text-gray-900 hover:bg-gray-100 px-6 py-2 rounded-full shadow-xl font-bold flex items-center gap-2 transition transform hover:scale-105 border border-gray-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        <span>Imprimer</span>
+                    </button>
+                </div>
+
+                <!-- 3. CONTENEUR DE LA FEUILLE (Scrollable) -->
+                <div class="fixed inset-0 z-10 w-screen overflow-y-auto pt-20 pb-10"> <!-- pt-20 pour ne pas cacher le haut de la feuille sous les boutons -->
+                    <div class="flex min-h-full items-start justify-center p-4 text-center sm:p-0">
                         
-                        <!-- Le panneau du contenu -->
-                        <!-- J'ai retiré 'min-h-screen bg-gray-200' qui cassait le layout, le fond est géré par l'overlay ou ici -->
-                        <div class="relative transform transition-all flex flex-col items-center font-sans w-full max-w-[210mm]">
-
-                            
+                        <!-- Wrapper de la feuille (J'ai retiré 'transform') -->
+                        <div class="relative flex flex-col items-center font-sans w-full max-w-[210mm]">
 
                             <!-- FEUILLE A4 -->
                             <div class="bg-white w-[210mm] min-h-[297mm] shadow-2xl p-[10mm] text-black text-[13px] leading-snug relative text-left mx-auto">
 
-                                <!-- LE GRAND CADRE (Bordure Or + Arrondis asymétriques) -->
+                                <!-- LE GRAND CADRE DORÉ -->
                                 <div class="border-[3px] border-[#D4AF37] rounded-tr-[60px] rounded-bl-[60px] p-8 h-full flex flex-col justify-between relative min-h-[calc(297mm-20mm)]">
 
-                                    <!-- 1. EN-TÊTE -->
+                                    <!-- EN-TÊTE -->
                                     <div class="flex flex-col items-center justify-center mb-6 text-center">
-                                        
-                                        <!-- Logo -->
                                         <div class="mb-2">
-                                            <div class="w-12 h-12 bg-gray-100 flex items-center justify-center mx-auto mb-1 rounded-full">
-                                                <img src="{{asset('images/log.jpg')}}" alt="logo" class="w-8 h-8 text-gray-400" >
+                                            <div class="w-16 h-16 flex items-center justify-center mx-auto mb-1">
+                                                <img src="{{ asset('images/log.jpg') }}" alt="logo" class="w-full h-full object-contain">
                                             </div>
                                         </div>
 
                                         <div class="font-bold text-xl tracking-tight text-gray-900 font-sans">CommercialBank</div>
                                         <div class="text-[9px] text-gray-600 uppercase tracking-widest mb-4">Let's build the future</div>
                                         
-                                        <h2 class="font-bold text-xs uppercase text-gray-800">{{ $user_entity }}</h2>
+                                        <h2 class="font-bold text-xs uppercase text-gray-800">{{ $user_entity ?? 'DIRECTION' }}</h2>
                                         <h1 class="font-extrabold text-2xl uppercase mt-2 italic border-b-2 border-black pb-1 px-4 inline-block">Memorandum</h1>
                                     </div>
 
-                                    <!-- 2. LE TABLEAU DE DONNÉES -->
+                                    <!-- TABLEAU -->
                                     <div class="mb-6 text-sm w-full">
                                         <style>
                                             .checkbox-square { display: inline-block; width: 12px; height: 12px; border: 1px solid black; margin-right: 6px; vertical-align: middle; }
@@ -132,20 +144,20 @@
                                         </table>
                                     </div>
 
-                                    <!-- 3. CORPS DU TEXTE -->
+                                    <!-- CORPS DU TEXTE -->
                                     <div class="mb-4 flex-grow px-2">
-                                        <div class="mb-4">
+                                        <div class="mb-6">
                                             <p class="mb-1"><span class="font-bold text-[15px] underline">Objet :</span> <span class="uppercase font-bold">{{ $object }} </span></p>
                                         </div>
 
-                                        <div class="text-justify space-y-3 text-[14px] leading-relaxed font-serif">
-                                            {{ $content }} 
+                                        <div class="text-justify space-y-3 text-[14px] leading-relaxed font-serif text-gray-900">
+                                            {{$content}}
                                         </div>
                                     </div>
 
-                                    <!-- 4. PIED DE PAGE -->
-                                    <div class="mt-4 pt-4">
-                                        <p class="mb-6 text-sm italic">Nous restons à votre disposition pour tout besoin d'accompagnement.</p>
+                                    <!-- PIED DE PAGE -->
+                                    <div class="mt-8 pt-4">
+                                        <p class="mb-8 text-sm italic">Nous restons à votre disposition pour tout besoin d'accompagnement.</p>
 
                                         <div class="flex justify-between items-end px-4 mb-2">
                                             <div class="text-center w-1/3">
@@ -164,19 +176,18 @@
 
                                 </div> 
                             </div>
-
-                            <button wire:click="closeModal()" class="flex items-center text-white hover:text-gray-200 font-bold transition text-lg">
-                                &larr; Retour
-                            </button>
-                                    
-                        
+                            
+                            <!-- Bouton Fermer Bas (Optionnel) -->
+                            <div class="mt-8 mb-4 print:hidden">
+                                <button wire:click="closeModal" class="text-white hover:text-gray-300 underline">Fermer</button>
+                            </div>
 
                         </div>
                 
                     </div>
                 </div>
             </div>
-         @endif
+        @endif
 
 
 
@@ -309,13 +320,10 @@
                                                         wire:model="selections.{{ $entity->id }}.action" 
                                                         class="block w-full rounded-md border-0 py-1.5 pl-3 pr-8 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-yellow-500 sm:text-xs sm:leading-6 bg-white shadow-sm"
                                                     >
-                                                        <option value="Pour attribution">Pour attribution</option>
-                                                        <option value="Pour information">Pour information</option>
-                                                        <option value="Pour avis">Pour avis</option>
-                                                        <option value="Pour visa">Pour visa</option>
-                                                        <option value="Pour décision">Pour décision</option>
-                                                        <option value="Pour exécution">Pour exécution</option>
+                                                        <option value="Faire le nécessaire">Faire le nécessaire</option>
                                                         <option value="Prendre connaissance">Prendre connaissance</option>
+                                                        <option value="Prendre position">Prendre position</option>
+                                                        <option value="Décider">Décider</option>
                                                     </select>
                                                 @else
                                                     <span class="text-xs text-gray-400 italic">Non sélectionné</span>
@@ -339,6 +347,58 @@
                                 </div>
                             </form>
                         </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+
+       @if($isOpen4)
+            <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+
+                <!-- L'arrière-plan sombre -->
+                <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
+
+                <!-- Le conteneur -->
+                <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                    <div class="flex min-h-full items-center justify-center p-4 text-center">
+                        
+                        <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:w-full sm:max-w-lg border border-gray-200">
+                    
+                            <form wire:submit.prevent="del">
+                                
+                                <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                                    <div class="sm:flex sm:items-start">
+                                        <!-- Icone Attention -->
+                                        <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                                            <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                            </svg>
+                                        </div>
+                                        <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                            <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">Supprimer le brouillon</h3>
+                                            <div class="mt-2">
+                                                <p class="text-sm text-gray-500">
+                                                    Voulez-vous vraiment supprimer ce brouillon ? Cette action est irréversible.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Pied du modal (Boutons) -->
+                                <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                                    <button type="submit" class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto">
+                                        Supprimer définitivement
+                                    </button>
+                                    <button type="button" wire:click="closeModalQuatre()" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                                        Annuler
+                                    </button>
+                                </div>
+                            </form>
+
+                        </div>
+                        
                     </div>
                 </div>
             </div>

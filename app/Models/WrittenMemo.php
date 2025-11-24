@@ -20,4 +20,12 @@ class WrittenMemo extends Model
     {
         return $this->belongsTo(User::class);   
     }
+
+    /**
+     * Un mémo écrit a plusieurs attributions/destinataires (table memos)
+     */
+    public function memos()
+    {
+        return $this->hasMany(Memo::class);
+    }
 }
