@@ -59,12 +59,34 @@
                      <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                     </button>
-                    <button wire:click=""  class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" title="Envoyer le document">
-                        <!-- Icône Avion en papier -->
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                        </svg>
-                    </button>
+                    
+                    <!-- BOUTON ENVOYER / TRAITER -->
+                    <!-- Visible seulement si JE SUIS le détenteur actuel OU si c'est un brouillon -->
+                    @if($document->current_holder_id == Auth::id() || ($document->user_id == Auth::id() && $document->status == 'brouillon'))
+                        <button wire:click="openSendModal({{ $document->id }})" class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" title="Transmettre / Valider">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                        </button>
+                        
+                        <!-- BOUTON REJETER (Si je ne suis pas l'auteur) -->
+                        @if($document->user_id != Auth::id())
+                            <button wire:click="rejectMemo({{ $document->id }})" class="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition" title="Rejeter">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        @endif
+                    @endif
+                </div>
+
+                <!-- BADGE DE STATUT (En haut à gauche par exemple) -->
+                <div class="absolute top-0 left-0 p-2">
+                    @if($document->status == 'pending')
+                        <span class="bg-orange-100 text-orange-600 text-xs font-bold px-2 py-1 rounded">En traitement</span>
+                    @elseif($document->status == 'distributed')
+                        <span class="bg-green-100 text-green-600 text-xs font-bold px-2 py-1 rounded">Diffusé (Réf: {{ $document->reference_number }})</span>
+                    @elseif($document->status == 'rejected')
+                        <span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded">Rejeté</span>
+                    @else
+                        <span class="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">Brouillon</span>
+                    @endif
                 </div>
             </div>
 
@@ -299,9 +321,17 @@
                             </div>
                             
                             <!-- Bouton Fermer Bas (Optionnel) -->
-                            <div class="mt-8 mb-4 print:hidden">
-                                <button wire:click="closeModal" class="text-white hover:text-gray-300 underline">Fermer</button>
-                            </div>
+                            <!-- Bouton PDF / Imprimer -->
+                             <br>
+                            <button 
+                                onclick="printMemo()" 
+                                class="pointer-events-auto bg-red-600 text-white hover:bg-red-700 px-6 py-2 rounded-full shadow-xl font-bold flex items-center gap-2 transition transform hover:scale-105 border border-red-500"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span>Télécharger PDF</span>
+                            </button>
 
                         </div>
                 
@@ -309,6 +339,77 @@
                 </div>
             </div>
             
+    @endif
+
+    @if($isSendOpen)
+        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
+
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                    <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                        
+                        <form wire:submit.prevent="sendMemo">
+                            <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Transmettre le Mémo</h3>
+
+                                <!-- Sélection du destinataire -->
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Envoyer à :</label>
+                                    <select wire:model="next_user_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 py-2 px-3 border">
+                                        <option value="">Sélectionner un collaborateur...</option>
+                                        @foreach($usersList as $user)
+                                            <option value="{{ $user->id }}">
+                                                {{ $user->first_name }} {{ $user->last_name }} 
+                                                ({{ $user->poste ?? 'Employé' }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('next_user_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                </div>
+                                
+                                <!-- CAS SPÉCIAL : SECRÉTAIRE -->
+                                @if(strtolower(Auth::user()->poste) === 'secretaire')
+                                    <div class="mb-4 bg-yellow-50 p-3 rounded border border-yellow-200">
+                                        <label class="block text-sm font-bold text-yellow-800 mb-1">Numéro de Référence (Enregistrement)</label>
+                                        <input type="text" wire:model="reference_input" placeholder="Ex: 2024/001/DG" class="w-full rounded-md border-gray-300 shadow-sm">
+                                        @error('reference_input') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                    </div>
+                                @endif
+
+                                <!-- Commentaire -->
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Note / Commentaire (Optionnel)</label>
+                                    <textarea wire:model="comment" rows="3" class="w-full rounded-md border-gray-300 shadow-sm border p-2"></textarea>
+                                </div>
+
+                                <!-- Info Signature -->
+                                @if(in_array(strtolower(Auth::user()->poste), ['sous-directeur', 'directeur']))
+                                    <div class="flex items-center gap-2 text-green-600 text-sm bg-green-50 p-2 rounded mb-4">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        <span>Votre signature numérique sera apposée automatiquement.</span>
+                                    </div>
+                                @endif
+
+                            </div>
+
+                            <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                                <button type="submit" class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto">
+                                    @if(strtolower(Auth::user()->poste) === 'secretaire')
+                                        Enregistrer & Diffuser
+                                    @else
+                                        Transmettre
+                                    @endif
+                                </button>
+                                <button type="button" wire:click="closeSendModal" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                                    Annuler
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     @endif
 
 </div>
