@@ -12,6 +12,8 @@ class IncomingMemos extends Component
     // Tu pourras copier-coller les méthodes viewDocument, openSendModal ici plus tard
     // pour pouvoir traiter les mémos entrants.
     public $isOpen = false;
+    public $isSendOpen = false; // Modal Envoyer
+    public $isRejectOpen = false; // Modal Rejeter
 
     // Variables pour stocker les infos du mémo sélectionné
     public $object = '';
@@ -63,20 +65,14 @@ class IncomingMemos extends Component
         // 2. Ce n'est pas un brouillon (sinon c'est dans l'onglet Brouillons)
         // 3. On charge l'auteur (user) pour savoir qui me l'a envoyé
         
-        $memos = WrittenMemo::where('current_holder_id', Auth::id())
-            ->where('status', '!=', 'brouillon') 
-            ->with(['user', 'memos.entity']) // Charge l'auteur et les destinataires finaux
-            ->latest()
-            ->get();
 
-        $groupedMemos = WrittenMemo::where('user_id', Auth::id())
+        $groupedMemos = WrittenMemo::where('current_holder_id', Auth::id())
             ->has('memos')
             ->with(['memos.entity', 'user'])
             ->latest()
             ->get();
 
         return view('livewire.memos.incoming-memos', [
-            'memos' => $memos,
             'groupedMemos' => $groupedMemos
         ]);
     }

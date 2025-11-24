@@ -1,86 +1,106 @@
-<div>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-        @forelse ($memos as $memo)
+    @forelse($groupedMemos as $document)
 
-            <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 flex flex-col justify-between relative overflow-hidden h-full">
-                
-                <!-- Décoration coin -->
-                <div class="absolute top-0 right-0 w-24 h-24 bg-blue-100 opacity-50 transform rotate-45 translate-x-12 -translate-y-12 flex items-center justify-center">
-                    <svg class="w-12 h-12 text-blue-400 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                </div>
+        <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 flex flex-col justify-between relative overflow-hidden h-full">
+            
+            <!-- Décoration coin -->
+            <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 opacity-50 transform rotate-45 translate-x-12 -translate-y-12 flex items-center justify-center"></div>
 
-                <!-- Badge de provenance/Statut -->
-                <div class="absolute top-0 left-0 p-2">
-                    @if($memo->status == 'rejected')
-                        <span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded">Retourné (Rejet)</span>
-                    @else
-                        <span class="bg-orange-100 text-orange-600 text-xs font-bold px-2 py-1 rounded">À traiter</span>
-                    @endif
-                </div>
-
-                <div class="mt-4">
-                    <!-- Provenance (L'auteur initial du mémo) -->
-                    <div class="flex items-center text-gray-700 mb-2">
-                        <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                        <span class="text-sm font-medium">De : <span class="font-semibold">{{ $memo->user->first_name }} {{ $memo->user->last_name }}</span></span>
-                    </div>
-
-                    <!-- Service / Entité de l'auteur -->
-                    <div class="flex items-center text-gray-700 mb-2">
-                        <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        <span class="text-sm font-medium">Service : <span class="font-semibold">{{ $memo->user->service ?? 'N/A' }}</span></span>
-                    </div>
-
-                    <!-- Objet -->
-                    <h3 class="text-lg font-semibold text-gray-800 mt-4 mb-2 truncate" title="{{ $memo->object }}">
-                        {{ $memo->object }}
+            <div>
+                <!-- EN-TÊTE DE LA CARTE : Le Document -->
+                <div class="mb-4">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        Réf: #{{ $document->id }}
+                    </span>
+                    <h3 class="text-lg font-bold text-gray-800 leading-tight mt-1 truncate" title="{{ $document->object }}">
+                        {{ $document->object }}
                     </h3>
-                    
-                    <!-- Extrait du contenu (Optionnel) -->
-                    <p class="text-xs text-gray-500 line-clamp-2">
-                        {{ strip_tags($memo->content) }}
+                    <p class="text-xs text-gray-500 mt-1">
+                        Créé le {{ $document->created_at->format('d/m/Y à H:i') }}
                     </p>
                 </div>
 
-                <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
-                    <div class="flex items-center text-gray-500 text-sm">
-                        <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        Reçu le : {{ $memo->updated_at->format('d/m/Y') }}
-                    </div>
+                <!-- CORPS DE LA CARTE : La liste des destinataires -->
+                <div class="bg-gray-50 rounded-lg p-3 mb-4 max-h-40 overflow-y-auto custom-scrollbar">
+                    <h4 class="text-xs font-semibold text-gray-500 uppercase mb-2 border-b border-gray-200 pb-1">
+                        Destinataires & Actions
+                    </h4>
+                    
+                    <ul class="space-y-2">
+                        @foreach($document->memos as $attribution)
+                            <li class="flex justify-between items-start text-sm">
+                                <!-- Nom de l'entité -->
+                                <span class="font-medium text-gray-700 w-1/2">
+                                    {{ $attribution->entity->name ?? 'Entité inconnue' }}
+                                    @if($attribution->entity->acronym)
+                                        <span class="text-xs text-gray-400">({{ $attribution->entity->acronym }})</span>
+                                    @endif
+                                </span>
+                                
+                                <!-- Action demandée -->
+                                <span class="text-xs bg-white border border-gray-200 px-2 py-0.5 rounded text-purple-600 font-semibold w-1/2 text-right">
+                                    {{ $attribution->action }}
+                                </span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
 
-                    <!-- Boutons d'action -->
-                    <!-- Note: Ici tu devras réintégrer tes boutons d'action (Voir, Traiter, Rejeter) 
-                         en copiant la logique qu'on a fait dans DocsMemos -->
-                    <div class="flex space-x-2">
-                        <!-- Voir -->
-                        <button wire:click="" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+            <!-- PIED DE LA CARTE -->
+            <div class="flex justify-between items-center pt-4 border-t border-gray-100 mt-auto">
+                <div class="text-xs text-gray-400">
+                    {{ $document->memos->count() }} destinataire(s)
+                </div>
+
+                <!-- Boutons d'action sur le document global -->
+                <div class="flex space-x-2">
+                     <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    </button>
+                    
+                    <!-- BOUTON ENVOYER / TRAITER -->
+                    <!-- Visible seulement si JE SUIS le détenteur actuel OU si c'est un brouillon -->
+                    @if($document->current_holder_id == Auth::id() || ($document->user_id == Auth::id() && $document->status == 'brouillon'))
+                        <button wire:click="openSendModal({{ $document->id }})" class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" title="Transmettre / Valider">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                         </button>
                         
-                        <!-- Traiter / Transmettre (Bouton Vert) -->
-                        <button class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" title="Traiter / Transmettre">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                        </button>
-                    </div>
+                        <!-- BOUTON REJETER (Si je ne suis pas l'auteur) -->
+                        @if($document->user_id != Auth::id())
+                            <button wire:click="rejectMemo({{ $document->id }})" class="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition" title="Rejeter">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        @endif
+                    @endif
+                </div>
+
+                <!-- BADGE DE STATUT (En haut à gauche par exemple) -->
+                <div class="absolute top-0 left-0 p-2">
+                    @if($document->status == 'pending')
+                        <span class="bg-orange-100 text-orange-600 text-xs font-bold px-2 py-1 rounded">En traitement</span>
+                    @elseif($document->status == 'distributed')
+                        <span class="bg-green-100 text-green-600 text-xs font-bold px-2 py-1 rounded">Diffusé (Réf: {{ $document->reference_number }})</span>
+                    @elseif($document->status == 'rejected')
+                        <span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded">Rejeté</span>
+                    @else
+                        <span class="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">Brouillon</span>
+                    @endif
                 </div>
             </div>
 
-        @empty
-            <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12">
-                <div class="text-gray-400 mb-2">
-                    <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-                </div>
-                <p class="text-gray-500 text-lg">Votre boîte de réception est vide.</p>
-                <p class="text-gray-400 text-sm">Aucun mémo en attente de traitement.</p>
-            </div>
-        @endforelse
+        </div>
+
+    @empty
+        <div class="col-span-3 text-center py-10 text-gray-500">
+            Aucun mémo envoyé trouvé.
+        </div>
+    @endforelse
 
 
 
-
-        @if($isOpen)
+    @if($isOpen)
 
      <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
                 
@@ -321,5 +341,75 @@
             
     @endif
 
-    </div>
+    @if($isSendOpen)
+        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
+
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                    <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                        
+                        <form wire:submit.prevent="sendMemo">
+                            <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Transmettre le Mémo</h3>
+
+                                <!-- Sélection du destinataire -->
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Envoyer à :</label>
+                                    <select wire:model="next_user_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 py-2 px-3 border">
+                                        <option value="">Sélectionner un collaborateur...</option>
+                                        @foreach($usersList as $user)
+                                            <option value="{{ $user->id }}">
+                                                {{ $user->first_name }} {{ $user->last_name }} 
+                                                ({{ $user->poste ?? 'Employé' }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('next_user_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                </div>
+                                
+                                <!-- CAS SPÉCIAL : SECRÉTAIRE -->
+                                @if(strtolower(Auth::user()->poste) === 'secretaire')
+                                    <div class="mb-4 bg-yellow-50 p-3 rounded border border-yellow-200">
+                                        <label class="block text-sm font-bold text-yellow-800 mb-1">Numéro de Référence (Enregistrement)</label>
+                                        <input type="text" wire:model="reference_input" placeholder="Ex: 2024/001/DG" class="w-full rounded-md border-gray-300 shadow-sm">
+                                        @error('reference_input') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                    </div>
+                                @endif
+
+                                <!-- Commentaire -->
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Note / Commentaire (Optionnel)</label>
+                                    <textarea wire:model="comment" rows="3" class="w-full rounded-md border-gray-300 shadow-sm border p-2"></textarea>
+                                </div>
+
+                                <!-- Info Signature -->
+                                @if(in_array(strtolower(Auth::user()->poste), ['sous-directeur', 'directeur']))
+                                    <div class="flex items-center gap-2 text-green-600 text-sm bg-green-50 p-2 rounded mb-4">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        <span>Votre signature numérique sera apposée automatiquement.</span>
+                                    </div>
+                                @endif
+
+                            </div>
+
+                            <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                                <button type="submit" class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto">
+                                    @if(strtolower(Auth::user()->poste) === 'secretaire')
+                                        Enregistrer & Diffuser
+                                    @else
+                                        Transmettre
+                                    @endif
+                                </button>
+                                <button type="button" wire:click="closeSendModal" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                                    Annuler
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
 </div>

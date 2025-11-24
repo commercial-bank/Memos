@@ -126,7 +126,7 @@ class DocsMemos extends Component
         $memo->status = 'rejected';
         $memo->save();
 
-        $this->dispatch('dispatch-notify', message: 'Mémo rejeté.', type: 'error');
+        $this->dispatch('notify', message: 'Mémo rejeté.', type: 'error');
     }
 
     public function render()
