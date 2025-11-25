@@ -9,7 +9,7 @@
         >
             Mémos Entrants
             
-            <span class="ml-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">3</span>
+            <span class="ml-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">{{$notif}}</span>
         </button>
 
         <button
@@ -18,7 +18,7 @@
         >
             Mémos Brouillons
 
-            <span class="ml-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">{{$countB}}</span>
+           
         </button>
 
         <button
@@ -27,7 +27,7 @@
         >
             Mémos Documents
 
-            <span class="ml-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">2</span>
+            
         </button>
 
         <button

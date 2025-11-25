@@ -13,7 +13,7 @@ use Livewire\Volt\Component;
 new #[Layout('layouts.guest')] class extends Component {
         // J'ai retiré la validation 'email' stricte car LDAP utilise souvent des identifiants (ex: jdupont)
         #[Validate('required|string')]
-        public string $email = ''; 
+        public string $user_name = ''; 
 
         #[Validate('required|string')]
         public string $password = '';
@@ -38,7 +38,7 @@ new #[Layout('layouts.guest')] class extends Component {
             // Cas 1 : Authentification Standard (Si LdapRecord remplace le provider 'users')
             $credentials = [
                 // Changez 'email' ci-dessous par 'samaccountname', 'uid' ou 'mail' selon votre annuaire LDAP
-                'mail' => $this->email, 
+                'samaccountname' => $this->user_name, 
                 'password' => $this->password,
             ];
 
@@ -50,7 +50,7 @@ new #[Layout('layouts.guest')] class extends Component {
                 RateLimiter::hit($this->throttleKey());
 
                 throw ValidationException::withMessages([
-                    'email' => __('auth.failed'),
+                    'user_name' => __('auth.failed'),
                 ]);
             }
 
@@ -74,7 +74,7 @@ new #[Layout('layouts.guest')] class extends Component {
             $seconds = RateLimiter::availableIn($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => __('auth.throttle', [
+                'user_name' => __('auth.throttle', [
                     'seconds' => $seconds,
                     'minutes' => ceil($seconds / 60),
                 ]),
@@ -86,7 +86,7 @@ new #[Layout('layouts.guest')] class extends Component {
          */
         protected function throttleKey(): string
         {
-            return Str::transliterate(Str::lower($this->email).'|'.request()->ip());
+            return Str::transliterate(Str::lower($this->user_name).'|'.request()->ip());
         }
     }; 
 ?>
@@ -127,17 +127,17 @@ new #[Layout('layouts.guest')] class extends Component {
                         </span>
                         
                         {{-- MODIFICATIONS ICI : type="text" et name="user_name" --}}
-                        <input type="text" wire:model="email"
-                            id="email" 
-                            name="email" 
-                            value="{{ old('email') }}" 
+                        <input type="text" wire:model="user_name"
+                            id="user_name" 
+                            name="user_name" 
+                            value="{{ old('user_name') }}" 
                             class="w-full pl-12 pr-6 py-4 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#b8962f] placeholder-gray-400 text-white text-lg" 
                             placeholder="Identifiant (ex: cbc_digitalis)" 
                             style="background-color: #5c5c5c;" 
                             required 
                             autofocus
                         >
-                        <x-input-error :messages="$errors->get('email')" class="mt-2" />
+                        <x-input-error :messages="$errors->get('user_name')" class="mt-2" />
                     </div>
                 </div>
 

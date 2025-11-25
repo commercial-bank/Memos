@@ -37,6 +37,7 @@ class User extends Authenticatable implements LdapAuthenticatable
         'password',
         'poste',
         'entity',
+        'entity_sigle',
         'n1',
         'service'
     ];

@@ -13,7 +13,7 @@
           </svg>
         </div>
         <div>
-          <h3 class="text-lg font-bold text-slate-800">Courriers & Mémos</h3>
+          <h3 class="text-lg font-bold text-slate-800">Mémos</h3>
           <p class="text-sm text-slate-500">Module de gestion</p>
         </div>
       </div>

@@ -23,7 +23,7 @@
 
                           <div class="flex items-center text-gray-700 mb-2">
                               <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                              <span class="text-sm font-medium">Author: <span class="font-semibold">{{ $memo->user->first_name }} {{ $memo->user->last_name }} {{$memo->id}}</span></span>
+                              <span class="text-sm font-medium">Author: <span class="font-semibold">{{ $memo->user->first_name }} {{ $memo->user->last_name }}</span></span>
                           </div>
 
                           <h3 class="text-lg font-semibold text-gray-800 mt-4 mb-2 truncate">{{ $memo->object }}</h3>
@@ -41,6 +41,9 @@
                               <button wire:click="viewWritten({{ $memo->id }})"   class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition duration-150 ease-in-out" title="Voir les détails">
                                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                               </button>
+
+                           
+                                
                               <button wire:click="editWritten({{ $memo->id }})" class="p-2 rounded-full bg-yellow-100 text-yellow-600 hover:bg-yellow-200 transition duration-150 ease-in-out" title="Modifier">
                                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                               </button>
@@ -53,6 +56,7 @@
                               <button wire:click="deleteWritten({{ $memo->id }})" class="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition duration-150 ease-in-out" title="Rejeter">
                                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                               </button>
+
 
                           </div>
                   </div>
@@ -124,12 +128,12 @@
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold w-[35%] align-top">Date : {{ $date }}</td>
                                                 <td class="border border-black p-1 pl-2 w-[30%]"><span class="checkbox-square"></span> Faire le nécessaire</td>
-                                                <td class="border border-black p-1 text-center font-bold w-[35%] bg-gray-50">Toutes les Directions</td>
+                                                <td class="border border-black p-1 text-center font-bold w-[35%] bg-gray-50">Destinataires</td>
                                             </tr>
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold align-top">N° : 298/DGR/SDGR/WT</td>
                                                 <td class="border border-black p-1 pl-2"><span class="checkbox-square"></span> Prendre connaissance</td>
-                                                <td class="border border-black p-1 text-center font-bold">Direction Générale</td>
+                                                <td class="border border-black p-1 text-center font-bold"></td>
                                             </tr>
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold align-top">Emetteur : {{ $user_first_name }} {{ $user_last_name }}</td>
@@ -156,7 +160,7 @@
                                     </div>
 
                                     <!-- PIED DE PAGE -->
-                                    <div class="mt-8 pt-4">
+                                    <!--div class="mt-8 pt-4">
                                         <p class="mb-8 text-sm italic">Nous restons à votre disposition pour tout besoin d'accompagnement.</p>
 
                                         <div class="flex justify-between items-end px-4 mb-2">
@@ -172,7 +176,7 @@
                                         </div>
 
                                         <div class="text-right text-[10px] text-gray-500 italic mt-2">FOR-ME-07-V1</div>
-                                    </div>
+                                    </div -->
 
                                 </div> 
                             </div>

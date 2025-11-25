@@ -45,7 +45,7 @@ return [
             'driver' => 'ldap',
             'model' => App\Ldap\User::class, // Modèle LDAP
             'rules' => [],
-            'authenticate_with' => env('LDAP_AUTHENTICATE_WITH', 'mail'),
+            'authenticate_with' => env('LDAP_AUTHENTICATE_WITH', 'samaccountname'),
             'database' => [
                 'model' => App\Models\User::class, // Modèle Local
                 'sync_passwords' => false,
@@ -55,8 +55,7 @@ return [
                     'first_name' => 'givenname',
                     'last_name'  => 'sn',
                     'email'      => 'mail',
-                    'poste'      => 'title',
-                    'entity'     => 'department',
+                  
                 ],
                 'sync_existing'=>[
                     'email'=>'mail'

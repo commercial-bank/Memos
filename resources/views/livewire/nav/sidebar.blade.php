@@ -180,9 +180,9 @@
                                   {{ $isCollapsed ? 'mr-0' : 'mr-4' }}
                                   {{ $activeTab == 'profile' ? 'text-white' : 'text-[#e0e0e0]' }}"></i>
                         <span class="nav-text transition-opacity duration-300 ease-in-out whitespace-nowrap overflow-hidden
-                                     {{ $isCollapsed ? 'opacity-0 w-0' : 'opacity-100' }}">Profile</span>
+                                     {{ $isCollapsed ? 'opacity-0 w-0' : 'opacity-100' }}">Profil</span>
                         @if($isCollapsed)
-                            <span class="tooltip absolute left-[70px] -translate-y-1/2 bg-[#2a2a2a] p-2 rounded-md shadow-lg text-sm invisible group-hover:visible z-10">Profile</span>
+                            <span class="tooltip absolute left-[70px] -translate-y-1/2 bg-[#2a2a2a] p-2 rounded-md shadow-lg text-sm invisible group-hover:visible z-10">Profil</span>
                         @endif
                     </a>
                 </li>

@@ -4,6 +4,7 @@ namespace App\Livewire\Memos;
 
 use App\Models\User;
 use Livewire\Component;
+use App\Models\MemoHistory;
 use App\Models\WrittenMemo;
 use Illuminate\Support\Facades\Auth;
 
@@ -22,11 +23,17 @@ class DocsMemos extends Component
     // Variables pour stocker les infos du mémo sélectionné
     public $object = '';
     public $content = '';
+    public $signature_sd = '';
+    public $signature_dir = '';
     public $date = '';
     public $user_first_name = '';
     public $user_last_name = '';
     public $user_service = '';
     public $user_entity = '';
+
+    // NOUVEAU : Variables pour l'historique
+    public $isHistoryOpen = false;
+    public $memoHistory = [];
 
     // Variable tableau pour stocker les destinataires triés par action
     public $recipientsByAction = [];
@@ -43,6 +50,8 @@ class DocsMemos extends Component
         // 2. Remplir les variables
         $this->object = $memo->object;
         $this->content = $memo->content;
+        $this->signature_sd = $memo->signature_sd;
+        $this->signature_dir = $memo->signature_dir;
         $this->date = $memo->created_at->format('d/m/Y');
         
         $this->user_first_name = $memo->user->first_name;
@@ -76,6 +85,23 @@ class DocsMemos extends Component
         $this->isSendOpen = false;
     }
 
+    public function openHistoryModal($id)
+    {
+        // On récupère l'historique trié par date (du plus récent au plus vieux ou inversement)
+        $this->memoHistory = MemoHistory::where('written_memo_id', $id)
+            ->with('actor')
+            ->orderBy('created_at', 'desc') // Le plus récent en haut
+            ->get();
+
+        $this->isHistoryOpen = true;
+    }
+
+    public function closeHistoryModal()
+    {
+        $this->isHistoryOpen = false;
+    }
+
+
     // --- 2. LOGIQUE MÉTIER D'ENVOI (LE COEUR DU SYSTÈME) ---
     public function sendMemo()
     {
@@ -84,6 +110,15 @@ class DocsMemos extends Component
         ]);
 
         $memo = WrittenMemo::findOrFail($this->selectedMemoId);
+
+        // === AJOUT : ENREGISTRER L'HISTORIQUE ===
+        MemoHistory::create([
+            'written_memo_id' => $memo->id,
+            'actor_id' => Auth::id(),
+            'action' => (strtolower(Auth::user()->poste) === 'secretaire') ? 'validation' : 'transfer',
+            'comment' => $this->comment
+        ]);
+
         $currentUser = Auth::user();
 
         // LOGIQUE DES SIGNATURES AUTOMATIQUES SELON LE POSTE
@@ -114,7 +149,7 @@ class DocsMemos extends Component
         $memo->save();
 
         $this->isSendOpen = false;
-        $this->dispatch('dispatch-notify', message: 'Mémo transmis avec succès !', type: 'success');
+        $this->dispatch('notify', message: 'Mémo transmis avec succès !', type: 'success');
     }
 
     // --- 3. REJETER (RETOUR À L'ENVOYEUR OU CRÉATEUR) ---
@@ -131,6 +166,7 @@ class DocsMemos extends Component
 
     public function render()
     {
+        
         $groupedMemos = WrittenMemo::where('user_id', Auth::id())
             ->has('memos')
             ->with(['memos.entity', 'user'])

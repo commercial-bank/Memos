@@ -15,6 +15,33 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/zonetext.js','resources/css/sidebar.css','resources/css/navbar.css','resources/css/dashcard.css'])
         @livewireStyles
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <script>
+            function downloadPDF() {
+                const element = document.getElementById('memo-to-print');
+                
+                // Options mises à jour
+                const opt = {
+                    margin:       0, 
+                    filename:     'Memorandum.pdf',
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { 
+                        scale: 2, 
+                        useCORS: true,
+                        letterRendering: true // Améliore le rendu du texte
+                    },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    
+                    // AJOUTEZ CETTE SECTION POUR GÉRER LES COUPURES
+                    pagebreak: { 
+                        mode: ['avoid-all', 'css', 'legacy'],
+                        avoid: 'tr' // Évite aussi de couper les lignes du tableau
+                    }
+                };
+
+                html2pdf().set(opt).from(element).save();
+            }
+        </script>
     </head>
     <body class="font-sans antialiased">
 

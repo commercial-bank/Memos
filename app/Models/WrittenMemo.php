@@ -13,6 +13,13 @@ class WrittenMemo extends Model
         'type_memo',
         'dest_status',
         'user_id',
+        'current_holder_id',
+        'status',
+        'signature_sd',
+        'signature_dir',
+        'reference_number',
+        'workflow_comment',
+        'previous_holder_id'
     ];
 
     public function user()

@@ -85,8 +85,35 @@ class Memos extends Component
 
     public function render()
     {
+        $countincong=0;
+        $userId = Auth::id(); 
+
+        $groupedMemos = WrittenMemo::where('current_holder_id', Auth::id())
+            ->has('memos')
+            ->with(['memos.entity', 'user'])
+            ->latest()
+            ->get();
+
+        // B. Mémos reçus (Circuit de diffusion - Je suis secrétaire d'entité ou directeur destinataire)
+        // On récupère les WrittenMemos via la table pivot où je suis le détenteur local
+        $distributedMemos = WrittenMemo::whereHas('memos', function($q) use ($userId) {
+                $q->where('local_holder_id', $userId);
+            })
+            ->with(['user', 'memos' => function($q) use ($userId) {
+                // On charge uniquement mon attribution pour savoir mon statut local
+                $q->where('local_holder_id', $userId);
+            }, 'memos.entity'])
+            ->get();
+
+       
+        $countincong = $groupedMemos->merge($distributedMemos)->count();
         // Rafraichir la liste à chaque rendu
         $this->writtenMemo = WrittenMemo::latest()->get(); 
-        return view('livewire.memos.memos');
+
+        $this->countB = auth()->user()->writtenMemos()->count();
+
+        return view('livewire.memos.memos', [
+            'notif' => $countincong
+        ]);
     }
 }

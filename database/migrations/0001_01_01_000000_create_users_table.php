@@ -34,6 +34,7 @@ return new class extends Migration
                 // INFO MÉTIER (Tout en nullable, c'est parfait)
                 $table->string('poste')->nullable();
                 $table->string('entity')->nullable();
+                $table->string('entity_sigle')->nullable();
                 $table->string('n1')->nullable();
                 $table->string('service')->nullable();
                 
