@@ -187,9 +187,6 @@ class DraftedMemos extends Component
 
     
 
-    
-
-
     public function viewWritten($id)
     {
         $written = WrittenMemo::findOrFail($id);

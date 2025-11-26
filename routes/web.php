@@ -4,7 +4,7 @@ use App\Livewire\Memos\Memos;
 use App\Livewire\Actions\Logout;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/', 'welcome');
+Route::view('/', 'welcome')->name('memo.store');
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
@@ -15,6 +15,6 @@ Route::view('profile', 'profile')
     ->name('profile');
 
 
-Route::post('/memo/store', [Memos::class,'store'])->name('memo.store');
+Route::get('/verify-memo/{token}', [MemoVerificationController::class, 'verify'])->name('memo.verify');
 
 require __DIR__.'/auth.php';

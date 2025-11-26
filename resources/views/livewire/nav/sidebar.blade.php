@@ -51,7 +51,7 @@
                     </a>
                 </li>
                 <li class="mb-1">
-                    <a href="#" wire:click.prevent="selectTab('analytic')"
+                    <a href="#" wire:click.prevent="selectTab('courriers')"
                        class="flex items-center rounded-lg py-3 transition-colors duration-200 ease-in-out
                               {{ $activeTab == 'analytic' ? 'bg-[#b8962f] text-white' : 'text-[#e0e0e0] hover:bg-gray-700/50' }}
                               {{ $isCollapsed ? 'justify-center px-0' : 'px-4' }}">

@@ -6,6 +6,7 @@ use App\Models\User;
 use Livewire\Component;
 use App\Models\MemoHistory;
 use App\Models\WrittenMemo;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 
 class IncomingMemos extends Component
@@ -18,6 +19,7 @@ class IncomingMemos extends Component
     public $isSendOpen = false; // Modal Envoyer
     public $isRejectOpen = false; // Modal Rejeter
     public $rejection_comment = ''; // Le motif du rejet
+    public ?WrittenMemo $sign_memo = null;
 
 
 
@@ -142,6 +144,15 @@ class IncomingMemos extends Component
     {
         // Logique simple : on renvoie au créateur initial
         $memo = WrittenMemo::findOrFail($id);
+
+        // === AJOUT : ENREGISTRER L'HISTORIQUE ===
+        MemoHistory::create([
+            'written_memo_id' => $memo->id,
+            'actor_id' => Auth::id(),
+            'action' => (strtolower(Auth::user()->poste) === 'secretaire') ? 'validation' : 'transfer',
+            'comment' => $this->comment
+        ]);
+        
         $memo->current_holder_id = $memo->user_id; // Retour au créateur
         $memo->status = 'rejected';
         $memo->save();
@@ -190,20 +201,14 @@ class IncomingMemos extends Component
             'comment' => $this->comment
         ]);
 
-        // 1. GESTION DES SIGNATURES
-        if (strtolower($currentUser->poste) === 'sous-directeur') {
-            $memo->signature_sd = $currentUser->first_name . ' ' . $currentUser->last_name;
-        }
-        if (strtolower($currentUser->poste) === 'directeur') {
-            $memo->signature_dir = $currentUser->first_name . ' ' . $currentUser->last_name;
-        }
+       
 
         // 2. SAUVEGARDE DU "PRÉCÉDENT DÉTENTEUR" (Pour le filtre au prochain tour)
         $memo->previous_holder_id = Auth::id();
         $memo->workflow_comment = $this->comment;
 
         // 3. CAS SPÉCIAL : SECRÉTAIRE GÉNÉRALE (FIN DU CIRCUIT PRINCIPAL)
-        if (strtolower($currentUser->poste) === 'secretaire') {
+        if (strtolower($currentUser->poste) === 'Secretaire') {
             $this->validate(['reference_input' => 'required']);
             
             $memo->reference_number = $this->reference_input;
@@ -230,6 +235,36 @@ class IncomingMemos extends Component
     }
 
 
+    public function signDocument($id)
+    {
+        $memo = WrittenMemo::findOrFail($id);
+        // 1. Générer un token unique sécurisé
+        $token = Str::random(64); 
+
+        if(Auth::user()->poste === 'Sous-Directeur')
+        {
+          
+            $memo->update([
+                'signature_sd' => $token
+            ]);
+            
+            $this->dispatch('notify', message: "signer avec succès !");
+
+        }else{
+
+            $memo->update([
+                'signature_dir' => $token
+            ]);
+            
+            $this->dispatch('notify', message: "signer avec succès !");
+
+        }
+
+
+
+    }
+
+
     // --- FONCTION PRIVÉE POUR ENVOYER AUX SECRÉTAIRES DESTINATAIRES ---
     private function distributeToEntities($memo)
     {
@@ -239,7 +274,7 @@ class IncomingMemos extends Component
         foreach ($attributions as $attribution) {
             // On cherche la secrétaire de cette entité spécifique
             // Hypothèse : La table users a 'poste'='secretaire' et 'entity'='Nom Entité' ou un 'entity_id'
-            $secretary = User::where('poste', 'secretaire')
+            $secretary = User::where('poste', 'Secretaire')
                              ->where('entity', $attribution->entity->name) // Ou via entity_id si tu as la relation
                              ->first();
 

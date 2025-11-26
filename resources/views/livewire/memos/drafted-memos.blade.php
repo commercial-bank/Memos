@@ -83,11 +83,6 @@
                         <span>&larr; Retour</span>
                     </button>
 
-                    <!-- Bouton Imprimer -->
-                    <button onclick="window.print()" class="pointer-events-auto bg-white text-gray-900 hover:bg-gray-100 px-6 py-2 rounded-full shadow-xl font-bold flex items-center gap-2 transition transform hover:scale-105 border border-gray-300">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                        <span>Imprimer</span>
-                    </button>
                 </div>
 
                 <!-- 3. CONTENEUR DE LA FEUILLE (Scrollable) -->
@@ -106,16 +101,16 @@
                                     <!-- EN-TÊTE -->
                                     <div class="flex flex-col items-center justify-center mb-6 text-center">
                                         <div class="mb-2">
-                                            <div class="w-16 h-16 flex items-center justify-center mx-auto mb-1">
-                                                <img src="{{ asset('images/log.jpg') }}" alt="logo" class="w-full h-full object-contain">
+                                            <div class="w-17 h-16 flex items-center justify-center mx-auto mb-1">
+                                                <img src="{{ asset('images/logo.jpg') }}" alt="logo" class="w-full h-full object-contain">
                                             </div>
                                         </div>
 
-                                        <div class="font-bold text-xl tracking-tight text-gray-900 font-sans">CommercialBank</div>
-                                        <div class="text-[9px] text-gray-600 uppercase tracking-widest mb-4">Let's build the future</div>
                                         
                                         <h2 class="font-bold text-xs uppercase text-gray-800">{{ $user_entity ?? 'DIRECTION' }}</h2>
-                                        <h1 class="font-extrabold text-2xl uppercase mt-2 italic border-b-2 border-black pb-1 px-4 inline-block">Memorandum</h1>
+                                        <h1 class="font-['Arial'] font-extrabold text-2xl uppercase mt-2 italic  inline-block">
+                                            Memorandum
+                                        </h1>
                                     </div>
 
                                     <!-- TABLEAU -->
@@ -124,11 +119,23 @@
                                             .checkbox-square { display: inline-block; width: 12px; height: 12px; border: 1px solid black; margin-right: 6px; vertical-align: middle; }
                                         </style>
                                         
+                                        <!-- LIGNE D'EN-TÊTE ALIGNÉE -->
+                                        <div class="flex w-full text-[13px] font-bold font-['Arial'] pb-1 text-black">
+                                            <!-- Espace vide au-dessus de la 1ère colonne (35%) -->
+                                            <div class="w-[35%]"></div>
+                                            
+                                            <!-- "Prière de :" centré au-dessus de la 2ème colonne (30%) -->
+                                            <div class="w-[30%] text-center">Prière de :</div>
+                                            
+                                            <!-- "Destinataires :" au-dessus de la 3ème colonne (35%) -->
+                                            <div class="w-[35%] pl-8">Destinataires :</div>
+                                        </div>
+                                        
                                         <table class="w-full border-collapse border border-black text-[13px] font-sans text-black">
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold w-[35%] align-top">Date : {{ $date }}</td>
                                                 <td class="border border-black p-1 pl-2 w-[30%]"><span class="checkbox-square"></span> Faire le nécessaire</td>
-                                                <td class="border border-black p-1 text-center font-bold w-[35%] bg-gray-50">Destinataires</td>
+                                                <td class="border border-black p-1 text-center font-bold w-[35%] bg-gray-50"></td>
                                             </tr>
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold align-top">N° : 298/DGR/SDGR/WT</td>
@@ -154,29 +161,15 @@
                                             <p class="mb-1"><span class="font-bold text-[15px] underline">Objet :</span> <span class="uppercase font-bold">{{ $object }} </span></p>
                                         </div>
 
-                                        <div class="text-justify space-y-3 text-[14px] leading-relaxed font-serif text-gray-900">
-                                            {{$content}}
+                                        <div class="mb-6">
+                                            <p class="mb-1"><span class="font-bold text-[15px] underline">Concerne :</span> <span class="lowercase">{{ $object }} </span></p>
                                         </div>
+
+                                        <div class="font-['Arial'] text-justify text-[14px] leading-relaxed text-gray-900 content-html">
+                                            {!! $content !!}
+                                        </div>
+
                                     </div>
-
-                                    <!-- PIED DE PAGE -->
-                                    <!--div class="mt-8 pt-4">
-                                        <p class="mb-8 text-sm italic">Nous restons à votre disposition pour tout besoin d'accompagnement.</p>
-
-                                        <div class="flex justify-between items-end px-4 mb-2">
-                                            <div class="text-center w-1/3">
-                                                <div class="font-bold text-black text-sm mb-12 uppercase">Wilfried Lionel TALOM</div>
-                                                <div class="text-[10px] text-gray-700 leading-tight border-t border-gray-400 pt-1">Chef de Département Analyse &<br>Traitement des Risques</div>
-                                            </div>
-
-                                            <div class="text-center w-1/3">
-                                                <div class="font-bold text-black text-sm mb-12 uppercase">Arsène TAGU TCHOUA</div>
-                                                <div class="text-[10px] text-gray-700 leading-tight border-t border-gray-400 pt-1">Directeur de la Gestion des Risques</div>
-                                            </div>
-                                        </div>
-
-                                        <div class="text-right text-[10px] text-gray-500 italic mt-2">FOR-ME-07-V1</div>
-                                    </div -->
 
                                 </div> 
                             </div>
@@ -245,13 +238,70 @@
                                         @error('type_memo') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                                     </div>
 
-                                    <!-- Champ Contenu -->
+                                    <!-- Champ Contenu (Éditeur Riche) -->
                                     <div class="mb-4">
                                         <label for="content" class="block text-sm font-medium text-gray-700 mb-1">Contenu</label>
-                                        <!-- J'ai ajusté la hauteur min/max pour que ça reste joli centré -->
-                                        <textarea wire:model="content" id="content" rows="4" class="w-full p-3 min-h-[150px] max-h-[300px] rounded-md border border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 outline-none text-gray-800 bg-white"></textarea>
+                                        
+                                        <div wire:ignore 
+                                            class="rounded-md shadow-sm"
+                                            x-data="{
+                                                content: @entangle('content'),
+                                                initQuill() {
+                                                    const quill = new Quill(this.$refs.quillEditor, {
+                                                        theme: 'snow',
+                                                        placeholder: 'Rédigez votre mémo ici...',
+                                                        modules: {
+                                                            toolbar: [
+                                                                ['bold', 'italic', 'underline'], // Gras, Italique, Souligné
+                                                                [{ 'list': 'ordered'}, { 'list': 'bullet' }], // Listes
+                                                                [{ 'align': [] }], // Alignement
+                                                                ['clean'] // Effacer formatage
+                                                            ]
+                                                        }
+                                                    });
+
+                                                    // Charger le contenu initial s'il existe (édition)
+                                                    if (this.content) {
+                                                        quill.root.innerHTML = this.content;
+                                                    }
+
+                                                    // Synchroniser Quill vers Livewire quand on tape
+                                                    quill.on('text-change', () => {
+                                                        this.content = quill.root.innerHTML;
+                                                    });
+                                                }
+                                            }"
+                                            x-init="initQuill()"
+                                        >
+                                            <!-- Le conteneur visuel de l'éditeur -->
+                                            <!-- J'ai reporté vos classes CSS ici pour le design -->
+                                            <div class="bg-white border border-gray-300 rounded-md overflow-hidden focus-within:border-yellow-500 focus-within:ring-1 focus-within:ring-yellow-500 transition-all duration-200">
+                                                <!-- La zone de saisie Quill -->
+                                                <div x-ref="quillEditor" class="min-h-[150px] max-h-[300px] text-gray-800 text-base font-sans"></div>
+                                            </div>
+                                        </div>
+
                                         @error('content') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                                     </div>
+
+                                    <!-- CSS Personnalisé pour harmoniser la barre d'outils avec votre thème -->
+                                    <style>
+                                        /* Ajustement de la barre d'outils Quill pour qu'elle soit jolie */
+                                        .ql-toolbar.ql-snow {
+                                            border: none;
+                                            border-bottom: 1px solid #e5e7eb;
+                                            background-color: #f9fafb;
+                                        }
+                                        .ql-container.ql-snow {
+                                            border: none;
+                                        }
+                                        /* Police et taille dans l'éditeur */
+                                        .ql-editor {
+                                            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                                            font-size: 0.95rem; 
+                                            line-height: 1.5;
+                                        }
+                                    </style>
                                 </div>
                                 
                                 <!-- Pied du modal (Boutons) -->

@@ -34,8 +34,8 @@ class TopBar extends Component
                 $this->currentContent = 'memos-content';
                 $this->navbarTitle = 'Memos';
                 break;
-            case 'analytic':
-                $this->currentContent = 'analytic-content';
+            case 'courriers':
+                $this->currentContent = 'courriers-content';
                 $this->navbarTitle = 'courriers';
                 break;
             case 'projects':

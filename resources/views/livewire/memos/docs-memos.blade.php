@@ -3,64 +3,64 @@
     @forelse($groupedMemos as $document)
 
         <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 flex flex-col justify-between relative overflow-hidden h-full">
-            
-            <!-- Décoration coin -->
-            <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 opacity-50 transform rotate-45 translate-x-12 -translate-y-12 flex items-center justify-center"></div>
 
-            <div>
-                <!-- EN-TÊTE DE LA CARTE : Le Document -->
-                <div class="mb-4">
-                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Réf: #
-                    </span>
-                    <h3 class="text-lg font-bold text-gray-800 leading-tight mt-1 truncate" title="{{ $document->object }}">
-                        {{ $document->object }}
-                    </h3>
-                    <p class="text-xs text-gray-500 mt-1">
-                        Créé le {{ $document->created_at->format('d/m/Y à H:i') }}
-                    </p>
+            <!-- BADGE DE STATUT (Positionné en absolu en haut à gauche) -->
+            <div class="absolute top-0 left-0 z-10">
+                @if($document->status == 'pending')
+                    <span class="bg-orange-100 text-orange-600 text-xs font-bold px-3 py-1 rounded-br-lg shadow-sm">En traitement</span>
+                @elseif($document->status == 'distributed')
+                    <span class="bg-green-100 text-green-600 text-xs font-bold px-3 py-1 rounded-br-lg shadow-sm">Diffusé</span>
+                @elseif($document->status == 'rejected')
+                    <span class="bg-red-100 text-red-600 text-xs font-bold px-3 py-1 rounded-br-lg shadow-sm">Rejeté</span>
+                @else
+                    <span class="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-br-lg shadow-sm">Brouillon</span>
+                @endif
+            </div>
+
+            <!-- Décoration coin (conservée mais réduite) -->
+            <div class="absolute top-0 right-0 w-16 h-16 bg-blue-50 opacity-50 transform rotate-45 translate-x-8 -translate-y-8 pointer-events-none"></div>
+
+            <div class="mt-6"> <!-- Marge ajoutée car le badge est en absolute -->
+                
+                <!-- EN-TÊTE : Le Document -->
+                <div class="mb-3 relative">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                                Réf: #{{ $document->reference_number ?? '---' }}
+                            </span>
+                            <h3 class="text-lg font-bold text-gray-800 leading-tight mt-1 line-clamp-2" title="{{ $document->object }}">
+                                {{ $document->object }}
+                            </h3>
+                            <p class="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                {{ $document->created_at->format('d/m/Y à H:i') }}
+                            </p>
+                        </div>
+                    </div>
                 </div>
-                <!-- AJOUT ICI : MOTIF DU REJET -->
-                    @if($document->status == 'rejected' && $document->workflow_comment)
-                        <div class="mb-4 bg-red-50 border-l-4 border-red-500 p-3 rounded-r-md shadow-sm">
-                            <div class="flex items-start">
-                                <div class="flex-shrink-0">
-                                    <!-- Icône Attention -->
-                                    <svg class="h-4 w-4 text-red-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                </div>
-                                <div class="ml-3">
-                                    <h3 class="text-xs font-bold text-red-800 uppercase tracking-wide">
-                                        Motif du rejet :
-                                    </h3>
-                                    <div class="mt-1 text-xs text-red-700 italic font-medium">
-                                        "{{ $document->workflow_comment }}"
-                                    </div>
-                                </div>
+
+                <!-- MOTIF DU REJET -->
+                @if($document->status == 'rejected' && $document->workflow_comment)
+                    <div class="mb-4 bg-red-50 border-l-4 border-red-500 p-2.5 rounded-r-md">
+                        <div class="flex">
+                            <div class="ml-1">
+                                <p class="text-xs text-red-700 font-medium italic">"{{ $document->workflow_comment }}"</p>
                             </div>
                         </div>
-                    @endif
+                    </div>
+                @endif
 
-                <!-- CORPS DE LA CARTE : La liste des destinataires -->
-                <div class="bg-gray-50 rounded-lg p-3 mb-4 max-h-40 overflow-y-auto custom-scrollbar">
-                    <h4 class="text-xs font-semibold text-gray-500 uppercase mb-2 border-b border-gray-200 pb-1">
-                        Destinataires & Actions
-                    </h4>
-                    
+                <!-- LISTE DES DESTINATAIRES -->
+                <div class="bg-gray-50 rounded-lg p-3 mb-3 max-h-32 overflow-y-auto custom-scrollbar border border-gray-100">
+                    <h4 class="text-[10px] font-bold text-gray-400 uppercase mb-2">Destinataires</h4>
                     <ul class="space-y-2">
                         @foreach($document->memos as $attribution)
-                            <li class="flex justify-between items-start text-sm">
-                                <!-- Nom de l'entité -->
-                                <span class="font-medium text-gray-700 w-1/2">
-                                    {{ $attribution->entity->name ?? 'Entité inconnue' }}
-                                    @if($attribution->entity->acronym)
-                                        <span class="text-xs text-gray-400">({{ $attribution->entity->acronym }})</span>
-                                    @endif
+                            <li class="flex justify-between items-center text-xs">
+                                <span class="font-medium text-gray-700 truncate w-2/3" title="{{ $attribution->entity->name }}">
+                                    {{ $attribution->entity->acronym ?? Str::limit($attribution->entity->name, 20) }}
                                 </span>
-                                
-                                <!-- Action demandée -->
-                                <span class="text-xs bg-white border border-gray-200 px-2 py-0.5 rounded text-purple-600 font-semibold w-1/2 text-right">
+                                <span class="px-1.5 py-0.5 rounded text-[10px] bg-white border border-gray-200 text-purple-600 font-semibold whitespace-nowrap">
                                     {{ $attribution->action }}
                                 </span>
                             </li>
@@ -69,52 +69,66 @@
                 </div>
             </div>
 
-            <!-- PIED DE LA CARTE -->
-            <div class="flex justify-between items-center pt-4 border-t border-gray-100 mt-auto">
-                <div class="text-xs text-gray-400">
-                    {{ $document->memos->count() }} destinataire(s)
+            <!-- NOUVELLE SECTION : ZONE QR CODES -->
+
+            <!-- Cette section est placée en bas du contenu principal, avant le footer -->
+            <div class="flex justify-between items-center bg-white border-t border-dashed border-gray-200 pt-3 mb-3">
+                <div class="text-xs text-gray-400 font-medium">
+                    Codes de suivi :
+                </div>
+                <div class="flex space-x-3">
+
+                @if($document->signature_sd)
+                    <!-- QR CODE 1 : Interne -->
+                    <div class="group flex flex-col items-center">
+                        <div class="mb-2">
+                            {!! QrCode::size(100)->generate(route('memo.verify', ['token' => $document->signature_sd])) !!}
+                        </div>
+                        <span class="text-[9px] text-gray-400 mt-0.5 uppercase">Sous-Directeur</span>
+                    </div>
+                @endif
+
+                @if($document->signature_dir)
+                    <!-- QR CODE 2 : Public / Authentification -->
+                    <div class="group flex flex-col items-center">
+                        <div class="mb-2">
+                            {!! QrCode::size(100)->generate(route('memo.verify', ['token' => $document->signature_dir])) !!}
+                        </div>
+                        <span class="text-[9px] text-gray-400 mt-0.5 uppercase">Directeur</span>
+                    </div>
+                @endif
+
+                </div>
+            </div>
+
+            <!-- PIED DE LA CARTE : ACTIONS -->
+            <div class="flex justify-between items-center pt-3 border-t border-gray-100 mt-auto">
+                <div class="text-xs text-gray-400 font-medium">
+                    {{ $document->memos->count() }} acteur(s)
                 </div>
 
-                <!-- Boutons d'action sur le document global -->
-                <div class="flex space-x-2">
-                     <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
+                <div class="flex space-x-1.5">
+                    <button wire:click="viewDocument({{ $document->id }})" class="p-1.5 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition border border-transparent hover:border-blue-200">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                     </button>
-                    <button wire:click="openHistoryModal({{ $document->id }})" class="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition" title="Historique du circuit">
-                        <!-- Icone Horloge -->
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    
+                    <button wire:click="openHistoryModal({{ $document->id }})" class="p-1.5 rounded-md bg-gray-50 text-gray-600 hover:bg-gray-100 transition border border-transparent hover:border-gray-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </button>
                     
-                    <!-- BOUTON ENVOYER / TRAITER -->
-                    <!-- Visible seulement si JE SUIS le détenteur actuel OU si c'est un brouillon -->
                     @if($document->current_holder_id == Auth::id() || ($document->user_id == Auth::id() && $document->status == 'brouillon'))
-                        <button wire:click="openSendModal({{ $document->id }})" class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" title="Transmettre / Valider">
+                        <button wire:click="openSendModal({{ $document->id }})" class="p-1.5 rounded-md bg-green-50 text-green-600 hover:bg-green-100 transition border border-transparent hover:border-green-200">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                         </button>
                         
-                        <!-- BOUTON REJETER (Si je ne suis pas l'auteur) -->
                         @if($document->user_id != Auth::id())
-                            <button wire:click="rejectMemo({{ $document->id }})" class="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition" title="Rejeter">
+                            <button wire:click="rejectMemo({{ $document->id }})" class="p-1.5 rounded-md bg-red-50 text-red-600 hover:bg-red-100 transition border border-transparent hover:border-red-200">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>
                         @endif
                     @endif
                 </div>
-
-                <!-- BADGE DE STATUT (En haut à gauche par exemple) -->
-                <div class="absolute top-0 left-0 p-2">
-                    @if($document->status == 'pending')
-                        <span class="bg-orange-100 text-orange-600 text-xs font-bold px-2 py-1 rounded">En traitement</span>
-                    @elseif($document->status == 'distributed')
-                        <span class="bg-green-100 text-green-600 text-xs font-bold px-2 py-1 rounded">Diffusé (Réf: {{ $document->reference_number }})</span>
-                    @elseif($document->status == 'rejected')
-                        <span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded">Rejeté</span>
-                    @else
-                        <span class="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">Brouillon</span>
-                    @endif
-                </div>
             </div>
-
         </div>
 
     @empty
@@ -126,239 +140,153 @@
 
 
     @if($isOpen)
+        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            
+            <!-- Overlay -->
+            <div wire:click="closeModal" class="fixed inset-0 bg-gray-900 bg-opacity-90 transition-opacity backdrop-blur-sm cursor-pointer"></div>
 
-     <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-                
-                <!-- 1. OVERLAY (Fond sombre) -->
-                <div 
-                    wire:click="closeModal" 
-                    class="fixed inset-0 bg-gray-900 bg-opacity-90 transition-opacity backdrop-blur-sm cursor-pointer"
-                ></div>
+            <!-- Toolbar -->
+            <div class="fixed top-0 left-0 w-full z-50 pointer-events-none p-4 flex justify-between items-start print:hidden">
+                <button wire:click="closeModal" class="pointer-events-auto bg-gray-800 text-white hover:bg-gray-700 px-6 py-2 rounded-full shadow-xl font-bold flex items-center gap-2 border border-gray-600">
+                    <span>&larr; Retour</span>
+                </button>
+            </div>
 
-                <!-- 2. BARRE D'OUTILS FLOTTANTE (Fixe à l'écran) -->
-                <!-- Je l'ai sortie du scroll pour qu'elle soit toujours visible en haut -->
-                <div class="fixed top-0 left-0 w-full z-50 pointer-events-none p-4 flex justify-between items-start print:hidden">
+            <!-- Conteneur Scrollable -->
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto pt-20 pb-10">
+                <div class="flex min-h-full items-start justify-center p-4 text-center sm:p-0">
                     
-                    <!-- Bouton Retour -->
-                    <button wire:click="closeModal" class="pointer-events-auto bg-gray-800 text-white hover:bg-gray-700 px-6 py-2 rounded-full shadow-xl font-bold flex items-center gap-2 transition transform hover:scale-105 border border-gray-600">
-                        <span>&larr; Retour</span>
-                    </button>
+                    <div class="relative flex flex-col items-center font-sans w-full max-w-[210mm]">
 
-                </div>
+                        <!-- BOUTON TÉLÉCHARGER -->
+                        <button onclick="prepareAndDownloadPDF()" type="button" class="mb-4 pointer-events-auto bg-red-600 text-white hover:bg-red-700 px-6 py-2.5 rounded-full shadow-lg font-bold flex items-center gap-3 border border-red-500">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <span>Télécharger PDF</span>
+                        </button>
 
-                <!-- 3. CONTENEUR DE LA FEUILLE (Scrollable) -->
-                <div class="fixed inset-0 z-10 w-screen overflow-y-auto pt-20 pb-10"> <!-- pt-20 pour ne pas cacher le haut de la feuille sous les boutons -->
-                    <div class="flex min-h-full items-start justify-center p-4 text-center sm:p-0">
-                        
-                        <!-- Wrapper de la feuille (J'ai retiré 'transform') -->
-                        <div class="relative flex flex-col items-center font-sans w-full max-w-[210mm]">
+                        <!-- ID GLOBAL POUR HTML2PDF -->
+                        <div id="export-container">
 
-                            <!-- FEUILLE A4 -->
-                            <div id="memo-to-print" class="bg-white w-[210mm] min-h-[297mm] shadow-2xl p-[10mm] text-black text-[13px] leading-snug relative text-left mx-auto">
+                            <!-- PAGE 1 (VOTRE DESIGN ORIGINAL) -->
+                            <div id="page-1" class="page-a4 bg-white w-[210mm] h-[297mm] shadow-2xl p-[10mm] text-black text-[13px] leading-snug relative text-left mx-auto mb-8">
+                                
+                                <!-- CADRE DORÉ -->
+                                <div class="gold-frame border-[3px] border-[#D4AF37] rounded-tr-[60px] rounded-bl-[60px] p-8 h-full flex flex-col relative">
 
-                                <!-- LE GRAND CADRE DORÉ -->
-                                <div class="border-[3px] border-[#D4AF37] rounded-tr-[60px] rounded-bl-[60px] p-8 h-full flex flex-col justify-between relative min-h-[calc(297mm-20mm)]">
-
-                                    <!-- EN-TÊTE -->
-                                    <div class="flex flex-col items-center justify-center mb-6 text-center">
+                                    <!-- EN-TÊTE LOGO + MEMORANDUM -->
+                                    <div class="header-section flex flex-col items-center justify-center mb-6 text-center">
                                         <div class="mb-2">
-                                            <div class="w-16 h-16 flex items-center justify-center mx-auto mb-1">
-                                                <img src="{{ asset('images/log.jpg') }}" alt="logo" class="w-full h-full object-contain">
+                                            <div class="w-17 h-16 flex items-center justify-center mx-auto mb-1">
+                                                <img src="{{ asset('images/logo.jpg') }}" alt="logo" class="w-full h-full object-contain">
                                             </div>
                                         </div>
-
-                                        <div class="font-bold text-xl tracking-tight text-gray-900 font-sans">CommercialBank</div>
-                                        <div class="text-[9px] text-gray-600 uppercase tracking-widest mb-4">Let's build the future</div>
-                                        
-                                        <h2 class="font-bold text-xs uppercase text-gray-800"> {{$user_entity}} </h2>
-                                        <h1 class="font-extrabold text-2xl uppercase mt-2 italic border-b-2 border-black pb-1 px-4 inline-block">Memorandum</h1>
+                                        <h2 class="font-bold text-xs uppercase text-gray-800">{{ $user_entity }}</h2>
+                                        <h1 class="font-['Arial'] font-extrabold text-2xl uppercase mt-2 italic inline-block">
+                                            Memorandum
+                                        </h1>
                                     </div>
 
-                                    <!-- TABLEAU -->
-                                    
-                                    <!-- DÉBUT DU TABLEAU REDESIGNÉ -->
-                                        <div class="mb-8 w-full">
-                                            
-                                            <!-- Style spécifique pour les cases à cocher -->
-                                            <style>
-                                                .custom-checkbox {
-                                                    display: inline-flex;
-                                                    align-items: center;
-                                                    justify-content: center;
-                                                    width: 16px;
-                                                    height: 16px;
-                                                    border: 1.5px solid #000;
-                                                    margin-right: 8px;
-                                                    background-color: white;
-                                                    flex-shrink: 0; /* Empêche l'écrasement */
-                                                }
-                                                /* Le carré noir intérieur quand c'est coché */
-                                                .custom-checked::after {
-                                                    content: '';
-                                                    width: 10px;
-                                                    height: 10px;
-                                                    background-color: #000;
-                                                    display: block;
-                                                }
-                                                /* Cellule active (quand il y a des destinataires) */
-                                                .active-cell {
-                                                    background-color: #f0fdf4; /* Vert très pâle */
-                                                    color: #166534; /* Vert foncé */
-                                                }
-                                            </style>
-
-                                            <table class="w-full border-collapse border border-black text-[13px] font-sans text-black leading-relaxed">
-                                                
-                                                <!-- ================= LIGNE 1 ================= -->
-                                                @php $recipients1 = collect($recipientsByAction['Faire le nécessaire'] ?? []); @endphp
-                                                <tr class="border-b border-black">
-                                                    <!-- Col 1 : Info -->
-                                                    <td class="border-r border-black p-3 w-[30%] align-top bg-gray-50">
-                                                        <span class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Date</span>
-                                                        <span class="font-bold text-base">{{ $date }}</span>
-                                                    </td>
-                                                    
-                                                    <!-- Col 2 : Action -->
-                                                    <td class="border-r border-black p-3 w-[30%] align-top">
-                                                        <div class="flex items-center h-full">
-                                                            <span class="custom-checkbox {{ $recipients1->count() > 0 ? 'custom-checked' : '' }}"></span> 
-                                                            <span class="font-medium {{ $recipients1->count() > 0 ? 'font-bold' : '' }}">Faire le nécessaire</span>
-                                                        </div>
-                                                    </td>
-                                                    
-                                                    <!-- Col 3 : Destinataires -->
-                                                    <td class="p-3 w-[40%] align-top {{ $recipients1->count() > 0 ? 'active-cell font-bold' : '' }}">
-                                                        @if($recipients1->count() > 0)
-                                                            {{ $recipients1->map(fn($m) => $m['entity']['acronym'] ?? $m['entity']['name'])->join(', ') }}
-                                                        @else
-                                                            <span class="text-gray-300 italic text-[11px]">Aucun destinataire</span>
-                                                        @endif
-                                                    </td>
-                                                </tr>
-
-                                                <!-- ================= LIGNE 2 ================= -->
-                                                @php $recipients2 = collect($recipientsByAction['Prendre connaissance'] ?? []); @endphp
-                                                <tr class="border-b border-black">
-                                                    <!-- Col 1 : Info -->
-                                                    <td class="border-r border-black p-3 align-top bg-gray-50">
-                                                        <span class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Référence N°</span>
-                                                        <span class="font-bold">#</span>
-                                                    </td>
-                                                    
-                                                    <!-- Col 2 : Action -->
-                                                    <td class="border-r border-black p-3 align-top">
-                                                        <div class="flex items-center h-full">
-                                                            <span class="custom-checkbox {{ $recipients2->count() > 0 ? 'custom-checked' : '' }}"></span> 
-                                                            <span class="font-medium {{ $recipients2->count() > 0 ? 'font-bold' : '' }}">Prendre connaissance</span>
-                                                        </div>
-                                                    </td>
-                                                    
-                                                    <!-- Col 3 : Destinataires -->
-                                                    <td class="p-3 align-top {{ $recipients2->count() > 0 ? 'active-cell font-bold' : '' }}">
-                                                        @if($recipients2->count() > 0)
-                                                            {{ $recipients2->map(fn($m) => $m['entity']['acronym'] ?? $m['entity']['name'])->join(', ') }}
-                                                        @else
-                                                            <span class="text-gray-300 italic text-[11px]">&nbsp;</span>
-                                                        @endif
-                                                    </td>
-                                                </tr>
-
-                                                <!-- ================= LIGNE 3 ================= -->
-                                                @php $recipients3 = collect($recipientsByAction['Prendre position'] ?? []); @endphp
-                                                <tr class="border-b border-black">
-                                                    <!-- Col 1 : Info -->
-                                                    <td class="border-r border-black p-3 align-top bg-gray-50">
-                                                        <span class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Émetteur</span>
-                                                        <span class="font-bold">{{ $user_first_name }} {{ $user_last_name }}</span>
-                                                    </td>
-                                                    
-                                                    <!-- Col 2 : Action -->
-                                                    <td class="border-r border-black p-3 align-top">
-                                                        <div class="flex items-center h-full">
-                                                            <span class="custom-checkbox {{ $recipients3->count() > 0 ? 'custom-checked' : '' }}"></span> 
-                                                            <span class="font-medium {{ $recipients3->count() > 0 ? 'font-bold' : '' }}">Prendre position</span>
-                                                        </div>
-                                                    </td>
-                                                    
-                                                    <!-- Col 3 : Destinataires -->
-                                                    <td class="p-3 align-top {{ $recipients3->count() > 0 ? 'active-cell font-bold' : '' }}">
-                                                        @if($recipients3->count() > 0)
-                                                            {{ $recipients3->map(fn($m) => $m['entity']['acronym'] ?? $m['entity']['name'])->join(', ') }}
-                                                        @else
-                                                            <span class="text-gray-300 italic text-[11px]">&nbsp;</span>
-                                                        @endif
-                                                    </td>
-                                                </tr>
-
-                                                <!-- ================= LIGNE 4 ================= -->
-                                                @php $recipients4 = collect($recipientsByAction['Décider'] ?? []); @endphp
-                                                <tr>
-                                                    <!-- Col 1 : Info -->
-                                                    <td class="border-r border-black p-3 align-top bg-gray-50">
-                                                        <span class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">Service</span>
-                                                        <span class="font-bold">{{ $user_service }}</span>
-                                                    </td>
-                                                    
-                                                    <!-- Col 2 : Action -->
-                                                    <td class="border-r border-black p-3 align-top">
-                                                        <div class="flex items-center h-full">
-                                                            <span class="custom-checkbox {{ $recipients4->count() > 0 ? 'custom-checked' : '' }}"></span> 
-                                                            <span class="font-medium {{ $recipients4->count() > 0 ? 'font-bold' : '' }}">Décider</span>
-                                                        </div>
-                                                    </td>
-                                                    
-                                                    <!-- Col 3 : Destinataires -->
-                                                    <td class="p-3 align-top {{ $recipients4->count() > 0 ? 'active-cell font-bold' : '' }}">
-                                                        @if($recipients4->count() > 0)
-                                                            {{ $recipients4->map(fn($m) => $m['entity']['acronym'] ?? $m['entity']['name'])->join(', ') }}
-                                                        @else
-                                                            <span class="text-gray-300 italic text-[11px]">&nbsp;</span>
-                                                        @endif
-                                                    </td>
-                                                </tr>
-
-                                            </table>
+                                    <!-- VOTRE TABLEAU ORIGINAL (INTACT) -->
+                                    <div id="recipient-table" class="mb-6 text-sm w-full">
+                                        <style>
+                                            .checkbox-square { display: inline-block; width: 12px; height: 12px; border: 1px solid black; margin-right: 6px; vertical-align: middle; }
+                                        </style>
+                                        
+                                        <!-- LIGNE D'ALIGNEMENT -->
+                                        <div class="flex w-full text-[13px] font-bold font-['Arial'] pb-1 text-black">
+                                            <div class="w-[35%]"></div>
+                                            <div class="w-[30%] text-center">Prière de :</div>
+                                            <div class="w-[35%] pl-8">Destinataires :</div>
                                         </div>
-                                        <!-- FIN DU TABLEAU -->
+                                        
+                                        <!-- TABLEAU COMPLET -->
+                                        <table class="w-full border-collapse border border-black text-[13px] font-['Arial'] text-black">
+                                            <!-- LIGNE 1 : Faire le nécessaire (VERT) -->
+                                            @php $recipients1 = collect($recipientsByAction['Faire le nécessaire'] ?? []); @endphp
+                                            <tr>
+                                                <td class="border border-black p-1 pl-2 font-bold w-[35%] align-top">Date : {{ $date }}</td>
+                                                <td class="border border-black p-1 pl-2 w-[30%]">
+                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients1->count() > 0 ? 'bg-green-600' : '' }}"></span> 
+                                                    <span class="{{ $recipients1->count() > 0 ? 'font-bold' : '' }}">Faire le nécessaire</span>
+                                                </td>
+                                                <td class="border border-black p-1 text-center w-[35%] {{ $recipients1->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
+                                                    @if($recipients1->count() > 0) {{ $recipients1->map(fn($m) => $m['entity']['acronym'] ?? $m['entity']['name'])->join(', ') }} @else &nbsp; @endif
+                                                </td>
+                                            </tr>
+                                            <!-- LIGNE 2 : Prendre connaissance (BLEU) -->
+                                            @php $recipients2 = collect($recipientsByAction['Prendre connaissance'] ?? []); @endphp
+                                            <tr>
+                                                <td class="border border-black p-1 pl-2 font-bold align-top">N° : 298/DGR/SDGR/WT</td>
+                                                <td class="border border-black p-1 pl-2">
+                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients2->count() > 0 ? 'bg-blue-600' : '' }}"></span> 
+                                                    <span class="{{ $recipients2->count() > 0 ? 'font-bold' : '' }}">Prendre connaissance</span>
+                                                </td>
+                                                <td class="border border-black p-1 text-center {{ $recipients2->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
+                                                    @if($recipients2->count() > 0) {{ $recipients2->map(fn($m) => $m['entity']['acronym'] ?? $m['entity']['name'])->join(', ') }} @else &nbsp; @endif
+                                                </td>
+                                            </tr>
+                                            <!-- LIGNE 3 : Prendre position (ORANGE) -->
+                                            @php $recipients3 = collect($recipientsByAction['Prendre position'] ?? []); @endphp
+                                            <tr>
+                                                <td class="border border-black p-1 pl-2 font-bold align-top">Emetteur : {{ $user_first_name }} {{ $user_last_name }}</td>
+                                                <td class="border border-black p-1 pl-2">
+                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients3->count() > 0 ? 'bg-orange-500' : '' }}"></span> 
+                                                    <span class="{{ $recipients3->count() > 0 ? 'font-bold' : '' }}">Prendre position</span>
+                                                </td>
+                                                <td class="border border-black p-1 text-center {{ $recipients3->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
+                                                    @if($recipients3->count() > 0) {{ $recipients3->map(fn($m) => $m['entity']['acronym'] ?? $m['entity']['name'])->join(', ') }} @else &nbsp; @endif
+                                                </td>
+                                            </tr>
+                                            <!-- LIGNE 4 : Décider (JAUNE) -->
+                                            @php $recipients4 = collect($recipientsByAction['Décider'] ?? []); @endphp
+                                            <tr>
+                                                <td class="border border-black p-1 pl-2 font-bold align-top">Service : {{ $user_service }}</td>
+                                                <td class="border border-black p-1 pl-2">
+                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients4->count() > 0 ? 'bg-yellow-400' : '' }}"></span> 
+                                                    <span class="{{ $recipients4->count() > 0 ? 'font-bold' : '' }}">Décider</span>
+                                                </td>
+                                                <td class="border border-black p-1 text-center {{ $recipients4->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
+                                                    @if($recipients4->count() > 0) {{ $recipients4->map(fn($m) => $m['entity']['acronym'] ?? $m['entity']['name'])->join(', ') }} @else &nbsp; @endif
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
 
-
-
-
-                                    <!-- CORPS DU TEXTE -->
-                                    <div class="mb-4 flex-grow px-2">
+                                    <!-- OBJET & CONCERNE -->
+                                    <div class="mb-4">
                                         <div class="mb-6">
-                                            <p class="mb-1"><span class="font-bold text-[15px] underline">Objet :</span> <span class="uppercase font-bold"> {{$object}}  </span></p>
+                                            <p class="mb-1"><span class="font-bold text-[15px] underline">Objet :</span> <span class="uppercase font-bold"> {{$object}} </span></p>
                                         </div>
-
-                                        <div class="text-justify space-y-3 text-[14px] leading-relaxed font-serif text-gray-900">
-                                            {{$content}}
+                                        <div class="mb-6">
+                                            <p class="mb-1"><span class="font-bold text-[15px] underline">Concerne :</span> <span class="lowercase">{{ $object }} </span></p>
                                         </div>
                                     </div>
 
-                                    <!-- PIED DE PAGE -->
-                                    <div class="mt-8 pt-4 break-inside-avoid"> <!-- break-inside-avoid empêche de couper la signature -->
+                                    <!-- CORPS DU TEXTE (Identifié pour le JS) -->
+                                    <div id="content-area" class="flex-grow px-2">
+                                        <div class="text-justify space-y-3 text-[14px] leading-relaxed font-serif text-gray-900">
+                                            {!! $content !!}
+                                        </div>
+                                    </div>
 
-                                    <div class="flex justify-between items-end px-8 mb-2">
-                                        
-                                        <!-- SIGNATURE SOUS-DIRECTEUR -->
+                                    <!-- SIGNATURES (Identifié pour le JS) -->
+                                    <div id="signatures-section" class="mt-8 pt-4">
+                                        <div class="flex justify-between items-end px-8 mb-2">
+                                            <!-- Signature SD -->
                                             <div class="relative text-center w-1/3">
-                                                <!-- Simulation du tampon -->
                                                 <div class="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
                                                     <div class="border-4 border-gray-800 w-24 h-24 rounded-full flex items-center justify-center -rotate-12">
                                                         <span class="font-bold text-xs uppercase tracking-widest text-gray-800">Signé</span>
                                                     </div>
                                                 </div>
-                                            
                                                 <div class="h-16 flex items-end justify-center pb-2">
-                                                    <!-- Nom avec une police style "Manuscrit" (si dispo) ou italique -->
                                                     <span class="font-bold text-lg text-gray-800 font-serif italic">{{$signature_sd}}</span>
                                                 </div>
                                                 <div class="text-[10px] font-bold text-gray-600 uppercase tracking-wider border-t border-gray-400 pt-2">Sous Directeur</div>
                                             </div>
-
-                                        <!-- SIGNATURE DIRECTEUR -->
+                                            
+                                            <!-- Signature DIR -->
                                             <div class="relative text-center w-1/3">
-                                                <!-- Simulation du tampon (Bleu pour le directeur par exemple) -->
                                                 <div class="absolute inset-0 flex items-center justify-center opacity-80 pointer-events-none">
                                                     <div class="border-[3px] border-blue-900 w-32 h-16 rounded flex flex-col items-center justify-center -rotate-6 bg-white/50 backdrop-blur-[1px]">
                                                         <span class="font-bold text-[10px] text-blue-900 uppercase">Commercial Bank</span>
@@ -366,44 +294,24 @@
                                                         <span class="text-[8px] text-blue-900"> date('d/m/Y') </span>
                                                     </div>
                                                 </div>
-
                                                 <div class="h-16 flex items-end justify-center pb-2">
                                                     <span class="font-bold text-lg text-black z-10">{{$signature_dir}}</span>
                                                 </div>
                                                 <div class="text-[10px] font-bold text-gray-600 uppercase tracking-wider border-t border-gray-400 pt-2">Directeur</div>
                                             </div>
-
                                         </div>
-
                                         <div class="text-right text-[10px] text-gray-500 italic mt-4">FOR-ME-07-V1</div>
+                                        
                                     </div>
-
-                                    
 
                                 </div> 
                             </div>
-                            
-                            <!-- Bouton PDF / Imprimer -->
-                             <br>
-                            <button 
-                                id="btn-download"
-                                onclick="window.downloadPDF()" 
-                                type="button"
-                                class="pointer-events-auto group bg-red-600 text-white hover:bg-red-700 px-6 py-2.5 rounded-full shadow-lg shadow-red-600/30 font-bold flex items-center gap-3 transition-all transform hover:scale-105 active:scale-95 border border-red-500"
-                            >
-                                <!-- Icône PDF avec animation au survol -->
-                                <svg class="w-5 h-5 transition-transform group-hover:-translate-y-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                                <span>Télécharger PDF</span>
-                            </button>
 
                         </div>
-                
                     </div>
                 </div>
             </div>
-            
+        </div>
     @endif
 
     @if($isSendOpen)
