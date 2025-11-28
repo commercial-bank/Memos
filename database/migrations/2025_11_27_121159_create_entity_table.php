@@ -11,8 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('entities', function (Blueprint $table) {
-            $table->string('acronym')->nullable()->after('name');
+        Schema::create('entity', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');
+            $table->timestamps();
         });
     }
 
@@ -21,8 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('entities', function (Blueprint $table) {
-            $table->dropColumn('acronym');
-        });
+        Schema::dropIfExists('entity');
     }
 };

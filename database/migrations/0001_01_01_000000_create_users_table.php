@@ -32,11 +32,14 @@ return new class extends Migration
                 $table->string('password')->nullable(); 
 
                 // INFO MÉTIER (Tout en nullable, c'est parfait)
-                $table->string('poste')->nullable();
-                $table->string('entity')->nullable();
-                $table->string('entity_sigle')->nullable();
-                $table->string('n1')->nullable();
+                $table->string('poste')->nullable(); 
+                $table->string('entity_name')->nullable();
+                $table->string('sous_direction')->nullable();
+                $table->string('departement')->nullable();
                 $table->string('service')->nullable();
+                $table->string('role')->nullable();
+                $table->unsignedBigInteger('manager_id')->nullable();
+                $table->unsignedBigInteger('manager_replace_id')->nullable();
                 
                 $table->rememberToken();
                 $table->timestamps();

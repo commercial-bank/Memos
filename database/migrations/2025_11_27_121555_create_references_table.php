@@ -11,9 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('entities', function (Blueprint $table) {
+        Schema::create('references', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('nature');
+            $table->string('date');
+            $table->string('numero_ordre');
+            $table->string('lettre_type_ordre');
+            $table->foreignId('memo_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }
@@ -23,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('entities');
+        Schema::dropIfExists('references');
     }
 };

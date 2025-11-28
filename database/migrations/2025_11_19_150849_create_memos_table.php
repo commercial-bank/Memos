@@ -11,11 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('written_memos', function (Blueprint $table) {
+        Schema::create('memos', function (Blueprint $table) {
             $table->id();
             $table->string('object');
-            $table->string('content');
-            $table->string('type_memo');
+            $table->string('concern');
+            $table->longText('content');
+            $table->string('status')->default('brouillon'); 
+            $table->unsignedBigInteger('current_holder_id')->nullable();;
+            $table->unsignedBigInteger('previous_holder_id')->nullable();;
+            $table->string('signature_sd')->nullable();;
+            $table->string('signature_dir')->nullable();;
+            $table->string('qr_code')->nullable();;
+            $table->string('workflow_comment')->nullable();;
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });

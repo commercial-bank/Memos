@@ -18,6 +18,22 @@
             
             <!-- Décoration coin -->
             <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 opacity-50 transform rotate-45 translate-x-12 -translate-y-12 flex items-center justify-center"></div>
+            <button 
+                wire:click="toggleFavorite({{ $document->id }})" 
+                class="absolute top-2 right-2 z-10 p-1.5 rounded-full hover:bg-gray-50 transition-colors duration-200 focus:outline-none group"
+                title="{{ $document->is_favorited ? 'Retirer des favoris' : 'Ajouter aux favoris' }}">
+                
+                
+                    <!-- Étoile PLEINE (Jaune) -->
+                    <svg class="w-6 h-6 text-yellow-400 fill-current" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+            
+                    <!-- Étoile VIDE (Grise, devient jaune au survol) >
+                    <svg class="w-6 h-6 text-gray-300 group-hover:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg -->
+            </button>
 
             <div>
                 <!-- EN-TÊTE DE LA CARTE : Le Document -->
@@ -43,19 +59,17 @@
                     </h4>
                     
                     <ul class="space-y-2">
-                        @foreach($document->memos as $attribution)
+                        @foreach($document->destinataires as $destinataire)
                             <li class="flex justify-between items-start text-sm">
                                 <!-- Nom de l'entité -->
                                 <span class="font-medium text-gray-700 w-1/2">
-                                    {{ $attribution->entity->name ?? 'Entité inconnue' }}
-                                    @if($attribution->entity->acronym)
-                                        <span class="text-xs text-gray-400">({{ $attribution->entity->acronym }})</span>
-                                    @endif
+                                    {{ $destinataire->title  ?? 'Entité inconnue' }}
+                                        <span class="text-xs text-gray-400">{{ $destinataire->acronym }}</span>
                                 </span>
                                 
                                 <!-- Action demandée -->
                                 <span class="text-xs bg-white border border-gray-200 px-2 py-0.5 rounded text-purple-600 font-semibold w-1/2 text-right">
-                                    {{ $attribution->action }}
+                                    {{ $destinataire->pivot->action }}
                                 </span>
                             </li>
                         @endforeach
@@ -66,59 +80,108 @@
             <!-- PIED DE LA CARTE -->
             <div class="flex justify-between items-center pt-4 border-t border-gray-100 mt-auto">
                 <div class="text-xs text-gray-400">
-                    {{ $document->memos->count() }} destinataire(s)
+                    {{ $document->destinataires->count() }} destinataire(s)
                 </div>
 
                 <!-- Boutons d'action sur le document global -->
                 <div class="flex space-x-2">
-                     <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                    </button>
+
+                    @if(auth()->user()->poste == "Sous-Directeur" || auth()->user()->poste == "Directeur")
+
+                        @if(auth()->user()->poste == "Sous-Directeur")
+
+                            @if($document->signature_sd == null)
+
+                                <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
+                                </button>
+
+                                <button wire:click="signDocument({{ $document->id }}, '{{ auth()->user()->poste }}')"   class="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition ring-2 ring-purple-300 ring-opacity-50" title="Signer numériquement (Générer QR)">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 17h4.01M16 3h5m-3 12v3m0 0h6m-6 0H9a2 2 0 00-2 2v6a2 2 0 002 2h14a2 2 0 002-2v-9a2 2 0 00-2-2h-6zM5 12a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2v-6a2 2 0 00-2-2H5z" />
+                                    </svg>
+                                </button>
+                            @else
+                                <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
+                                </button>
+
+                                <button wire:click="openSendModal({{ $document->id }})" class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" title="Transmettre / Valider">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                </button>
                     
-                    <!-- BOUTON ENVOYER / TRAITER -->
-                    <!-- Visible seulement si JE SUIS le détenteur actuel OU si c'est un brouillon -->
-                    @if($document->current_holder_id == Auth::id() || ($document->user_id == Auth::id() && $document->status == 'brouillon'))
-                        <button wire:click="openSendModal({{ $document->id }})" class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" title="Transmettre / Valider">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                        </button>
+                             @endif
+
+                        @endif
+
+
+                        @if(auth()->user()->poste == "Directeur")
+
+                            @if($document->signature_dir == null)
+
+                                <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
+                                </button>
+
+                                <button wire:click="signDocument({{ $document->id }}, '{{ auth()->user()->poste }}')"   class="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition ring-2 ring-purple-300 ring-opacity-50" title="Signer numériquement (Générer QR)">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 17h4.01M16 3h5m-3 12v3m0 0h6m-6 0H9a2 2 0 00-2 2v6a2 2 0 002 2h14a2 2 0 002-2v-9a2 2 0 00-2-2h-6zM5 12a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2v-6a2 2 0 00-2-2H5z" />
+                                    </svg>
+                                </button>
+                            @else
+                                <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
+                                </button>
+
+                                <button 
+                                    wire:click="qrDocument({{ $document->id }})" 
+                                    wire:confirm="Générer le QR Code de signature ?"
+                                    class="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition" 
+                                    title="Générer QR Code">
+                                    
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                                    </svg>
+                                </button>     
+                    
+                             @endif
+
+                        @endif
+
+                    @else
+
+                        @if($document->user->manager_id == auth()->user()->id || $document->user->manager_replace_id == auth()->user()->id)
+                            <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
+                            </button>
                         
-                        <!-- BOUTON REJETER (Si je ne suis pas l'auteur) -->
-                        @if($document->user_id != Auth::id())
+                            <button wire:click="openSendModal({{ $document->id }})" class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" title="Transmettre / Valider">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                            </button>
+
                             <button wire:click="openRejectModal({{ $document->id }})" class="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition" title="Rejeter">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>
-                        @endif
-                    @endif
+                        @else
+                            <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
+                            </button>
+
+                            <button wire:click="openSendModal({{ $document->id }})" class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" title="Transmettre / Valider">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                            </button>
+                        @endif  
+                     
+                    @endif    
+                        
+                  
                 </div>
 
-                {{-- ========================================================== --}}
-                {{--  NOUVEAU : BOUTON SIGNER (Appose le QR Code)               --}}
-                {{-- ========================================================== --}}
+                
 
-                @php
-                    $user = Auth::user();
-                    // Vérifie si l'utilisateur est Sous-Directeur et n'a pas encore signé
-                    $canSignSD = ($user->poste === 'Sous-Directeur' && is_null($document->signature_sd));
-                    // Vérifie si l'utilisateur est Directeur et n'a pas encore signé
-                    $canSignDir = ($user->poste === 'Directeur' && is_null($document->signature_dir));
+                
                     
-                    // Il ne peut signer que s'il détient le dossier
-                    $isHolder = ($document->current_holder_id == $user->id);
-                @endphp
-
-                @if($isHolder && ($canSignSD || $canSignDir))
-                    <button 
-                        wire:click="signDocument({{ $document->id }})"
-                        wire:confirm="Êtes-vous sûr de vouloir signer numériquement ce document ? Cela générera un QR Code unique."
-                        class="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition ring-2 ring-purple-300 ring-opacity-50" 
-                        title="Signer numériquement (Générer QR)">
-                        <!-- Icône QR Code / Stylo -->
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 17h4.01M16 3h5m-3 12v3m0 0h6m-6 0H9a2 2 0 00-2 2v6a2 2 0 002 2h14a2 2 0 002-2v-9a2 2 0 00-2-2h-6zM5 12a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2v-6a2 2 0 00-2-2H5z" />
-                        </svg>
-                    </button>
-                @endif
-                {{-- ========================================================== --}}
+              
 
                 <!-- BADGE DE STATUT (En haut à gauche par exemple) -->
                 <div class="absolute top-0 left-0 p-2">
@@ -131,7 +194,8 @@
             </div>
 
         </div>
-    @endif
+     @endif
+   
     @empty
             <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12">
                 <div class="text-gray-400 mb-2">
@@ -187,7 +251,7 @@
                                                 <img src="{{ asset('images/logo.jpg') }}" alt="logo" class="w-full h-full object-contain">
                                             </div>
                                         </div>
-                                        <h2 class="font-bold text-xs uppercase text-gray-800">{{ $user_entity }}</h2>
+                                        <h2 class="font-bold text-xs uppercase text-gray-800">{{ $user_entity_name }}</h2>
                                         <h1 class="font-['Arial'] font-extrabold text-2xl uppercase mt-2 italic inline-block">
                                             Memorandum
                                         </h1>
@@ -217,11 +281,16 @@
                                                     <span class="{{ $recipients1->count() > 0 ? 'font-bold' : '' }}">Faire le nécessaire</span>
                                                 </td>
                                                 <td class="border border-black p-1 text-center w-[35%] {{ $recipients1->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    @if($recipients1->count() > 0) {{ $recipients1->map(fn($m) => $m['entity']['acronym'] ?? $m['entity']['name'])->join(', ') }} @else &nbsp; @endif
+                                                    @if($recipients1->count() > 0)
+                                                        {{-- CORRECTION : On retire ['entity'] car $m est déjà l'entité --}}
+                                                        {{ $recipients1->map(fn($m) => $m['acronym'] ?? $m['title'])->join(', ') }}
+                                                    @else
+                                                        &nbsp;
+                                                    @endif
                                                 </td>
                                             </tr>
                                             <!-- LIGNE 2 : Prendre connaissance (BLEU) -->
-                                            @php $recipients2 = collect($recipientsByAction['Prendre connaissance'] ?? []); @endphp
+                                           @php $recipients2 = collect($recipientsByAction['Prendre connaissance'] ?? []); @endphp
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold align-top">N° : 298/DGR/SDGR/WT</td>
                                                 <td class="border border-black p-1 pl-2">
@@ -229,23 +298,33 @@
                                                     <span class="{{ $recipients2->count() > 0 ? 'font-bold' : '' }}">Prendre connaissance</span>
                                                 </td>
                                                 <td class="border border-black p-1 text-center {{ $recipients2->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    @if($recipients2->count() > 0) {{ $recipients2->map(fn($m) => $m['entity']['acronym'] ?? $m['entity']['name'])->join(', ') }} @else &nbsp; @endif
+                                                     @if(count($recipients2) > 0)
+                                                        {{-- On utilise collect() pour transformer le tableau en collection et faciliter le map/join --}}
+                                                        {{ collect($recipients2)->map(fn($m) => $m['acronym'] ?? $m['title'])->join(', ') }}
+                                                    @else 
+                                                        &nbsp; 
+                                                    @endif
                                                 </td>
                                             </tr>
                                             <!-- LIGNE 3 : Prendre position (ORANGE) -->
-                                            @php $recipients3 = collect($recipientsByAction['Prendre position'] ?? []); @endphp
+                                           @php $recipients3 = collect($recipientsByAction['Prendre position'] ?? []); @endphp
                                             <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">Emetteur : {{ $user_first_name }} {{ $user_last_name }}</td>
+                                                <td class="border border-black p-1 pl-2 font-bold align-top">Emetteur : {{ $user_entity_name_acronym }}</td>
                                                 <td class="border border-black p-1 pl-2">
                                                     <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients3->count() > 0 ? 'bg-orange-500' : '' }}"></span> 
                                                     <span class="{{ $recipients3->count() > 0 ? 'font-bold' : '' }}">Prendre position</span>
                                                 </td>
                                                 <td class="border border-black p-1 text-center {{ $recipients3->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    @if($recipients3->count() > 0) {{ $recipients3->map(fn($m) => $m['entity']['acronym'] ?? $m['entity']['name'])->join(', ') }} @else &nbsp; @endif
+                                                  @if(count($recipients3) > 0) 
+                                                        {{-- On utilise collect() pour pouvoir utiliser map() et join() sur le tableau --}}
+                                                        {{ collect($recipients3)->map(fn($m) => $m['acronym'] ?? $m['title'])->join(', ') }} 
+                                                    @else 
+                                                        &nbsp; 
+                                                    @endif 
                                                 </td>
                                             </tr>
                                             <!-- LIGNE 4 : Décider (JAUNE) -->
-                                            @php $recipients4 = collect($recipientsByAction['Décider'] ?? []); @endphp
+                                           @php $recipients4 = collect($recipientsByAction['Décider'] ?? []); @endphp
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold align-top">Service : {{ $user_service }}</td>
                                                 <td class="border border-black p-1 pl-2">
@@ -253,7 +332,11 @@
                                                     <span class="{{ $recipients4->count() > 0 ? 'font-bold' : '' }}">Décider</span>
                                                 </td>
                                                 <td class="border border-black p-1 text-center {{ $recipients4->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    @if($recipients4->count() > 0) {{ $recipients4->map(fn($m) => $m['entity']['acronym'] ?? $m['entity']['name'])->join(', ') }} @else &nbsp; @endif
+                                                    @if(count($recipients4) > 0) 
+                                                        {{ collect($recipients4)->map(fn($m) => $m['acronym'] ?? $m['title'])->join(', ') }} 
+                                                    @else 
+                                                        &nbsp; 
+                                                    @endif
                                                 </td>
                                             </tr>
                                         </table>
@@ -265,7 +348,7 @@
                                             <p class="mb-1"><span class="font-bold text-[15px] underline">Objet :</span> <span class="uppercase font-bold"> {{$object}} </span></p>
                                         </div>
                                         <div class="mb-6">
-                                            <p class="mb-1"><span class="font-bold text-[15px] underline">Concerne :</span> <span class="lowercase">{{ $object }} </span></p>
+                                            <p class="mb-1"><span class="font-bold text-[15px] underline">Concerne :</span> <span class="lowercase">{{ $concern }}</span></p>
                                         </div>
                                     </div>
 
@@ -276,40 +359,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- SIGNATURES (Identifié pour le JS) -->
-                                    <div id="signatures-section" class="mt-8 pt-4">
-                                        <div class="flex justify-between items-end px-8 mb-2">
-                                            <!-- Signature SD -->
-                                            <div class="relative text-center w-1/3">
-                                                <div class="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
-                                                    <div class="border-4 border-gray-800 w-24 h-24 rounded-full flex items-center justify-center -rotate-12">
-                                                        <span class="font-bold text-xs uppercase tracking-widest text-gray-800">Signé</span>
-                                                    </div>
-                                                </div>
-                                                <div class="h-16 flex items-end justify-center pb-2">
-                                                    <span class="font-bold text-lg text-gray-800 font-serif italic">{{$signature_sd}}</span>
-                                                </div>
-                                                <div class="text-[10px] font-bold text-gray-600 uppercase tracking-wider border-t border-gray-400 pt-2">Sous Directeur</div>
-                                            </div>
-                                            
-                                            <!-- Signature DIR -->
-                                            <div class="relative text-center w-1/3">
-                                                <div class="absolute inset-0 flex items-center justify-center opacity-80 pointer-events-none">
-                                                    <div class="border-[3px] border-blue-900 w-32 h-16 rounded flex flex-col items-center justify-center -rotate-6 bg-white/50 backdrop-blur-[1px]">
-                                                        <span class="font-bold text-[10px] text-blue-900 uppercase">Commercial Bank</span>
-                                                        <span class="font-extrabold text-sm text-blue-900 uppercase tracking-widest">APPROUVÉ</span>
-                                                        <span class="text-[8px] text-blue-900"> date('d/m/Y') </span>
-                                                    </div>
-                                                </div>
-                                                <div class="h-16 flex items-end justify-center pb-2">
-                                                    <span class="font-bold text-lg text-black z-10">{{$signature_dir}}</span>
-                                                </div>
-                                                <div class="text-[10px] font-bold text-gray-600 uppercase tracking-wider border-t border-gray-400 pt-2">Directeur</div>
-                                            </div>
-                                        </div>
-                                        <div class="text-right text-[10px] text-gray-500 italic mt-4">FOR-ME-07-V1</div>
-                                        
-                                    </div>
+                                    
 
                                 </div> 
                             </div>
@@ -349,19 +399,46 @@
                                 </div>
 
                                 
-                                <!-- CAS SPÉCIAL : SECRÉTAIRE -->
-                                @if(strtolower(Auth::user()->poste) === 'secretaire')
-                                    <div class="mb-4 bg-yellow-50 p-3 rounded border border-yellow-200">
-                                        <label class="block text-sm font-bold text-yellow-800 mb-1">Numéro de Référence (Enregistrement)</label>
-                                        <input type="text" wire:model="reference_input" placeholder="Ex: 2024/001/DG" class="w-full rounded-md border-gray-300 shadow-sm">
-                                        @error('reference_input') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                                    </div>
-                                @endif
+                                
 
                                 <!-- Commentaire -->
                                 <div class="mb-4">
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Note / Commentaire (Optionnel)</label>
                                     <textarea wire:model="comment" rows="3" class="w-full rounded-md border-gray-300 shadow-sm border p-2"></textarea>
+                                </div>
+
+                                <!-- Visa -->
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">VISE</label>
+                                    
+                                    <div class="flex items-center space-x-6">
+                                        <!-- Option Favorable -->
+                                        <div class="flex items-center">
+                                            <input wire:model="action" 
+                                                id="visa_favorable" 
+                                                name="action" 
+                                                type="radio" 
+                                                value="Vue" 
+                                                class="h-4 w-4 text-yellow-600 border-gray-300 focus:ring-yellow-500 cursor-pointer">
+                                            <label for="visa_favorable" class="ml-2 block text-sm text-gray-700 cursor-pointer">
+                                                Vue
+                                            </label>
+                                        </div>
+
+                                        <!-- Option Défavorable -->
+                                        <div class="flex items-center">
+                                            <input wire:model="action" 
+                                                id="visa_defavorable" 
+                                                name="action" 
+                                                type="radio" 
+                                                value="Vue & D'accord" 
+                                                class="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500 cursor-pointer">
+                                            <label for="visa_defavorable" class="ml-2 block text-sm text-gray-700 cursor-pointer">
+                                                Vue & D'accord
+                                            </label>
+                                        </div>
+                                    </div>
+                                    @error('action') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                                 </div>
 
                                 
@@ -370,11 +447,7 @@
 
                             <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
                                 <button type="submit" class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto">
-                                    @if(strtolower(Auth::user()->poste) === 'secretaire')
-                                        Enregistrer & Diffuser
-                                    @else
                                         Transmettre
-                                    @endif
                                 </button>
                                 <button type="button" wire:click="closeSendModal" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
                                     Annuler
@@ -386,6 +459,7 @@
             </div>
         </div>
     @endif
+
 
     @if($isRejectOpen)
         <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -442,5 +516,6 @@
             </div>
         </div>
     @endif
+   
 
 </div>

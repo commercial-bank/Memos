@@ -2,32 +2,51 @@
 
 namespace App\Models;
 
-use App\Models\WrittenMemo;
+use App\Models\Destinataires;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Memo extends Model
 {
-     // C'est la table pivot qui contient l'action
-    protected $table = 'memos'; 
-
     protected $fillable = [
-        'written_memo_id',
-        'entity_id',
-        'action'
+        'object',
+        'concern',
+        'content',
+        'status',
+        'current_holder_id',
+        'previous_holder_id',
+        'signature_sd',
+        'signature_dir',
+        'qr_code',
+        'workflow_comment',
+        'user_id',
     ];
 
-
-     // Relation vers le WrittenMemo (le parent)
-    // Lien vers le mémo écrit (Le parent)
-    public function writtenMemo(): BelongsTo
+    public function user()
     {
-        return $this->belongsTo(WrittenMemo::class);
+        // Laravel devine automatiquement que la clé étrangère est 'user_id'
+        return $this->belongsTo(User::class);
     }
 
-    // Lien vers le destinataire (L'entité)
-    public function entity(): BelongsTo
+
+    /**
+     * Relation vers les destinataires (qui sont des entités).
+     */
+    public function destinataires()
     {
-        return $this->belongsTo(Entity::class);
+        // Une mémo "appartient à plusieurs" entités via la table 'destinataires'
+        return $this->belongsToMany(Entity::class, 'destinataires', 'memo_id', 'entity_id')
+                    ->withPivot('action') // Pour récupérer le champ 'action' de la table pivot
+                    ->withTimestamps();
     }
+
+    
+
+    /**
+     * Relation vers le détenteur actuel (User).
+     */
+    public function currentHolder()
+    {
+        return $this->belongsTo(User::class, 'current_holder_id');
+    }
+    
 }

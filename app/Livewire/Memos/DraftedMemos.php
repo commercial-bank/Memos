@@ -5,27 +5,27 @@ namespace App\Livewire\Memos;
 use App\Models\Memo;
 use App\Models\Entity;
 use Livewire\Component;
-use App\Models\WrittenMemo;
 use Illuminate\Http\Request;
+use App\Models\Destinataires;
 use Livewire\Attributes\Rule;
 use Illuminate\Validation\Rules;
 use Illuminate\Support\Facades\Auth;
 
 class DraftedMemos extends Component
 {
-    public $writtenMemo;
+    public $memos;
 
     #[Rule('required')]
     public string $object = '';
 
     #[Rule('required')]
-    public string $type_memo = '';
+    public string $concern = '';
 
     #[Rule('required')]
     public string $content = '';
 
-    public $writtenMemoId = null;
-    public $dest_status = false;
+    public $memo_id = null;
+    
     public $isOpen = false; // Pour gérer l'ouverture du Modal
     public $isOpen2 = false; // Pour gérer l'ouverture du Modal2
     public $isOpen3 = false; // Pour gérer l'ouverture du Modal3
@@ -35,7 +35,7 @@ class DraftedMemos extends Component
     public $user_service;
     public $user_first_name;
     public $user_last_name;
-    public $user_entity;
+    public $user_entity_name;
 
      // NOUVELLES PROPRIÉTÉS POUR LE MODAL 3
     public $allEntities = []; 
@@ -44,25 +44,56 @@ class DraftedMemos extends Component
 
     public function mount()
     {
-         $this->writtenMemo = WrittenMemo::where('user_id', Auth::id())->get();
+         $this->memos = Memo::where('user_id', Auth::id())
+                   ->orderBy('id', 'desc') // Trie par ID décroissant
+                   ->get();;
+    }
+
+    public function viewMemo($id)
+    {
+        $memo = Memo::findOrFail($id);
+        $this->object = $memo->object;
+        $this->concern = $memo->concern;
+        $this->content = $memo->content;
+        $this->memo_id = $memo->id;
+        $this->date = $memo->created_at->format('d/m/Y');   
+        $this->user_first_name = $memo->user->first_name;
+        $this->user_last_name = $memo->user->last_name;
+        $this->user_service = $memo->user->service;
+        $this->user_entity_name = $memo->user->entity_name;
+        $this->openModal();
+    }
+
+    public function editMemo($id)
+    {
+        $memo = Memo::findOrFail($id);
+         $this->object = $memo->object;
+        $this->concern = $memo->concern;
+        $this->content = $memo->content;
+        $this->memo_id = $memo->id;
+        $this->date = $memo->created_at->format('d/m/Y');   
+        $this->user_first_name = $memo->user->first_name;
+        $this->user_last_name = $memo->user->last_name;
+        $this->user_service = $memo->user->service;
+        $this->user_entity_name = $memo->user->entity_name;
+        $this->openModalDeux();
     }
 
     public function save()
     {
         
 
-        WrittenMemo::updateOrCreate(
-            ['id' => $this->writtenMemoId],
+        Memo::updateOrCreate(
+            ['id' => $this->memo_id],
             [
                 'object' => $this->object,
-                'type_memo' => $this->type_memo,
+                'concern' => $this->concern,
                 'content' => $this->content,
-                'dest_status' => $this->dest_status,
                 'user_id' => Auth::id()
             ]
         );
 
-        $action = $this->writtenMemoId ? 'modifié' : 'créé';
+        $action = $this->memo_id ? 'modifié' : 'créé';
         
         $this->closeModalDeux();
         
@@ -70,33 +101,71 @@ class DraftedMemos extends Component
         $this->dispatch('notify', message: "Brouillon $action avec succès !");
     }
 
-    // --- NOUVELLE MÉTHODE : Enregistrer les attributions ---
+    public function assignMemo($id)
+    {
+        $this->memo_id = $id;
+        
+        // 1. Récupérer toutes les entités (Directions/Services)
+        $this->allEntities = Entity::all();
+
+        // 2. Initialiser le tableau des sélections
+        // On vérifie si des attributions existent déjà pour ne pas les écraser visuellement
+        $existingAssignments = Destinataires::where('memo_id', $id)->get()->keyBy('entity_id');
+
+        $this->selections = [];
+        
+        foreach($this->allEntities as $entity) {
+            $exists = $existingAssignments->has($entity->id);
+            
+            $this->selections[$entity->id] = [
+                'checked' => $exists, // Coché si déjà attribué
+                'action' => $exists ? $existingAssignments[$entity->id]->action : 'Faire le nécessaire' // Valeur par défaut
+            ];
+        }
+
+        $this->isOpen3 = true;
+    }
+
     public function saveAssignments()
     {
+       
         // On nettoie d'abord les anciennes attributions pour ce mémo (optionnel, selon ta logique métier)
         // Ici je supprime tout et je recrée pour gérer les décochages facilement
-        Memo::where('written_memo_id', $this->writtenMemoId)->delete();
+        Destinataires::where('memo_id', $this->memo_id)->delete();
 
         // On parcourt les sélections
         foreach ($this->selections as $entityId => $data) {
             // Si la case est cochée
             if (isset($data['checked']) && $data['checked'] == true) {
-                Memo::create([
-                    'written_memo_id' => $this->writtenMemoId,
+                Destinataires::create([
+                    'memo_id' => $this->memo_id,
                     'entity_id' => $entityId,
-                    'action' => $data['action'] ?? 'Pour attribution', // Sécurité si vide
+                    'action' => $data['action'] ?? 'Faire le nécessaire', // Sécurité si vide
                 ]);
             }
         }
+        
+        Memo::updateOrCreate(
+            ['id' => $this->memo_id],
+            [
+                'status' => "document",
+            ]
+        );
 
         $this->dispatch('notify', message: "Memo creer avec succès !");
         $this->closeModalTrois();
     }
 
+    public function deleteMemo($id)
+    {
+         $this->memo_id = $id;
+         $this->openModalQuatre();
+    }
+
     public function del()
     {
         
-         $memo = WrittenMemo::find($this->writtenMemoId);
+         $memo = Memo::find($this->memo_id);
         // 2. Sécurité : On vérifie s'il existe et si c'est bien celui de l'utilisateur connecté
         if ($memo && $memo->user_id === Auth::id()) {
             
@@ -111,14 +180,18 @@ class DraftedMemos extends Component
         $this->dispatch('notify', message: "Brouillon supprimer avec succès !");
     }
 
-    
-
-    
-    // Ouvrir le modal
+     // Ouvrir le modal
     public function openModal()
     {
         $this->resetValidation();
         $this->isOpen = true;
+    }
+
+    // Fermer le modal et reset les champs
+    public function closeModal()
+    {
+        $this->isOpen = false;
+         $this->reset(['object','concern', 'content',  'memo_id']);
     }
 
     // Ouvrir le modal
@@ -127,56 +200,23 @@ class DraftedMemos extends Component
         $this->isOpen2 = true;
     }
 
-     // --- NOUVELLE MÉTHODE : Ouvrir le Modal d'attribution ---
-    public function assignWritten($id)
-    {
-        $this->writtenMemoId = $id;
-        
-        // 1. Récupérer toutes les entités (Directions/Services)
-        $this->allEntities = Entity::all();
-
-        // 2. Initialiser le tableau des sélections
-        // On vérifie si des attributions existent déjà pour ne pas les écraser visuellement
-        $existingAssignments = Memo::where('written_memo_id', $id)->get()->keyBy('entity_id');
-
-        $this->selections = [];
-        
-        foreach($this->allEntities as $entity) {
-            $exists = $existingAssignments->has($entity->id);
-            
-            $this->selections[$entity->id] = [
-                'checked' => $exists, // Coché si déjà attribué
-                'action' => $exists ? $existingAssignments[$entity->id]->action : 'Pour attribution' // Valeur par défaut
-            ];
-        }
-
-        $this->isOpen3 = true;
-    }
-
-    // Ouvrir le modal
-    public function openModalQuatre()
-    {
-        $this->isOpen4 = true;
-    }
-
-    // Fermer le modal et reset les champs
-    public function closeModal()
-    {
-        $this->isOpen = false;
-         $this->reset(['object', 'content', 'type_memo', 'dest_status', 'writtenMemoId']);
-    }
-
     // Fermer le modal et reset les champs
     public function closeModalDeux()
     {
         $this->isOpen2 = false;
     }
 
-    // Fermer le modal et reset les champs
+     // Fermer le modal et reset les champs
     public function closeModalTrois()
     {
         $this->isOpen3 = false;
         $this->selections = []; // Reset
+    }
+
+    // Ouvrir le modal
+    public function openModalQuatre()
+    {
+        $this->isOpen4 = true;
     }
 
     // Fermer le modal et reset les champs
@@ -187,47 +227,12 @@ class DraftedMemos extends Component
 
     
 
-    public function viewWritten($id)
-    {
-        $written = WrittenMemo::findOrFail($id);
-        $this->object = $written->object;
-        $this->type_memo = $written->type_memo;
-        $this->content = $written->content;
-        $this->writtenMemoId = $written->id;
-        $this->date = $written->created_at->format('d/m/Y à H:i');   
-        $this->user_first_name = $written->user->first_name;
-        $this->user_last_name = $written->user->last_name;
-        $this->user_service = $written->user->service;
-        $this->user_entity = $written->user->entity;
-        $this->openModal();
-    }
-
-    public function editWritten($id)
-    {
-        $written = WrittenMemo::findOrFail($id);
-        $this->object = $written->object;
-        $this->type_memo = $written->type_memo;
-        $this->content = $written->content;
-        $this->writtenMemoId = $written->id;
-        $this->date = $written->created_at->format('d/m/Y à H:i');   
-        $this->user_first_name = $written->user->first_name;
-        $this->user_last_name = $written->user->last_name;
-        $this->user_service = $written->user->service;
-        $this->user_entity = $written->user->entity;
-        $this->openModalDeux();
-    }
-
-
-    public function deleteWritten($id)
-    {
-         $this->writtenMemoId = $id;
-         $this->openModalQuatre();
-    }
-
-
     public function render()
     {
-        $this->writtenMemo = WrittenMemo::where('user_id', Auth::id())->get();
+       $this->memos = Memo::where('user_id', Auth::id())
+                   ->orderBy('id', 'desc') // Trie par ID décroissant
+                   ->get();
+        
         return view('livewire.memos.drafted-memos');
     }
 }

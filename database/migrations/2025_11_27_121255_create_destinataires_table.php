@@ -11,15 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('memos', function (Blueprint $table) {
+        Schema::create('destinataires', function (Blueprint $table) {
             $table->id();
             $table->string('action');
-            $table->foreignId('written_memo_id')
-            ->constrained('written_memos')
-            ->onDelete('cascade');
-            $table->foreignId('entity_id')
-            ->constrained('entities')
-            ->onDelete('cascade');
+            $table->foreignId('memo_id')->constrained()->onDelete('cascade');
+            $table->foreignId('entity_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }
@@ -29,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('memos_pivot');
+        Schema::dropIfExists('destinataires');
     }
 };

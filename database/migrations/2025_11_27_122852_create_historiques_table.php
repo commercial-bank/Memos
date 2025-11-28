@@ -11,8 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('written_memos', function (Blueprint $table) {
-             $table->text('content')->change();
+        Schema::create('historiques', function (Blueprint $table) {
+            $table->id();
+            $table->string('workflow_comment');
+            $table->string('action');
+            $table->unsignedBigInteger('memo_id');
+            $table->unsignedBigInteger('user_id');
+            $table->timestamps();
         });
     }
 
@@ -21,8 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('written_memos', function (Blueprint $table) {
-            $table->string('content', 255)->change();
-        });
+        Schema::dropIfExists('historiques');
     }
 };

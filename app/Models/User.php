@@ -36,11 +36,20 @@ class User extends Authenticatable implements LdapAuthenticatable
         'domain',
         'password',
         'poste',
-        'entity',
-        'entity_sigle',
-        'n1',
-        'service'
+        'entity_name',
+        'sous_direction',
+        'departement',
+        'service',
+        'role',
+        'manager_id',
+        'manager_replace_id'
     ];
+
+
+    public function memos()
+    {
+        return $this->hasMany(Memo::class);
+    }
 
 
 
@@ -53,6 +62,36 @@ class User extends Authenticatable implements LdapAuthenticatable
     {
         // Un User a plusieurs Memos... à travers les WrittenMemos
         return $this->hasManyThrough(Memo::class, WrittenMemo::class);
+    }
+
+
+    /**
+     * Accesseur pour créer l'acronyme de l'entité du user.
+     * Utilisation : $user->entity_acronym
+     */
+    public function getEntityAcronymAttribute()
+    {
+        // Si le champ est vide, on ne renvoie rien
+        if (empty($this->entity_name)) {
+            return '';
+        }
+
+        // 1. On remplace les tirets par des espaces
+        $name = str_replace('-', ' ', $this->entity_name);
+
+        // 2. On découpe en mots
+        $words = explode(' ', $name);
+        $acronym = '';
+
+        // 3. On prend la première lettre de chaque mot
+        foreach ($words as $word) {
+            if (!empty($word)) {
+                $acronym .= mb_substr($word, 0, 1);
+            }
+        }
+
+        // 4. On retourne en majuscules
+        return mb_strtoupper($acronym);
     }
 
     /**

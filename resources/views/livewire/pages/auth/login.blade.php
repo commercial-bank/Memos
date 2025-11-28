@@ -23,7 +23,7 @@ new #[Layout('layouts.guest')] class extends Component {
         /**
          * Handle an incoming authentication request.
          */
-        public function login(): void
+        /*public function login(): void
         {
             $this->validate();
             
@@ -39,6 +39,12 @@ new #[Layout('layouts.guest')] class extends Component {
             $credentials = [
                 // Changez 'email' ci-dessous par 'samaccountname', 'uid' ou 'mail' selon votre annuaire LDAP
                 'samaccountname' => $this->user_name, 
+                'password' => $this->password,
+            ];
+
+            $credentials = [
+                // Changez 'email' ci-dessous par 'samaccountname', 'uid' ou 'mail' selon votre annuaire LDAP
+                'user_name' => $this->user_name, 
                 'password' => $this->password,
             ];
 
@@ -58,7 +64,39 @@ new #[Layout('layouts.guest')] class extends Component {
             Session::regenerate();
 
             $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
-        }
+        }*/
+
+            public function login(): void
+{
+    $this->validate();
+    $this->ensureIsNotRateLimited();
+
+    // ---------------------------------------------------------
+    // C'est ici la modification que tu as faite (C'EST BON)
+    // ---------------------------------------------------------
+    
+    // On utilise 'user_name' car c'est le nom de ta colonne dans MySQL
+    // On n'utilise PAS 'samaccountname' (qui sert au LDAP)
+    $credentials = [
+        'user_name' => $this->user_name, 
+        'password' => $this->password,
+    ];
+
+    // Auth::attempt va utiliser le driver par défaut défini dans config/auth.php
+    if (! Auth::attempt($credentials, $this->remember)) {
+        
+        RateLimiter::hit($this->throttleKey());
+
+        throw ValidationException::withMessages([
+            'user_name' => __('auth.failed'),
+        ]);
+    }
+
+    RateLimiter::clear($this->throttleKey());
+    Session::regenerate();
+
+    $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
+}
 
         /**
          * Ensure the authentication request is not rate limited.

@@ -23,7 +23,8 @@ return [
     'guards' => [
         'web' => [
             'driver' => 'session',
-            'provider' => 'ldap', // On utilise le provider défini ci-dessous
+            //'provider' => 'ldap', 
+            'provider' => 'users', 
         ],
     ],
 

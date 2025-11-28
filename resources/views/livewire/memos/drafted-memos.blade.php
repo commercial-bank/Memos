@@ -4,7 +4,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
 
-        @foreach ($writtenMemo as $memo)
+        @foreach ($memos as $memo)
 
 
 
@@ -18,7 +18,7 @@
                       <div>
                           <div class="flex items-center text-gray-700 mb-2">
                               <svg class="w-5 h-5 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                              <span class="text-sm font-medium">From: <span class="font-semibold">{{ $memo->user->entity }}</span></span>
+                              <span class="text-sm font-medium">From: <span class="font-semibold">{{ $memo->user->entity_name }}</span></span>
                           </div>
 
                           <div class="flex items-center text-gray-700 mb-2">
@@ -32,32 +32,43 @@
                         <div class="flex justify-between items-center mt-4">
                           <div class="flex items-center text-gray-500 text-sm">
                               <svg class="w-4 h-4 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                              Date: {{ $memo->created_at->format('d/m/Y à H:i') }}
+                              Date: {{ $memo->created_at->format('d/m/Y') }}
                           </div>
 
                           <!-- Boutons d'action -->
                           <div class="flex space-x-2">
+                            @if($memo->status == "brouillon")
                              
-                              <button wire:click="viewWritten({{ $memo->id }})"   class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition duration-150 ease-in-out" title="Voir les détails">
-                                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                              </button>
+                                <button wire:click="viewMemo({{ $memo->id }})"   class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition duration-150 ease-in-out" title="Voir les détails">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                </button>
 
-                           
-                                
-                              <button wire:click="editWritten({{ $memo->id }})" class="p-2 rounded-full bg-yellow-100 text-yellow-600 hover:bg-yellow-200 transition duration-150 ease-in-out" title="Modifier">
-                                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                              </button>
-                              <button wire:click="assignWritten({{ $memo->id }})" class="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition duration-150 ease-in-out" title="Attribuer / Assigner">
-                                    <!-- Icone: User Plus (Ajouter/Assigner une personne) -->
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
-                                    </svg>
-                              </button>
-                              <button wire:click="deleteWritten({{ $memo->id }})" class="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition duration-150 ease-in-out" title="Rejeter">
-                                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                              </button>
+                    
+
+                                <button wire:click="editMemo({{ $memo->id }})" class="p-2 rounded-full bg-yellow-100 text-yellow-600 hover:bg-yellow-200 transition duration-150 ease-in-out" title="Modifier">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                </button>
 
 
+                                <button wire:click="assignMemo({{ $memo->id }})" class="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition duration-150 ease-in-out" title="Attribuer / Assigner">
+                                        <!-- Icone: User Plus (Ajouter/Assigner une personne) -->
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                                        </svg>
+                                </button>
+
+
+                                <button wire:click="deleteMemo({{ $memo->id }})" class="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition duration-150 ease-in-out" title="Rejeter">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </button>
+
+                            @else
+
+                                <button wire:click="viewMemo({{ $memo->id }})"   class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition duration-150 ease-in-out" title="Voir les détails">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                </button>
+
+                            @endif
                           </div>
                   </div>
             </div>
@@ -107,7 +118,7 @@
                                         </div>
 
                                         
-                                        <h2 class="font-bold text-xs uppercase text-gray-800">{{ $user_entity ?? 'DIRECTION' }}</h2>
+                                        <h2 class="font-bold text-xs uppercase text-gray-800">{{ $user_entity_name }}</h2>
                                         <h1 class="font-['Arial'] font-extrabold text-2xl uppercase mt-2 italic  inline-block">
                                             Memorandum
                                         </h1>
@@ -138,12 +149,12 @@
                                                 <td class="border border-black p-1 text-center font-bold w-[35%] bg-gray-50"></td>
                                             </tr>
                                             <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">N° : 298/DGR/SDGR/WT</td>
+                                                <td class="border border-black p-1 pl-2 font-bold align-top">N° : #</td>
                                                 <td class="border border-black p-1 pl-2"><span class="checkbox-square"></span> Prendre connaissance</td>
                                                 <td class="border border-black p-1 text-center font-bold"></td>
                                             </tr>
                                             <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">Emetteur : {{ $user_first_name }} {{ $user_last_name }}</td>
+                                                <td class="border border-black p-1 pl-2 font-bold align-top">Emetteur : {{ Auth::user()->entity_acronym }}</td>
                                                 <td class="border border-black p-1 pl-2"><span class="checkbox-square"></span> Prendre position</td>
                                                 <td class="border border-black p-1">&nbsp;</td>
                                             </tr>
@@ -162,7 +173,7 @@
                                         </div>
 
                                         <div class="mb-6">
-                                            <p class="mb-1"><span class="font-bold text-[15px] underline">Concerne :</span> <span class="lowercase">{{ $object }} </span></p>
+                                            <p class="mb-1"><span class="font-bold text-[15px] underline">Concerne :</span> <span class="lowercase">{{ $concern }} </span></p>
                                         </div>
 
                                         <div class="font-['Arial'] text-justify text-[14px] leading-relaxed text-gray-900 content-html">
@@ -187,8 +198,7 @@
         @endif
 
 
-
-         @if($isOpen2)
+        @if($isOpen2)
             <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     
                 <!-- L'arrière-plan sombre (Overlay) -->
@@ -211,7 +221,7 @@
                                 <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                                     <div class="flex items-center justify-between mb-4">
                                         <h3 class="text-lg font-semibold leading-6 text-gray-900" id="modal-title">
-                                            Nouveau Memo
+                                            Modifier Votre Memo
                                         </h3>
                                         <!-- Bouton croix pour fermer (Optionnel mais recommandé) -->
                                         <button type="button" wire:click="closeModalDeux()" class="text-gray-400 hover:text-gray-500">
@@ -228,15 +238,14 @@
                                         @error('object') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                                     </div>
 
-                                    <!-- Champ Type_memo -->
+                                    <!-- Champ Concern -->
                                     <div class="mb-4">
-                                        <label for="type_memo" class="block text-sm font-medium text-gray-700 mb-1">Type De Memo</label>
-                                        <select wire:model="type_memo" id="type_memo" class="w-full rounded-md border border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 py-2 px-3 text-gray-900 bg-white">
-                                            <option value="Memo Simple">Memo Simple</option>
-                                            <option value="Memo De Projet">Memo De Projet</option>
-                                        </select>
-                                        @error('type_memo') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                                        <label for="object" class="block text-sm font-medium text-gray-700 mb-1">Concerne</label>
+                                        <input type="text"  wire:model="concern" id="concern" class="w-full rounded-md border border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 py-2 px-3 text-gray-900">
+                                        @error('concern') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                                     </div>
+
+                                    
 
                                     <!-- Champ Contenu (Éditeur Riche) -->
                                     <div class="mb-4">
@@ -252,10 +261,27 @@
                                                         placeholder: 'Rédigez votre mémo ici...',
                                                         modules: {
                                                             toolbar: [
-                                                                ['bold', 'italic', 'underline'], // Gras, Italique, Souligné
-                                                                [{ 'list': 'ordered'}, { 'list': 'bullet' }], // Listes
-                                                                [{ 'align': [] }], // Alignement
-                                                                ['clean'] // Effacer formatage
+                                                                // GROUPE 1 : Titres et Polices
+                                                                [{ 'header': [1, 2, 3, false] }], // H1, H2, H3, Normal
+
+                                                                // GROUPE 2 : Formatage de base
+                                                                ['bold', 'italic', 'underline', 'strike'], // Gras, Italique, Souligné, Barré
+                                                                
+                                                                // GROUPE 3 : Couleurs
+                                                                [{ 'color': [] }, { 'background': [] }], // Couleur du texte & Surlignage
+
+                                                                // GROUPE 4 : Listes et Indentation
+                                                                [{ 'list': 'ordered'}, { 'list': 'bullet' }], 
+                                                                [{ 'indent': '-1'}, { 'indent': '+1' }], // Diminuer/Augmenter le retrait
+
+                                                                // GROUPE 5 : Alignement
+                                                                [{ 'align': [] }], 
+
+                                                                // GROUPE 6 : Insertion (Lien)
+                                                                ['link'], // Outil pour insérer un lien hypertexte
+
+                                                                // GROUPE 7 : Nettoyage
+                                                                ['clean'] // Effacer le formatage
                                                             ]
                                                         }
                                                     });
@@ -274,7 +300,6 @@
                                             x-init="initQuill()"
                                         >
                                             <!-- Le conteneur visuel de l'éditeur -->
-                                            <!-- J'ai reporté vos classes CSS ici pour le design -->
                                             <div class="bg-white border border-gray-300 rounded-md overflow-hidden focus-within:border-yellow-500 focus-within:ring-1 focus-within:ring-yellow-500 transition-all duration-200">
                                                 <!-- La zone de saisie Quill -->
                                                 <div x-ref="quillEditor" class="min-h-[150px] max-h-[300px] text-gray-800 text-base font-sans"></div>
@@ -321,10 +346,9 @@
                 </div>
             </div>
          @endif
-
-
-
-         @if($isOpen3)
+         
+         
+          @if($isOpen3)
             <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
                 <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
 
@@ -362,7 +386,7 @@
                                                     class="h-5 w-5 rounded border-gray-300 text-yellow-500 focus:ring-yellow-500 cursor-pointer"
                                                 >
                                                 <label for="entity_{{ $entity->id }}" class="text-sm font-medium text-gray-900 cursor-pointer w-full">
-                                                    {{ $entity->name }} 
+                                                    {{ $entity->title }} 
                                                     @if($entity->acronym) <span class="text-gray-500 text-xs">({{ $entity->acronym }})</span> @endif
                                                 </label>
                                             </div>
@@ -406,8 +430,7 @@
             </div>
         @endif
 
-
-       @if($isOpen4)
+        @if($isOpen4)
             <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
 
                 <!-- L'arrière-plan sombre -->
@@ -457,6 +480,7 @@
                 </div>
             </div>
         @endif
+
 
 
   </div>

@@ -9,7 +9,7 @@
         >
             Mémos Entrants
             
-            <span class="ml-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">{{$notif}}</span>
+            <span class="ml-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">2</span>
         </button>
 
         <button
@@ -95,15 +95,13 @@
                                 @error('object') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                             </div>
 
-                            <!-- Champ Type_memo -->
+                            <!-- Champ concernet -->
                             <div class="mb-4">
-                                <label for="type_memo" class="block text-sm font-medium text-gray-700 mb-1">Type De Memo</label>
-                                <select  wire:model="type_memo" id="type_memo"  class="w-full rounded-md border-yellow-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 py-2 px-3 border text-gray-900">
-                                    <option value="Memo Simple">Memo Simple</option>
-                                    <option value="Memo De Projet">Memo De Projet</option>
-                                </select>
-                                @error('type_memo') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                                <label for="object" class="block text-sm font-medium text-gray-700 mb-1">Concerne</label>
+                                <input type="text" wire:model="concern" id="concern" class="w-full rounded-md border-yellow-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 py-2 px-3 border text-gray-900">
+                                @error('concern') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                             </div>
+
 
                             <!-- Champ Contenu -->
                             <div class="mb-4">
