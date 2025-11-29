@@ -644,48 +644,50 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Note / Commentaire (Optionnel)</label>
                                     <textarea wire:model="workflow_comment" rows="3" class="w-full rounded-md border-gray-300 shadow-sm border p-2"></textarea>
                                 </div>
+                                
+                                @if($author_memo == Auth::id())
 
-                                <!-- Visa -->
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">VISE</label>
+
+                                @else
                                     
-                                    <div class="flex items-center space-x-6">
-                                        <!-- Option Favorable -->
-                                        <div class="flex items-center">
-                                            <input wire:model="action" 
-                                                id="visa_favorable" 
-                                                name="action" 
-                                                type="radio" 
-                                                value="Vue" 
-                                                class="h-4 w-4 text-yellow-600 border-gray-300 focus:ring-yellow-500 cursor-pointer">
-                                            <label for="visa_favorable" class="ml-2 block text-sm text-gray-700 cursor-pointer">
-                                                Vue
-                                            </label>
-                                        </div>
+                                    <!-- Visa -->
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">VISE</label>
+                                        
+                                        <div class="flex items-center space-x-6">
+                                            <!-- Option Favorable -->
+                                            <div class="flex items-center">
+                                                <input wire:model="action" 
+                                                    id="visa_favorable" 
+                                                    name="action" 
+                                                    type="radio" 
+                                                    value="Vue" 
+                                                    class="h-4 w-4 text-yellow-600 border-gray-300 focus:ring-yellow-500 cursor-pointer">
+                                                <label for="visa_favorable" class="ml-2 block text-sm text-gray-700 cursor-pointer">
+                                                    Vue
+                                                </label>
+                                            </div>
 
-                                        <!-- Option Défavorable -->
-                                        <div class="flex items-center">
-                                            <input wire:model="action" 
-                                                id="visa_defavorable" 
-                                                name="action" 
-                                                type="radio" 
-                                                value="Vue & D'accord" 
-                                                class="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500 cursor-pointer">
-                                            <label for="visa_defavorable" class="ml-2 block text-sm text-gray-700 cursor-pointer">
-                                                Vue & D'accord
-                                            </label>
+                                            <!-- Option Défavorable -->
+                                            <div class="flex items-center">
+                                                <input wire:model="action" 
+                                                    id="visa_defavorable" 
+                                                    name="action" 
+                                                    type="radio" 
+                                                    value="Vue & D'accord" 
+                                                    class="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500 cursor-pointer">
+                                                <label for="visa_defavorable" class="ml-2 block text-sm text-gray-700 cursor-pointer">
+                                                    Vue & D'accord
+                                                </label>
+                                            </div>
                                         </div>
+                                        @error('action') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                                     </div>
-                                    @error('action') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                                </div>
 
-                                <!-- Info Signature -->
-                                @if(in_array(strtolower(Auth::user()->poste), ['Sous-Directeur', 'Directeur']))
-                                    <div class="flex items-center gap-2 text-green-600 text-sm bg-green-50 p-2 rounded mb-4">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                        <span>Votre signature numérique sera apposée automatiquement.</span>
-                                    </div>
                                 @endif
+                                
+
+                                
 
                             </div>
 

@@ -45,6 +45,7 @@ class DocsMemos extends Component
     // Variable tableau pour stocker les destinataires triés par action
     public $recipientsByAction = [];
 
+    public $author_memo;
     public $usersList = []; // Liste des destinataires possibles
 
 
@@ -132,44 +133,97 @@ class DocsMemos extends Component
     public function openSendModal($id)
     {
         $this->selectedMemoId = $id;
-        $this->usersList = User::where('id', '!=', Auth::id())->get(); // Tous sauf moi
-        //$this->reset(['next_user_id', 'comment', 'reference_input']);
+        $memo = Memo::findOrFail($id);
+        $this->author_memo = $memo->user_id;
+
+        // 1. On récupère les IDs cibles (Manager + Remplaçant)
+        $targetIds = [
+            Auth::user()->manager_id, 
+            Auth::user()->manager_replace_id
+        ];
+
+        // 2. On filtre pour enlever les valeurs nulles (si pas de remplaçant par exemple)
+        // array_filter va retirer les entrées vides/nulles du tableau
+        $targetIds = array_filter($targetIds);
+
+        // 3. On récupère uniquement ces utilisateurs
+        $this->usersList = User::whereIn('id', $targetIds)->get();
         $this->isSendOpen = true;
     }
 
     public function sendMemo()
     {
-        
-        $this->validate([
-            'next_user_id' => 'required|exists:users,id',
-            'action' => 'required',
-        ]);
 
         $memo = Memo::findOrFail($this->selectedMemoId);
+
+        if(Auth::id() == $memo->user_id)
+        {
+            $this->validate([
+                'next_user_id' => 'required|exists:users,id',
+            ]);
+
+        
        
-        // === AJOUT : ENREGISTRER L'HISTORIQUE ===
-        Historiques::create([
-            'workflow_comment' => $this->comment,
-            'action' => $this->action,
-            'memo_id' =>$memo->id,
-            'user_id' => Auth::id()
-        ]);
+            // === AJOUT : ENREGISTRER L'HISTORIQUE ===
+            Historiques::create([
+                'workflow_comment' => $this->comment,
+                'action' => 'createur',
+                'memo_id' =>$memo->id,
+                'user_id' => Auth::id()
+            ]);
 
-        $currentUser = Auth::user();
+            $currentUser = Auth::user();
 
-        // LOGIQUE DES SIGNATURES AUTOMATIQUES SELON LE POSTE
+            // LOGIQUE DES SIGNATURES AUTOMATIQUES SELON LE POSTE
         
         
 
-        // Mise à jour du détenteur
-        $memo->previous_holder_id = Auth::id();
-        $memo->current_holder_id = $this->next_user_id;
-        $memo->workflow_comment = $this->comment;
-        $memo->status = 'pending';
-        $memo->save();
+            // Mise à jour du détenteur
+            $memo->previous_holders =  Auth::id();
+            $memo->current_holders = (int) $this->next_user_id;
+            $memo->workflow_comment = $this->comment;
+            $memo->status = 'pending';
+            $memo->save();
 
-        $this->isSendOpen = false;
-        $this->dispatch('notify', message: 'Mémo envoyer avec succès !', type: 'success');
+            $this->isSendOpen = false;
+            $this->dispatch('notify', message: 'Mémo envoyer avec succès !', type: 'success');
+
+        }else{
+
+            $this->validate([
+                'next_user_id' => 'required|exists:users,id',
+                'action' => 'required',
+            ]);
+
+        
+       
+            // === AJOUT : ENREGISTRER L'HISTORIQUE ===
+            Historiques::create([
+                'workflow_comment' => $this->comment,
+                'action' => $this->action,
+                'memo_id' =>$memo->id,
+                'user_id' => Auth::id()
+            ]);
+
+            $currentUser = Auth::user();
+
+            // LOGIQUE DES SIGNATURES AUTOMATIQUES SELON LE POSTE
+        
+        
+
+            // Mise à jour du détenteur
+            $memo->previous_holders =  [Auth::id()];
+            $memo->current_holders = [$this->next_user_id];
+            $memo->workflow_comment = $this->comment;
+            $memo->status = 'pending';
+            $memo->save();
+
+            $this->isSendOpen = false;
+            $this->dispatch('notify', message: 'Mémo envoyer avec succès !', type: 'success');
+
+
+        }
+        
     }
 
     public function closeSendModal()

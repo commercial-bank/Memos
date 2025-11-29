@@ -14,15 +14,19 @@ return new class extends Migration
         Schema::create('memos', function (Blueprint $table) {
             $table->id();
             $table->string('object');
+            $table->string('reference');
             $table->string('concern');
             $table->longText('content');
             $table->string('status')->default('brouillon'); 
-            $table->unsignedBigInteger('current_holder_id')->nullable();;
-            $table->unsignedBigInteger('previous_holder_id')->nullable();;
-            $table->string('signature_sd')->nullable();;
-            $table->string('signature_dir')->nullable();;
-            $table->string('qr_code')->nullable();;
-            $table->string('workflow_comment')->nullable();;
+            $table->json('current_holders')->nullable();
+            $table->json('previous_holders')->nullable();
+            $table->string('signature_sd')->nullable();
+            $table->string('signature_dir')->nullable();
+            $table->string('qr_code')->nullable();
+            $table->string('workflow_direction')->default('sortant');
+            $table->string('workflow_comment')->nullable();
+            $table->string('numero_ref')->default('FOR-ME-07-V1');
+            $table->boolean('archive_status_sec')->default(false);
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });

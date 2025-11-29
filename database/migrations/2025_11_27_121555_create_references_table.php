@@ -15,8 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('nature');
             $table->string('date');
-            $table->string('numero_ordre');
-            $table->string('lettre_type_ordre');
+            $table->string('numero_ordre_path');
+            $table->string('object');
+            $table->string('concerne');
             $table->foreignId('memo_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });

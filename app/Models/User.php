@@ -42,7 +42,8 @@ class User extends Authenticatable implements LdapAuthenticatable
         'service',
         'role',
         'manager_id',
-        'manager_replace_id'
+        'manager_replace_id',
+        'director_assistant_id',
     ];
 
 

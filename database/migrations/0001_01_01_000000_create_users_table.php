@@ -40,6 +40,7 @@ return new class extends Migration
                 $table->string('role')->nullable();
                 $table->unsignedBigInteger('manager_id')->nullable();
                 $table->unsignedBigInteger('manager_replace_id')->nullable();
+                $table->unsignedBigInteger('director_assistant_id')->nullable();
                 
                 $table->rememberToken();
                 $table->timestamps();

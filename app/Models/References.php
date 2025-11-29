@@ -9,8 +9,9 @@ class References extends Model
     protected $fillable = [
         'nature',
         'date',
-        'numero_ordre',
-        'lettre_type_ordre',
+        'numero_ordre_path',
+        'object',
+        'concerne',
         'memo_id',
     ];
 }

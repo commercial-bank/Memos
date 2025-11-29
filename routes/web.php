@@ -3,6 +3,7 @@
 use App\Livewire\Memos\Memos;
 use App\Livewire\Actions\Logout;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\VerificationController;
 
 Route::view('/', 'welcome')->name('memo.store');
 
@@ -15,6 +16,9 @@ Route::view('profile', 'profile')
     ->name('profile');
 
 
-Route::get('/verify-memo/{token}', [MemoVerificationController::class, 'verify'])->name('memo.verify');
+// Route publique pour la vérification du QR Code
+Route::get('/verifier-document/{token}', [VerificationController::class, 'verify'])
+     ->name('memo.verify');    
+
 
 require __DIR__.'/auth.php';

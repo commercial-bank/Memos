@@ -21,6 +21,7 @@ class IncomingMemos extends Component
     public $isOpen = false;
     public $isSendOpen = false; // Modal Envoyer
     public $isRejectOpen = false; // Modal Rejeter
+    public $isSendAssistOpen = false; //Modal Assistante
     public $rejection_comment = ''; // Le motif du rejet
     public ?WrittenMemo $sign_memo = null;
 
@@ -44,9 +45,12 @@ class IncomingMemos extends Component
     public $user_service = '';
     public $user_entity_name = '';
     public $user_entity_name_acronym='';
+    public $qr_code;
 
     // Variable tableau pour stocker les destinataires triés par action
     public $recipientsByAction = [];
+    public $author_memo;
+    public $assist;
     public $usersList = []; // Liste des destinataires possibles
 
 
@@ -62,6 +66,7 @@ class IncomingMemos extends Component
         $this->concern = $memo->concern;
         $this->signature_sd = $memo->signature_sd;
         $this->signature_dir = $memo->signature_dir;
+        $this->qr_code = $memo->qr_code;
         $this->date = $memo->created_at->format('d/m/Y');
         
         $this->user_first_name = $memo->user->first_name;
@@ -69,6 +74,7 @@ class IncomingMemos extends Component
         $this->user_service = $memo->user->service ?? 'Service Non Défini';
         $this->user_entity_name = $memo->user->entity_name; // Valeur par défaut
         $this->user_entity_name_acronym = Entity::StatgetAcronymAttribute($this->user_entity_name);
+        
 
         // 3. CORRECTION : Utiliser une fonction anonyme pour cibler 'pivot.action'
         $this->recipientsByAction = $memo->destinataires
@@ -92,17 +98,39 @@ class IncomingMemos extends Component
     {
         $this->selectedMemoId = $id;
         $memo = Memo::findOrFail($id);
+        $this->author_memo = $memo->user_id;
 
-        // FILTRE INTELLIGENT DES UTILISATEURS
-        $this->usersList = User::where('id', '!=', Auth::id()) // Pas moi-même
-            ->where('id', '!=', $memo->user_id) // Pas l'auteur initial (on ne renvoie pas le dossier à l'auteur, sauf rejet)
-            ->when($memo->previous_holder_id, function($q) use ($memo) {
-                $q->where('id', '!=', $memo->previous_holder_id); // Pas celui qui vient de me l'envoyer
-            })
-            ->get();
+        // 1. On récupère les IDs cibles (Manager + Remplaçant)
+        $targetIds = [
+            Auth::user()->manager_id, 
+            Auth::user()->manager_replace_id
+        ];
 
-        $this->reset(['next_user_id', 'comment', 'action']);
+        // 2. On filtre pour enlever les valeurs nulles (si pas de remplaçant par exemple)
+        // array_filter va retirer les entrées vides/nulles du tableau
+        $targetIds = array_filter($targetIds);
+
+        // 3. On récupère uniquement ces utilisateurs
+        $this->usersList = User::whereIn('id', $targetIds)->get();
         $this->isSendOpen = true;
+    }
+
+    public function openSendAssistModal($id)
+    {
+        $this->selectedMemoId = $id;
+        $memo = Memo::findOrFail($id);
+        $this->author_memo = $memo->user_id;
+
+        // 1. On récupère les IDs cibles (Manager + Remplaçant)
+        $targetIds = Auth::user()->director_assistant_id;
+        
+
+      
+
+        // 3. On récupère uniquement ces utilisateurs
+        $this->assist = User::where('id', $targetIds)->first();
+       
+        $this->isSendAssistOpen = true;
     }
 
     public function signDocument($id,$post)
@@ -165,8 +193,8 @@ class IncomingMemos extends Component
         
 
         // Mise à jour du détenteur
-        $memo->previous_holder_id = Auth::id();
-        $memo->current_holder_id = $this->next_user_id;
+        $memo->previous_holders = Auth::id();
+        $memo->current_holders = (int) $this->next_user_id;
         $memo->workflow_comment = $this->comment;
         $memo->status = 'pending';
         $memo->save();
@@ -174,6 +202,42 @@ class IncomingMemos extends Component
         $this->isSendOpen = false;
         $this->dispatch('notify', message: 'Mémo envoyer avec succès !', type: 'success');
     }
+
+    public function sendMemoAssist()
+    {
+        
+        $this->validate([
+            'next_user_id' => 'required|exists:users,id',
+            'action' => 'required',
+        ]);
+
+        $memo = Memo::findOrFail($this->selectedMemoId);
+       
+        // === AJOUT : ENREGISTRER L'HISTORIQUE ===
+        Historiques::create([
+            'workflow_comment' => $this->comment,
+            'action' => $this->action,
+            'memo_id' =>$memo->id,
+            'user_id' => Auth::id()
+        ]);
+
+        $currentUser = Auth::user();
+
+        // LOGIQUE DES SIGNATURES AUTOMATIQUES SELON LE POSTE
+        
+        
+
+        // Mise à jour du détenteur
+        $memo->previous_holders = Auth::id();
+        $memo->current_holders = (int) $this->next_user_id;
+        $memo->workflow_comment = $this->comment;
+        $memo->status = 'pending';
+        $memo->save();
+
+        $this->isSendAssistOpen = false;
+        $this->dispatch('notify', message: 'Mémo envoyer avec succès !', type: 'success');
+    }
+    
 
     public function closeSendModal()
     {
@@ -219,16 +283,15 @@ class IncomingMemos extends Component
 
     public function render()
     {
-         // Récupérer l'ID de l'utilisateur connecté
-            $userId = Auth::id();
+        $userId = Auth::id();
 
-        // 1. On cherche les mémos où 'current_holder_id' est l'utilisateur connecté
-        // 2. On charge la relation 'destinataires' (Eager Loading) pour éviter les requêtes N+1
-        $memos = Memo::where('current_holder_id', $userId)
-                    ->with('destinataires') 
-                    ->get();
-
-                 
+        $memos = Memo::query()
+            // On vérifie si le tableau JSON 'current_holders' contient l'ID du user
+            ->whereJsonContains('current_holders', $userId) 
+            
+            ->where('workflow_direction', 'sortant')
+            ->with('destinataires')
+            ->get();
 
         return view('livewire.memos.incoming-memos', [
             'memos' => $memos,

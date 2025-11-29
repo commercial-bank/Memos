@@ -64,29 +64,10 @@
 
             @if($currentContent == 'reports-content')
                
-                        <div class="min-h-screen bg-gray-100 py-8" x-data="{ activeTab: 'memos', isCreating: false, selectedColor: 'white' }">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        
+    
 
-        <!-- 1. EN-TÊTE SIMPLIFIÉ -->
-        <div class="md:flex md:items-center md:justify-between mb-8">
-            <div class="flex-1 min-w-0">
-                <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                    Coffre-fort de Mémos
-                </h2>
-                <p class="mt-1 text-sm text-gray-500">
-                    Stockez vos idées, notes rapides et informations confidentielles.
-                </p>
-            </div>
-            <!-- Recherche rapide -->
-            <div class="mt-4 flex md:mt-0 md:ml-4">
-                <div class="relative rounded-md shadow-sm">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-search text-gray-400"></i>
-                    </div>
-                    <input type="text" class="focus:ring-yellow-500 focus:border-yellow-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md" placeholder="Chercher dans les notes...">
-                </div>
-            </div>
-        </div>
+        
 
         <!-- 2. NAVIGATION (ONGLETS) -->
         <div class="border-b border-gray-200 mb-6">

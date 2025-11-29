@@ -46,6 +46,7 @@ class Memos extends Component
         Memo::updateOrCreate(
             ['id' => $this->memoId],
             [
+                'reference' => '123/DGG/GHD/DSHG',
                 'object' => $this->object,
                 'concern' => $this->concern,
                 'content' => $this->content,

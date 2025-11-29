@@ -9,17 +9,38 @@ class Memo extends Model
 {
     protected $fillable = [
         'object',
+        'reference',
         'concern',
         'content',
         'status',
-        'current_holder_id',
-        'previous_holder_id',
+        
+        // GESTION DES DÉTENTEURS
+        'current_holders',   // L'ID du détenteur actuel (ou tableau d'IDs si JSON)
+        'previous_holders',    // L'historique des anciens (Array/JSON)
+        
+        // SIGNATURES & WF
         'signature_sd',
         'signature_dir',
         'qr_code',
+        'workflow_direction',
         'workflow_comment',
+        
+        // RÉFÉRENCES
+        'numero_ref',        // Si tu utilises toujours celui-ci
+        'numero_ordre_path', // Le nouveau champ "123M/..."
+        
         'user_id',
     ];
+
+    protected $casts = [
+        // ⚠️ IMPORTANT : La colonne 'current_holder_id' doit être de type JSON dans la migration
+        // si tu veux que ce cast fonctionne. Sinon, retire cette ligne.
+        'current_holders' => 'array',
+
+        // Convertit automatiquement le JSON de la BDD en tableau PHP
+        'previous_holders'  => 'array',
+    ];
+
 
     public function user()
     {

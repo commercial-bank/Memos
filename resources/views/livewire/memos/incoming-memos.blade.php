@@ -129,24 +129,66 @@
                                     </svg>
                                 </button>
                             @else
-                                <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
-                                </button>
+                                @if($document->qr_code == null)
+                                    <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
+                                    </button>
 
-                                <button 
-                                    wire:click="qrDocument({{ $document->id }})" 
-                                    wire:confirm="Générer le QR Code de signature ?"
-                                    class="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition" 
-                                    title="Générer QR Code">
-                                    
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                                    </svg>
-                                </button>     
+                                    <button 
+                                        wire:click="qrDocument({{ $document->id }})" 
+                                        wire:confirm="Générer le QR Code de signature ?"
+                                        class="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition" 
+                                        title="Générer QR Code">
+                                        
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                                        </svg>
+                                    </button>  
+                                @else
+                                    <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
+                                    </button>
+                                    <button 
+                                        wire:click="openSendAssistModal({{ $document->id }})" 
+                                        class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" 
+                                        title="Transmettre à Votre Assistante">
+                                        
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 12h14"></path>
+                                        </svg>
+                                    </button> 
+                                @endif
                     
                              @endif
 
                         @endif
+
+                    @elseif(auth()->user()->poste == "Secretaire")
+
+                        @if($document->archive_status_sec == false)
+                            <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
+                            </button>
+                            <button 
+                                wire:click="saveDocument({{ $document->id }})" 
+                                class="p-2 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 transition" 
+                                title="Enregistrer">
+                                
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                                </svg>
+                            </button>     
+                        @else
+                            <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
+                            </button>
+
+                            <button wire:click="openSendModal({{ $document->id }})" class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" title="Transmettre / Valider">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                            </button>
+                        @endif
+
+
 
                     @else
 
@@ -177,11 +219,6 @@
                   
                 </div>
 
-                
-
-                
-                    
-              
 
                 <!-- BADGE DE STATUT (En haut à gauche par exemple) -->
                 <div class="absolute top-0 left-0 p-2">
@@ -359,6 +396,18 @@
                                         </div>
                                     </div>
 
+                                    {{-- AJOUT ICI : PIED DE PAGE AVEC QR CODE CENTRÉ               --}}
+                                    <div class="absolute bottom-4 left-0 w-full flex flex-col items-center justify-center">
+
+                                            <!-- Le QR Code (Taille réduite à 50) -->
+                                        @if(isset($qr_code) && !empty($qr_code))
+                                            <div class="bg-white p-0.5 border border-gray-200 inline-block">
+                                                {{ QrCode::size(50)->generate(route('memo.verify', $qr_code)) }}
+                                            </div>
+                                        @endif
+
+                                    </div>
+
                                     
 
                                 </div> 
@@ -406,7 +455,97 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Note / Commentaire (Optionnel)</label>
                                     <textarea wire:model="comment" rows="3" class="w-full rounded-md border-gray-300 shadow-sm border p-2"></textarea>
                                 </div>
+                                
+                                
+                                <!-- Visa -->
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">VISE</label>
+                                    
+                                    <div class="flex items-center space-x-6">
+                                        <!-- Option Favorable -->
+                                        <div class="flex items-center">
+                                            <input wire:model="action" 
+                                                id="visa_favorable" 
+                                                name="action" 
+                                                type="radio" 
+                                                value="Vue" 
+                                                class="h-4 w-4 text-yellow-600 border-gray-300 focus:ring-yellow-500 cursor-pointer">
+                                            <label for="visa_favorable" class="ml-2 block text-sm text-gray-700 cursor-pointer">
+                                                Vue
+                                            </label>
+                                        </div>
 
+                                        <!-- Option Défavorable -->
+                                        <div class="flex items-center">
+                                            <input wire:model="action" 
+                                                id="visa_defavorable" 
+                                                name="action" 
+                                                type="radio" 
+                                                value="Vue & D'accord" 
+                                                class="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500 cursor-pointer">
+                                            <label for="visa_defavorable" class="ml-2 block text-sm text-gray-700 cursor-pointer">
+                                                Vue & D'accord
+                                            </label>
+                                        </div>
+                                    </div>
+                                    @error('action') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                </div>
+
+                                
+
+                            </div>
+
+                            <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                                <button type="submit" class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto">
+                                        Transmettre
+                                </button>
+                                <button type="button" wire:click="closeSendModal" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                                    Annuler
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+
+    @if($isSendAssistOpen)
+        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
+
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                    <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                        
+                        <form wire:submit.prevent="sendMemoAssist">
+                            <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Transmettre le Mémo</h3>
+
+                                <!-- Sélection du destinataire -->
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Envoyer à :</label>
+                                    <select wire:model="next_user_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 py-2 px-3 border">
+                                        <option value="">Sélectionner Votre Secretaire...</option>
+                                            <option value="{{ $assist->id }}">
+                                                {{ $assist->first_name }} {{ $assist->last_name }} 
+                                                ({{ $assist->poste }})
+                                            </option>
+                                    </select>
+                                    @error('next_user_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                </div>
+
+                                
+                                
+
+                                <!-- Commentaire -->
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Note / Commentaire (Optionnel)</label>
+                                    <textarea wire:model="comment" rows="3" class="w-full rounded-md border-gray-300 shadow-sm border p-2"></textarea>
+                                </div>
+                                
+                                
                                 <!-- Visa -->
                                 <div class="mb-4">
                                     <label class="block text-sm font-medium text-gray-700 mb-2">VISE</label>
