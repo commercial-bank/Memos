@@ -26,7 +26,6 @@ return new class extends Migration
             $table->string('workflow_direction')->default('sortant');
             $table->string('workflow_comment')->nullable();
             $table->string('numero_ref')->default('FOR-ME-07-V1');
-            $table->boolean('archive_status_sec')->default(false);
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });

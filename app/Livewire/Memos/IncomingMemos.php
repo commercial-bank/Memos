@@ -3,6 +3,7 @@
 namespace App\Livewire\Memos;
 
 use App\Models\Memo;
+use App\Models\References;
 use App\Models\User;
 use App\Models\Entity;
 use Livewire\Component;
@@ -11,6 +12,7 @@ use App\Models\MemoHistory;
 use App\Models\WrittenMemo;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+
 
 class IncomingMemos extends Component
 {
@@ -22,7 +24,8 @@ class IncomingMemos extends Component
     public $isSendOpen = false; // Modal Envoyer
     public $isRejectOpen = false; // Modal Rejeter
     public $isSendAssistOpen = false; //Modal Assistante
-    public $rejection_comment = ''; // Le motif du rejet
+    public $rejection_comment = ''; // Le motif du 
+    public $enregistrer= false;
     public ?WrittenMemo $sign_memo = null;
 
 
@@ -52,6 +55,17 @@ class IncomingMemos extends Component
     public $author_memo;
     public $assist;
     public $usersList = []; // Liste des destinataires possibles
+
+
+    //variable pour l'enregistrement des document
+    public $targetSecretaires = []; // Pour stocker la liste des secrétaires trouvées
+
+     // Champs du formulaire Reference
+    public $ref_nature;
+    public $ref_date;
+    public $ref_numero;
+    public $ref_object;
+    public $ref_concern;
 
 
     public function viewDocument($id)
@@ -86,6 +100,105 @@ class IncomingMemos extends Component
 
         // 4. Ouvrir le modal
         $this->isOpen = true;
+    }
+
+    public function EnregistrerDocument($id)
+    {
+        $this->selectedMemoId = $id;
+        $memo = Memo::with('destinataires')->findOrFail($id);
+
+        // A. On récupère les secrétaires
+        $entityNames = $memo->destinataires->pluck('title')->toArray();
+        
+        $this->targetSecretaires = User::where('poste', 'Secretaire')
+                       ->whereIn('entity_name', $entityNames)
+                       ->get();
+
+        // B. On pré-remplit le formulaire avec les infos du Mémo
+        $this->ref_nature = 'Memo Sortant'; // Valeur par défaut
+        $this->ref_date = now()->format('d/m/Y');
+        $this->ref_numero = $memo->reference ?? 'À définir';
+        $this->ref_object = $memo->object;
+        $this->ref_concern = $memo->concern;
+
+        // C. On ouvre la modale
+        $this->enregistrer = true;
+
+    }
+
+     // 2. L'ENREGISTREMENT ET L'ENVOI
+    public function confirmRegistration()
+    {
+        $this->validate([
+            'ref_nature' => 'required|string',
+            'ref_date' => 'required|string',
+            'ref_numero' => 'required|string',
+            'ref_object' => 'required|string',
+            'ref_concern' => 'required|string',
+        ]);
+
+        $memo = Memo::findOrFail($this->selectedMemoId);
+
+        // A. Création dans la table 'references'
+        References::create([
+            'nature' => $this->ref_nature,
+            'date' => $this->ref_date,
+            'numero_ordre_path' => $this->ref_numero,
+            'object' => $this->ref_object,
+            'concerne' => $this->ref_concern ?? '', // Gérer le cas null
+            'memo_id' => $memo->id,
+        ]);
+
+        // B. Gestion de l'historique (Previous Holders)
+       
+        // 1. On récupère la valeur brute
+            $rawHistory = $memo->previous_holders;
+
+            // 2. On normalise en tableau (Sécurité)
+            if (is_array($rawHistory)) {
+                // C'est déjà un tableau, parfait
+                $history = $rawHistory;
+            } elseif (empty($rawHistory)) {
+                // C'est vide ou null, on crée un tableau vide
+                $history = [];
+            } else {
+                // C'est un entier unique (ancien format), on le met dans un tableau
+                $history = [$rawHistory];
+            }
+
+            // 3. Maintenant on peut utiliser in_array sans erreur
+            if (!in_array(Auth::id(), $history)) {
+                $history[] = Auth::id();
+            }
+
+            $memo->previous_holders = $history;
+
+        // C. Gestion des nouveaux détenteurs (Current Holders)
+        // On remplace les détenteurs actuels par les secrétaires trouvées
+        // On récupère juste les IDs des secrétaires
+        $secretairesIds = $this->targetSecretaires->pluck('id')->toArray();
+        
+        // Si aucune secrétaire trouvée, on garde peut-être le détenteur actuel ? 
+        // Ici je mets les secrétaires comme demandé.
+        if (!empty($secretairesIds)) {
+            $memo->current_holders = $secretairesIds;
+            $memo->workflow_direction = 'entrant'; // Mise à jour du sens
+            $memo->status = 'transmit'; // Optionnel
+            $memo->save();
+
+            $this->dispatch('notify', message: 'Document enregistré et transmis aux secrétariats destinatrices.', type: 'success');
+        } else {
+            $this->dispatch('notify', message: 'Aucune secrétaire destinataire trouvée.', type: 'warning');
+            // On sauvegarde quand même la référence ? À toi de voir
+        }
+
+        // D. Fermeture
+        $this->enregistrer = false;
+    }
+    
+    public function closeRegisterModal()
+    {
+        $this->enregistrer = false;
     }
 
     public function closeModal()
@@ -131,6 +244,11 @@ class IncomingMemos extends Component
         $this->assist = User::where('id', $targetIds)->first();
        
         $this->isSendAssistOpen = true;
+    }
+
+    public function closeSendAssistModal()
+    {
+        $this->isSendAssistOpen = false;
     }
 
     public function signDocument($id,$post)
@@ -270,7 +388,7 @@ class IncomingMemos extends Component
         $memo = Memo::findOrFail($this->selectedMemoId);
         
         // Logique de rejet
-        $memo->current_holder_id = $memo->user_id; // Retour à l'auteur initial
+        $memo->current_holders = $memo->user_id; // Retour à l'auteur initial
         $memo->status = 'rejected';
         $memo->workflow_comment = $this->rejection_comment; // On sauvegarde le motif
         $memo->save();

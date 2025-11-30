@@ -15,8 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('workflow_comment');
             $table->string('action');
-            $table->unsignedBigInteger('memo_id');
-            $table->unsignedBigInteger('user_id');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('memo_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }

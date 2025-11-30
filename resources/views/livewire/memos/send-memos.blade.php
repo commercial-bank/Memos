@@ -27,7 +27,7 @@
                     <div class="flex justify-between items-start">
                         <div>
                             <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
-                                Réf: {{ $document->reference }}
+                                Réf: #
                             </span>
                             <h3 class="text-lg font-bold text-gray-800 leading-tight mt-1 line-clamp-2" title="{{ $document->object }}">
                                 {{ $document->object }}
@@ -74,21 +74,29 @@
             <!-- Cette section est placée en bas du contenu principal, avant le footer -->
             <div class="flex justify-between items-center bg-white border-t border-dashed border-gray-200 pt-3 mb-3">
                 <div class="text-xs text-gray-400 font-medium">
-                    Code de signature :
+                    Codes de suivi :
                 </div>
                 <div class="flex space-x-3">
 
-                    {{-- AJOUT ICI : PIED DE PAGE AVEC QR CODE CENTRÉ               --}}
-                    <div class="absolute bottom-4 left-0 w-full flex flex-col items-center justify-center">
-
-                        <!-- Le QR Code (Taille réduite à 50) -->
-                        @if(isset($qr_code) && !empty($qr_code))
-                            <div class="bg-white p-0.5 border border-gray-200 inline-block">
-                                {{ QrCode::size(50)->generate(route('memo.verify', $qr_code)) }}
-                            </div>
-                        @endif
-
+                @if($document->signature_sd)
+                    <!-- QR CODE 1 : Interne -->
+                    <div class="group flex flex-col items-center">
+                        <div class="mb-2">
+                            {!! QrCode::size(100)->generate(route('memo.verify', ['token' => $document->signature_sd])) !!}
+                        </div>
+                        <span class="text-[9px] text-gray-400 mt-0.5 uppercase">Sous-Directeur</span>
                     </div>
+                @endif
+
+                @if($document->signature_dir)
+                    <!-- QR CODE 2 : Public / Authentification -->
+                    <div class="group flex flex-col items-center">
+                        <div class="mb-2">
+                            {!! QrCode::size(100)->generate(route('memo.verify', ['token' => $document->signature_dir])) !!}
+                        </div>
+                        <span class="text-[9px] text-gray-400 mt-0.5 uppercase">Directeur</span>
+                    </div>
+                @endif
 
                 </div>
             </div>
@@ -309,24 +317,40 @@
                                         </div>
                                     </div>
 
-                                 
-                                            
-                                            {{-- AJOUT ICI : PIED DE PAGE AVEC QR CODE CENTRÉ               --}}
-                                            <div class="absolute bottom-4 left-0 w-full flex flex-col items-center justify-center">
-
-                                                    <!-- Le QR Code (Taille réduite à 50) -->
-                                                @if(isset($qr_code) && !empty($qr_code))
-                                                    <div class="bg-white p-0.5 border border-gray-200 inline-block">
-                                                        {{ QrCode::size(50)->generate(route('memo.verify', $qr_code)) }}
+                                    <!-- SIGNATURES (Identifié pour le JS) -->
+                                    <div id="signatures-section" class="mt-8 pt-4">
+                                        <div class="flex justify-between items-end px-8 mb-2">
+                                            <!-- Signature SD -->
+                                            <div class="relative text-center w-1/3">
+                                                <div class="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+                                                    <div class="border-4 border-gray-800 w-24 h-24 rounded-full flex items-center justify-center -rotate-12">
+                                                        <span class="font-bold text-xs uppercase tracking-widest text-gray-800">Signé</span>
                                                     </div>
-                                                @endif
-
+                                                </div>
+                                                <div class="h-16 flex items-end justify-center pb-2">
+                                                    <span class="font-bold text-lg text-gray-800 font-serif italic">{{$signature_sd}}</span>
+                                                </div>
+                                                <div class="text-[10px] font-bold text-gray-600 uppercase tracking-wider border-t border-gray-400 pt-2">Sous Directeur</div>
                                             </div>
-
+                                            
+                                            <!-- Signature DIR -->
+                                            <div class="relative text-center w-1/3">
+                                                <div class="absolute inset-0 flex items-center justify-center opacity-80 pointer-events-none">
+                                                    <div class="border-[3px] border-blue-900 w-32 h-16 rounded flex flex-col items-center justify-center -rotate-6 bg-white/50 backdrop-blur-[1px]">
+                                                        <span class="font-bold text-[10px] text-blue-900 uppercase">Commercial Bank</span>
+                                                        <span class="font-extrabold text-sm text-blue-900 uppercase tracking-widest">APPROUVÉ</span>
+                                                        <span class="text-[8px] text-blue-900"> date('d/m/Y') </span>
+                                                    </div>
+                                                </div>
+                                                <div class="h-16 flex items-end justify-center pb-2">
+                                                    <span class="font-bold text-lg text-black z-10">{{$signature_dir}}</span>
+                                                </div>
+                                                <div class="text-[10px] font-bold text-gray-600 uppercase tracking-wider border-t border-gray-400 pt-2">Directeur</div>
+                                            </div>
                                         </div>
                                         <div class="text-right text-[10px] text-gray-500 italic mt-4">FOR-ME-07-V1</div>
                                         
-                                 
+                                    </div>
 
                                 </div> 
                             </div>

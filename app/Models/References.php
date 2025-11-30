@@ -12,6 +12,11 @@ class References extends Model
         'numero_ordre_path',
         'object',
         'concerne',
-        'memo_id',
+        'memo_id'
     ];
+
+    public function memo()
+    {
+        return $this->belongsTo(Memo::class);
+    }
 }

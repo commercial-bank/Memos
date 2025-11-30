@@ -136,7 +136,6 @@
 
                                     <button 
                                         wire:click="qrDocument({{ $document->id }})" 
-                                        wire:confirm="Générer le QR Code de signature ?"
                                         class="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition" 
                                         title="Générer QR Code">
                                         
@@ -170,7 +169,7 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
                             </button>
                             <button 
-                                wire:click="saveDocument({{ $document->id }})" 
+                                wire:click="EnregistrerDocument({{ $document->id }})" 
                                 class="p-2 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 transition" 
                                 title="Enregistrer">
                                 
@@ -588,7 +587,7 @@
                                 <button type="submit" class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto">
                                         Transmettre
                                 </button>
-                                <button type="button" wire:click="closeSendModal" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                                <button type="button" wire:click="closeSendAssistModal" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
                                     Annuler
                                 </button>
                             </div>
@@ -655,6 +654,106 @@
             </div>
         </div>
     @endif
+
+    @if($enregistrer)
+    <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Fond sombre -->
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div wire:click="closeRegisterModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <!-- Contenu de la modale -->
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                
+                <!-- En-tête -->
+                <div class="bg-indigo-600 px-4 py-3 sm:px-6">
+                    <h3 class="text-lg leading-6 font-medium text-white" id="modal-title">
+                        Enregistrement du Courrier
+                    </h3>
+                </div>
+
+                <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    
+                    <!-- PARTIE 1 : LISTE DES SECRÉTAIRES CIBLES -->
+                    <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <!-- Icone Info -->
+                                <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-yellow-800">
+                                    Le document sera transmis aux secrétaires suivantes :
+                                </h3>
+                                <div class="mt-2 text-sm text-yellow-700">
+                                    <ul class="list-disc pl-5 space-y-1">
+                                        @forelse($targetSecretaires as $sec)
+                                            <li>
+                                                <span class="font-bold">{{ $sec->first_name }} {{ $sec->last_name }}</span>
+                                                <span class="text-xs">({{ $sec->entity_name }})</span>
+                                            </li>
+                                        @empty
+                                            <li class="text-red-600 italic">Aucune secrétaire trouvée pour les entités destinataires !</li>
+                                        @endforelse
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PARTIE 2 : FORMULAIRE -->
+                    <div class="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-2">
+                        
+                        <!-- Nature -->
+                        <div class="sm:col-span-1">
+                            <label class="block text-sm font-medium text-gray-700">Nature</label>
+                            <input type="text" wire:model="ref_nature" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2">
+                        </div>
+
+                        <!-- Date -->
+                        <div class="sm:col-span-1">
+                            <label class="block text-sm font-medium text-gray-700">Date</label>
+                            <input type="text" wire:model="ref_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2">
+                        </div>
+
+                        <!-- Numéro d'ordre -->
+                        <div class="sm:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700">Numéro d'ordre / Réf</label>
+                            <input type="text" wire:model="ref_numero" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 bg-gray-50">
+                        </div>
+
+                        <!-- Objet -->
+                        <div class="sm:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700">Objet</label>
+                            <textarea wire:model="ref_object" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"></textarea>
+                        </div>
+
+                        <!-- Concerne -->
+                        <div class="sm:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700">Concerne </label>
+                            <input type="text" wire:model="ref_concern" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2">
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Pied de page (Boutons) -->
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button wire:click="confirmRegistration" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Enregistrer & Transmettre
+                    </button>
+                    <button wire:click="closeRegisterModal" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Annuler
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+@endif
    
 
 </div>

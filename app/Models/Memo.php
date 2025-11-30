@@ -27,7 +27,6 @@ class Memo extends Model
         
         // RÉFÉRENCES
         'numero_ref',        // Si tu utilises toujours celui-ci
-        'numero_ordre_path', // Le nouveau champ "123M/..."
         
         'user_id',
     ];

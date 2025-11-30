@@ -7,36 +7,60 @@
             class="pb-3 px-4 text-lg font-medium {{ $activeTab === 'incoming' ? 'border-b-2 border-yellow-500 text-orange-600' : 'text-gray-500 hover:text-gray-700' }}"
             wire:click="selectTab('incoming')"
         >
+            Mémos Sortants
+            
+        
+        </button>
+
+         <button
+            class="pb-3 px-4 text-lg font-medium {{ $activeTab === 'incoming2' ? 'border-b-2 border-yellow-500 text-orange-600' : 'text-gray-500 hover:text-gray-700' }}"
+            wire:click="selectTab('incoming2')"
+        >
             Mémos Entrants
             
-            <span class="ml-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">2</span>
+        </button>
+
+       @if(auth()->user()->poste == 'Secretaire')
+            
+        <button
+            class="pb-3 px-4 text-lg font-medium {{ $activeTab === 'blockout' ? 'border-b-2 border-yellow-500 text-orange-600' : 'text-gray-500 hover:text-gray-700' }}"
+            wire:click="selectTab('blockout')" 
+        >
+            <!-- J'ai corrigé le wire:click ci-dessus -->
+            Blocs Mémos Sortants
         </button>
 
         <button
-            class="pb-3 px-4 text-lg font-medium {{ $activeTab === 'drafted' ? 'border-b-2 border-yellow-500 text-orange-600' : 'text-gray-500 hover:text-gray-700' }}"
-            wire:click="selectTab('drafted')"
+            class="pb-3 px-4 text-lg font-medium {{ $activeTab === 'blockint' ? 'border-b-2 border-yellow-500 text-orange-600' : 'text-gray-500 hover:text-gray-700' }}"
+            wire:click="selectTab('blockint')"
         >
-            Mémos Brouillons
-
-           
+            <!-- J'ai corrigé le wire:click ci-dessus -->
+            Blocs Mémos Entrants
         </button>
+        
+            
+        @else
 
-        <button
-            class="pb-3 px-4 text-lg font-medium {{ $activeTab === 'document' ? 'border-b-2 border-yellow-500 text-orange-600' : 'text-gray-500 hover:text-gray-700' }}"
-            wire:click="selectTab('document')"
-        >
-            Mémos Documents
+            <button
+                class="pb-3 px-4 text-lg font-medium {{ $activeTab === 'drafted' ? 'border-b-2 border-yellow-500 text-orange-600' : 'text-gray-500 hover:text-gray-700' }}"
+                wire:click="selectTab('drafted')"
+            >
+                Mémos Brouillons
 
             
-        </button>
+            </button>
 
-        <button
-            class="pb-3 px-4 text-lg font-medium {{ $activeTab === 'sent' ? 'border-b-2 border-yellow-500 text-orange-600' : 'text-gray-500 hover:text-gray-700' }}"
-            wire:click="selectTab('sent')"
-        >
-            Mémos Envoyés
-            <span class="ml-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">2</span>
-        </button>
+            <button
+                class="pb-3 px-4 text-lg font-medium {{ $activeTab === 'document' ? 'border-b-2 border-yellow-500 text-orange-600' : 'text-gray-500 hover:text-gray-700' }}"
+                wire:click="selectTab('document')"
+            >
+                Mémos Documents
+
+                
+            </button>
+
+        @endif
+
     </div>
 
     <div class="flex justify-end mb-4 space-x-2">
@@ -47,21 +71,22 @@
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
             New Mémo
         </button>
-        <button class="border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2 px-4 rounded">
-            Filter
-        </button>
     </div>
 
     {{-- Contenu des onglets --}}
     <div class="mt-8">
         @if ($activeTab === 'incoming')
             <livewire:memos.incoming-memos />
+        @elseif($activeTab === 'incoming2')   
+            <livewire:memos.incoming2-memos />
         @elseif ($activeTab === 'drafted')
             <livewire:memos.drafted-memos />
         @elseif ($activeTab === 'document')
             <livewire:memos.docs-memos />
-        @elseif ($activeTab === 'sent')
-           tytyty
+        @elseif ($activeTab === 'blockout')  
+            <livewire:memos.blockout-memos />
+        @elseif ($activeTab === 'blockint')  
+            <livewire:memos.blockint-memos />
         @endif
     </div>
 

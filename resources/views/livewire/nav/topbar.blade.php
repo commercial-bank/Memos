@@ -24,29 +24,299 @@
         <main class="content"> {{-- Cette classe est déjà définie dans votre CSS pour prendre l'espace et gérer le défilement --}}
            {{-- Ici, le p-4 ajoute un padding général au contenu défilant --}}
 
-            @if($currentContent == 'dashboard-content')
-                
-                <div class="dashboard-cards-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    @livewire('card.dashboard-card', [
-                        'title' => 'Memoriums',
-                        'value' => '€12,345',
-                        'description' => 'Par rapport au mois dernier',
-                        'icon' => 'fas fa-file-alt',
-                        'trend' => 'up',
-                        'trendValue' => '+12%'
-                    ])
+           @if($currentContent == 'dashboard-content')
 
-                    @livewire('card.dashboard-card', [
-                        'title' => 'Courrier',
-                        'value' => '876',
-                        'description' => 'Augmentation cette semaine',
-                        'icon' => 'fas fa-envelope',
-                        'trend' => 'up',
-                        'trendValue' => '+5%'
-                    ])
+                <!-- Dashboard Container -->
+                <div class="space-y-6">
 
-    
+                    <!-- 1. HEADER : Bienvenue & Date -->
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold tracking-tight text-slate-900">
+                                Tableau de Bord
+                            </h2>
+                            <p class="text-sm text-slate-500 mt-1">
+                                Vue d'ensemble de vos activités et flux documentaires.
+                            </p>
+                        </div>
+                        
+                        <div class="mt-4 md:mt-0 flex items-center gap-3">
+                            <!-- Date Widget -->
+                            <div class="hidden md:flex items-center px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 shadow-sm">
+                                <svg class="w-4 h-4 mr-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                {{ now()->translatedFormat('d F Y') }}
+                            </div>
+                            
+                            <!-- Bouton Création Rapide -->
+                            <button wire:click="openModal" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-lg flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                Nouveau Mémo
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 2. KPI CARDS (Inspiration Bancaire) -->
+                    <!-- Grid de 4 cartes avec indicateurs de progression -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        
+                        <!-- Carte 1 : Mémos Sortants -->
+                        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 h-full w-1 bg-yellow-500 group-hover:w-2 transition-all"></div>
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Mémos Sortants</p>
+                                    <h3 class="text-3xl font-bold text-slate-900 mt-2">24</h3>
+                                </div>
+                                <div class="p-2 bg-yellow-50 rounded-lg text-yellow-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-center text-xs">
+                                <span class="text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded flex items-center">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                                    +12%
+                                </span>
+                                <span class="text-slate-400 ml-2">depuis hier</span>
+                            </div>
+                        </div>
+
+                        <!-- Carte 2 : Mémos Entrants (Pending) -->
+                        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 h-full w-1 bg-blue-500 group-hover:w-2 transition-all"></div>
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Mémos Entrants</p>
+                                    <h3 class="text-3xl font-bold text-slate-900 mt-2">08</h3>
+                                </div>
+                                <div class="p-2 bg-blue-50 rounded-lg text-blue-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-center text-xs">
+                                <span class="text-orange-600 font-bold bg-orange-50 px-1.5 py-0.5 rounded flex items-center">
+                                    3 Urgents
+                                </span>
+                                <span class="text-slate-400 ml-2">à traiter</span>
+                            </div>
+                        </div>
+
+                        <!-- Carte 3 : Courriers -->
+                        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 h-full w-1 bg-purple-500 group-hover:w-2 transition-all"></div>
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Courriers</p>
+                                    <h3 class="text-3xl font-bold text-slate-900 mt-2">142</h3>
+                                </div>
+                                <div class="p-2 bg-purple-50 rounded-lg text-purple-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-center text-xs">
+                                <span class="text-slate-500 font-medium">Archive globale</span>
+                            </div>
+                        </div>
+
+                        <!-- Carte 4 : Validation Requise (Action) -->
+                        <div class="bg-slate-900 rounded-xl p-6 shadow-lg shadow-slate-300 transform hover:-translate-y-1 transition-transform cursor-pointer">
+                            <div class="flex justify-between items-start text-white">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">À Valider</p>
+                                    <h3 class="text-3xl font-bold mt-2">5</h3>
+                                </div>
+                                <div class="p-2 bg-slate-800 rounded-lg text-yellow-400">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </div>
+                            </div>
+                            <div class="mt-4 border-t border-slate-700 pt-2">
+                                <p class="text-xs text-slate-300">Documents en attente de votre signature.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. MAIN SECTION : Graphe & Notifications -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <!-- A. GRAPHE DE SUIVI (2/3 largeur) -->
+                        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-lg font-bold text-slate-800">Flux de Création</h3>
+                                <select class="bg-slate-50 border-none text-xs rounded-md text-slate-600 py-1 px-3 focus:ring-0 cursor-pointer">
+                                    <option>7 derniers jours</option>
+                                    <option>Ce mois</option>
+                                    <option>Cette année</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Zone du Graphique (Placeholder pour ApexCharts) -->
+                            <div id="chart-timeline" class="h-80 w-full"></div>
+                        </div>
+
+                        <!-- B. ZONE DE NOTIFICATIONS & ACTIVITÉS (1/3 largeur) -->
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-full">
+                            <!-- Header Notifs -->
+                            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                                <h3 class="text-lg font-bold text-slate-800">Notifications</h3>
+                                <span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">3 new</span>
+                            </div>
+
+                            <!-- Liste Scrollable -->
+                            <div class="flex-1 overflow-y-auto max-h-[350px] p-2">
+                                <ul class="space-y-1">
+                                    <!-- Item 1 -->
+                                    <li class="hover:bg-slate-50 p-3 rounded-lg transition-colors cursor-pointer group">
+                                        <div class="flex items-start gap-3">
+                                            <div class="bg-blue-100 text-blue-600 rounded-full p-2 mt-1 shrink-0">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-slate-800 group-hover:text-blue-600 transition">Nouveau mémo reçu</p>
+                                                <p class="text-xs text-slate-500">Service Comptabilité - "Factures proforma"</p>
+                                                <p class="text-[10px] text-slate-400 mt-1">Il y a 10 min</p>
+                                            </div>
+                                        </div>
+                                    </li>
+
+                                    <!-- Item 2 -->
+                                    <li class="hover:bg-slate-50 p-3 rounded-lg transition-colors cursor-pointer group">
+                                        <div class="flex items-start gap-3">
+                                            <div class="bg-yellow-100 text-yellow-600 rounded-full p-2 mt-1 shrink-0">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-slate-800 group-hover:text-yellow-600 transition">Validation en attente</p>
+                                                <p class="text-xs text-slate-500">Réf: #MEM-2023-089</p>
+                                                <p class="text-[10px] text-slate-400 mt-1">Il y a 2h</p>
+                                            </div>
+                                        </div>
+                                    </li>
+
+                                    <!-- Item 3 -->
+                                    <li class="hover:bg-slate-50 p-3 rounded-lg transition-colors cursor-pointer group">
+                                        <div class="flex items-start gap-3">
+                                            <div class="bg-green-100 text-green-600 rounded-full p-2 mt-1 shrink-0">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-slate-800 group-hover:text-green-600 transition">Mémo #402 Approuvé</p>
+                                                <p class="text-xs text-slate-500">Par Directeur Général</p>
+                                                <p class="text-[10px] text-slate-400 mt-1">Hier, 16:30</p>
+                                            </div>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <!-- Footer Notifs -->
+                            <div class="p-3 border-t border-slate-100 text-center">
+                                <button class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline">Voir tout l'historique</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. SECTION TABLEAU RÉCENT (Style "Table Financière") -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                            <h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Derniers Mouvements</h3>
+                            <button class="text-slate-400 hover:text-slate-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg></button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm whitespace-nowrap">
+                                <thead>
+                                    <tr class="text-slate-500 border-b border-slate-100">
+                                        <th class="px-6 py-3 font-medium">Référence</th>
+                                        <th class="px-6 py-3 font-medium">Objet</th>
+                                        <th class="px-6 py-3 font-medium">Statut</th>
+                                        <th class="px-6 py-3 font-medium">Date</th>
+                                        <th class="px-6 py-3 font-medium text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <!-- Row 1 -->
+                                    <tr class="hover:bg-slate-50 transition-colors group">
+                                        <td class="px-6 py-3 font-mono text-slate-600 font-bold">#REF-2023-001</td>
+                                        <td class="px-6 py-3 text-slate-800 font-medium">Rapport Financier T3</td>
+                                        <td class="px-6 py-3">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                Envoyé
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-3 text-slate-500">29 Nov 2025</td>
+                                        <td class="px-6 py-3 text-right">
+                                            <button class="text-slate-400 hover:text-blue-600 group-hover:opacity-100 opacity-0 transition-opacity">Voir</button>
+                                        </td>
+                                    </tr>
+                                    <!-- Row 2 -->
+                                    <tr class="hover:bg-slate-50 transition-colors group">
+                                        <td class="px-6 py-3 font-mono text-slate-600 font-bold">#REF-2023-002</td>
+                                        <td class="px-6 py-3 text-slate-800 font-medium">Demande de congés</td>
+                                        <td class="px-6 py-3">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                Pending
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-3 text-slate-500">30 Nov 2025</td>
+                                        <td class="px-6 py-3 text-right">
+                                            <button class="text-slate-400 hover:text-blue-600 group-hover:opacity-100 opacity-0 transition-opacity">Voir</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
+
+                <!-- SCRIPT POUR LE GRAPHE (ApexCharts) -->
+                <!-- À mettre idéalement dans votre layout principal ou pushé dans un stack 'scripts' -->
+                <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+                <script>
+                    document.addEventListener('livewire:initialized', () => {
+                        var options = {
+                            series: [{
+                                name: 'Mémos Entrants',
+                                data: [31, 40, 28, 51, 42, 109, 100]
+                            }, {
+                                name: 'Mémos Sortants',
+                                data: [11, 32, 45, 32, 34, 52, 41]
+                            }],
+                            chart: {
+                                height: 320,
+                                type: 'area', // Look "bancaire" moderne
+                                fontFamily: 'inherit',
+                                toolbar: { show: false }
+                            },
+                            colors: ['#3b82f6', '#eab308'], // Bleu et Jaune (Vos couleurs)
+                            dataLabels: { enabled: false },
+                            stroke: { curve: 'smooth', width: 2 },
+                            fill: {
+                                type: 'gradient',
+                                gradient: {
+                                    shadeIntensity: 1,
+                                    opacityFrom: 0.3,
+                                    opacityTo: 0.05,
+                                    stops: [0, 90, 100]
+                                }
+                            },
+                            xaxis: {
+                                categories: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"],
+                                axisBorder: { show: false },
+                                axisTicks: { show: false }
+                            },
+                            yaxis: { show: false }, // Minimaliste
+                            grid: {
+                                borderColor: '#f1f5f9',
+                                strokeDashArray: 4,
+                            },
+                            tooltip: {
+                                theme: 'light'
+                            }
+                        };
+
+                        var chart = new ApexCharts(document.querySelector("#chart-timeline"), options);
+                        chart.render();
+                    });
+                </script>
 
             @endif
 
@@ -62,210 +332,99 @@
                 @livewire('courriers.courriers')
             @endif
 
-            @if($currentContent == 'reports-content')
+            <!-- On change ici 'reports-content' par 'notifications-content' pour être logique -->
+@if($currentContent == 'reports-content')
                
-                        
-    
+    <div class="max-w-5xl mx-auto space-y-6 font-sans">
 
-        
-
-        <!-- 2. NAVIGATION (ONGLETS) -->
-        <div class="border-b border-gray-200 mb-6">
-            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                <!-- Onglet Tous -->
-                <button 
-                    @click="activeTab = 'memos'"
-                    :class="activeTab === 'memos' ? 'border-yellow-500 text-yellow-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center transition-colors"
-                >
-                    <i class="far fa-sticky-note mr-2"></i> Mes Mémos
+        <!-- 1. HEADER -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Centre de Notifications</h2>
+                <p class="text-slate-500 text-sm">Gérez vos alertes et le suivi de vos activités.</p>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button wire:click="markAllAsRead" class="text-sm text-slate-600 hover:text-slate-900 font-medium bg-white border border-slate-300 px-4 py-2 rounded-lg shadow-sm transition hover:bg-slate-50">
+                    <i class="fa-solid fa-check-double mr-2"></i> Tout marquer comme lu
                 </button>
-
-                <!-- Onglet Favoris -->
-                <button 
-                    @click="activeTab = 'favorites'"
-                    :class="activeTab === 'favorites' ? 'border-yellow-500 text-yellow-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center transition-colors"
-                >
-                    <i class="fas fa-star mr-2"></i> Favoris
-                </button>
-
-                <!-- Onglet Archives -->
-                <button 
-                    @click="activeTab = 'archives'"
-                    :class="activeTab === 'archives' ? 'border-yellow-500 text-yellow-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                    class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center transition-colors"
-                >
-                    <i class="fas fa-archive mr-2"></i> Archives
-                </button>
-            </nav>
+            </div>
         </div>
 
-        <!-- 3. ZONE DE CRÉATION (Expandable) -->
-        <div class="max-w-2xl mx-auto mb-10" x-show="activeTab === 'memos'">
-            <div @click.away="isCreating = false" class="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden transition-all duration-200">
+        <!-- 2. FILTRES -->
+        <div class="flex space-x-1 bg-slate-100 p-1 rounded-xl w-fit">
+            <button wire:click="" class="px-4 py-2 text-sm font-medium rounded-lg transition-all ">
+                Toutes
+            </button>
+            <button wire:click="" class="px-4 py-2 text-sm font-medium rounded-lg transition-all ">
+                Non lues 
                 
-                <!-- État réduit -->
-                <div x-show="!isCreating" @click="isCreating = true" class="p-4 cursor-text flex items-center justify-between text-gray-500 hover:bg-gray-50 transition">
-                    <span class="font-medium">Créer une nouvelle note...</span>
-                    <i class="fas fa-plus-circle text-2xl text-yellow-500"></i>
-                </div>
+                    <span class="ml-1 bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">0</span>
+              
+            </button>
+        </div>
 
-                <!-- État ouvert (Formulaire) -->
-                <div x-show="isCreating" style="display: none;">
-                    <!-- Zone de texte colorée selon la sélection -->
-                    <div :class="{
-                        'bg-white': selectedColor === 'white',
-                        'bg-red-50': selectedColor === 'red',
-                        'bg-yellow-50': selectedColor === 'yellow',
-                        'bg-green-50': selectedColor === 'green',
-                        'bg-blue-50': selectedColor === 'blue'
-                    }" class="p-4 transition-colors duration-200">
-                        <input type="text" placeholder="Titre" class="w-full text-lg font-bold bg-transparent border-none focus:ring-0 p-0 mb-2 placeholder-gray-400 text-gray-900">
-                        <textarea rows="3" placeholder="Tapez votre mémo ici..." class="w-full text-sm bg-transparent border-none focus:ring-0 resize-none p-0 text-gray-600 placeholder-gray-400"></textarea>
-                    </div>
+        <!-- 3. LISTE DES NOTIFICATIONS DYNAMIQUE -->
+        <div class="space-y-8">
+
+            <!-- On vérifie s'il y a des notifications -->
+           
+                
+                <!-- On groupe par jour (Optionnel, ici liste simple triée) -->
+                <div class="group relative bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer 
+                    ">
                     
-                    <!-- Barre d'outils du bas -->
-                    <div class="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-100">
-                        <!-- Sélecteur de couleur -->
-                        <div class="flex space-x-2">
-                            <button @click="selectedColor = 'white'" class="w-6 h-6 rounded-full border border-gray-300 bg-white hover:ring-2 hover:ring-gray-400 focus:outline-none"></button>
-                            <button @click="selectedColor = 'yellow'" class="w-6 h-6 rounded-full border border-yellow-200 bg-yellow-100 hover:ring-2 hover:ring-yellow-400 focus:outline-none"></button>
-                            <button @click="selectedColor = 'red'" class="w-6 h-6 rounded-full border border-red-200 bg-red-100 hover:ring-2 hover:ring-red-400 focus:outline-none"></button>
-                            <button @click="selectedColor = 'green'" class="w-6 h-6 rounded-full border border-green-200 bg-green-100 hover:ring-2 hover:ring-green-400 focus:outline-none"></button>
-                            <button @click="selectedColor = 'blue'" class="w-6 h-6 rounded-full border border-blue-200 bg-blue-100 hover:ring-2 hover:ring-blue-400 focus:outline-none"></button>
+                    <!-- Indicateur "Non Lu" -->
+                 
+                        <div class="absolute top-4 right-4 h-2 w-2 bg-blue-500 rounded-full" title="Non lu"></div>
+                    
+
+                    <div class="flex items-start gap-4">
+                        <!-- Icone Contextuelle basée sur le type de notif -->
+                        <div class="shrink-0 h-12 w-12 rounded-full flex items-center justify-center 
+                            ">
+                            
+                            <!-- Vous pouvez personnaliser l'icône selon $notification->type -->
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                         </div>
 
-                        <div class="flex space-x-3">
-                            <button @click="isCreating = false" class="text-sm text-gray-500 hover:text-gray-700 font-medium">Fermer</button>
-                            <button class="inline-flex items-center px-4 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none">
-                                Enregistrer
-                            </button>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start pr-6">
+                                <!-- Titre (Assurez-vous de stocker 'title' dans data) -->
+                                <h4 class="text-sm font-bold text-slate-800"></h4>
+                                <span class="text-xs text-slate-400 font-mono"></span>
+                            </div>
+                            
+                            <!-- Message -->
+                            <p class="text-sm text-slate-600 mt-1 line-clamp-1"></p>
+                            
+                            <!-- Actions au survol -->
+                            <div class="mt-3 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                
+                                    <button wire:click="" class="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-md">
+                                        Marquer comme lu
+                                    </button>
+                                
+                                <button wire:click="" class="text-xs text-red-500 hover:text-red-700">Supprimer</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+
+           
+               
+
         </div>
 
-        <!-- 4. GRILLE DES MÉMOS (Masonry Layout) -->
-        <div class="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6 pb-10">
-
-            <!-- CARTE 1 : Favori (Jaune) -->
-            <div x-show="activeTab === 'memos' || activeTab === 'favorites'" class="break-inside-avoid bg-yellow-50 rounded-lg shadow border border-yellow-100 hover:shadow-lg transition-shadow duration-200 group relative">
-                <!-- Pin Icon (Active) -->
-                <div class="absolute top-4 right-4 text-yellow-500">
-                    <i class="fas fa-thumbtack transform rotate-45"></i>
-                </div>
-                
-                <div class="p-5">
-                    <h3 class="text-lg font-bold text-gray-900 mb-2 pr-6">Codes Accès Serveur</h3>
-                    <p class="text-gray-700 text-sm mb-4 font-mono bg-yellow-100 p-2 rounded">
-                        User: admin_root<br>
-                        Pass: Xy9#mP2!vv
-                    </p>
-                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-yellow-200">
-                        <span class="text-xs text-yellow-700 font-medium">Favori</span>
-                        <div class="flex space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button class="text-gray-400 hover:text-gray-600" title="Archiver"><i class="fas fa-archive"></i></button>
-                            <button class="text-gray-400 hover:text-red-600" title="Supprimer"><i class="fas fa-trash-alt"></i></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CARTE 2 : Standard (Blanc) -->
-            <div x-show="activeTab === 'memos'" class="break-inside-avoid bg-white rounded-lg shadow border border-gray-200 hover:shadow-lg transition-shadow duration-200 group relative">
-                <div class="p-5">
-                    <h3 class="text-lg font-bold text-gray-900 mb-2">Réunion Lundi Matin</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">
-                        Préparer les points suivants :
-                        <ul class="list-disc list-inside mt-1 ml-1">
-                            <li>Budget Q4</li>
-                            <li>Recrutement stagiaires</li>
-                            <li>Nouveaux locaux</li>
-                        </ul>
-                    </p>
-                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-                        <span class="text-xs text-gray-400">Hier à 14:30</span>
-                        <div class="flex space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button class="text-gray-400 hover:text-yellow-500" title="Favori"><i class="far fa-star"></i></button>
-                            <button class="text-gray-400 hover:text-gray-600" title="Archiver"><i class="fas fa-archive"></i></button>
-                            <button class="text-gray-400 hover:text-red-600" title="Supprimer"><i class="fas fa-trash-alt"></i></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CARTE 3 : Urgent (Rouge) -->
-            <div x-show="activeTab === 'memos'" class="break-inside-avoid bg-red-50 rounded-lg shadow border border-red-100 hover:shadow-lg transition-shadow duration-200 group relative">
-                <div class="p-5">
-                    <div class="flex justify-between items-start">
-                        <h3 class="text-lg font-bold text-gray-900 mb-2">A FAIRE AVANT CE SOIR</h3>
-                    </div>
-                    <p class="text-gray-800 text-sm">
-                        Envoyer le rapport final au directeur. Vérifier les pièces jointes (PDF).
-                    </p>
-                    <div class="mt-3">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-200 text-red-800">
-                            Urgent
-                        </span>
-                    </div>
-                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-red-200">
-                        <span class="text-xs text-red-400">Il y a 2h</span>
-                        <div class="flex space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button class="text-red-400 hover:text-yellow-600" title="Favori"><i class="far fa-star"></i></button>
-                            <button class="text-red-400 hover:text-gray-700" title="Archiver"><i class="fas fa-archive"></i></button>
-                            <button class="text-red-400 hover:text-red-700" title="Supprimer"><i class="fas fa-trash-alt"></i></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CARTE 4 : Archivée (Grisé) -->
-            <div x-show="activeTab === 'archives'" class="break-inside-avoid bg-gray-50 rounded-lg shadow-sm border border-gray-200 opacity-75 hover:opacity-100 transition group relative">
-                <div class="p-5">
-                    <h3 class="text-lg font-bold text-gray-700 mb-2 line-through">Idée Cadeau Secret Santa</h3>
-                    <p class="text-gray-500 text-sm">
-                        Une tasse personnalisée ou un bon d'achat Amazon.
-                    </p>
-                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-                        <span class="text-xs text-gray-400 flex items-center"><i class="fas fa-archive mr-1"></i> Archivé</span>
-                        <div class="flex space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button class="text-gray-400 hover:text-blue-600" title="Restaurer"><i class="fas fa-box-open"></i></button>
-                            <button class="text-gray-400 hover:text-red-600" title="Supprimer Définitivement"><i class="fas fa-trash-alt"></i></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- CARTE 5 : Confidentiel (Bleu) -->
-             <div x-show="activeTab === 'memos' || activeTab === 'favorites'" class="break-inside-avoid bg-blue-50 rounded-lg shadow border border-blue-100 hover:shadow-lg transition-shadow duration-200 group relative">
-                 <!-- Cadenas Icon -->
-                 <div class="absolute top-4 right-4 text-blue-300">
-                    <i class="fas fa-lock"></i>
-                </div>
-                <div class="p-5">
-                    <h3 class="text-lg font-bold text-gray-900 mb-2">Note Confidentielle RH</h3>
-                    <p class="text-gray-700 text-sm blur-sm hover:blur-none transition duration-300 cursor-pointer select-none">
-                        Discussion prévue avec J.Doe concernant la promotion au poste de Senior Dev.
-                    </p>
-                    <p class="text-xs text-blue-400 mt-1 italic">(Survolez pour lire)</p>
-
-                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-blue-200">
-                        <span class="text-xs text-blue-400">Privé</span>
-                        <div class="flex space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button class="text-blue-400 hover:text-yellow-600" title="Favori"><i class="far fa-star"></i></button>
-                            <button class="text-blue-400 hover:text-gray-600" title="Archiver"><i class="fas fa-archive"></i></button>
-                            <button class="text-blue-400 hover:text-red-600" title="Supprimer"><i class="fas fa-trash-alt"></i></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+        <!-- PAGINATION -->
+        <div class="pt-6 flex justify-center">
+             <!-- Si vous utilisez paginate() dans le composant Livewire -->
+              $notifications->links() 
         </div>
-    </div>
-</div>
 
-            @endif
+    </div>        
+
+@endif
 
             @if($currentContent == 'settings-content')reports-content
                @livewire('setting.settings')
