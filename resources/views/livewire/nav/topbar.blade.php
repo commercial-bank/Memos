@@ -3,22 +3,101 @@
     
     <div class="flex flex-col flex-grow"> {{-- 'flex-grow' permet à ce div de prendre tout l'espace horizontal restant --}}
 
-        {{-- La Navbar (Topbar) --}}
-        <header class="navbar" id="navbar">
-            <div class="navbar-left">
-                <button class="navbar-toggle-sidebar-btn" id="navbarToggleBtn"><i class="fas fa-bars"></i></button>
-                <span class="navbar-title" id="navbarTitle">{{ $navbarTitle }}</span>
-            </div>
-            <div class="navbar-right">
-                <a href="#" class="navbar-icon"><i class="fas fa-bell"></i></a>
-                <span class="notification-badge">3</span>
-                <a href="#" class="navbar-icon"><i class="fas fa-cog"></i></a>
-                <div class="navbar-user-dropdown">
-                    <img src="{{ asset('images/user3.png') }}" alt="User Avatar" class="navbar-user-avatar">
-                    <span class="navbar-user-name">  {{ auth()->user()->first_name }} </span>
+        <header 
+    id="navbar" 
+    class="sticky top-0 z-40 w-full flex items-center justify-between h-28 px-4 sm:px-6 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm transition-all duration-300"
+>
+    
+    <!-- SECTION GAUCHE : Toggle + Titre -->
+    <div class="flex items-center gap-4">
+        
+        <!-- Bouton Sidebar avec effet hover -->
+        <button 
+            id="navbarToggleBtn" 
+            class="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-colors"
+            aria-label="Toggle Sidebar"
+        >
+            <!-- Icône Hamburger plus moderne -->
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+        </button>
+
+        <!-- Titre de la page -->
+        <div class="flex flex-col">
+            <span 
+                id="navbarTitle" 
+                class="text-lg font-bold text-slate-800 tracking-tight leading-none"
+            >
+                {{ $navbarTitle ?? 'Dashboard' }}
+            </span>
+            <!-- Petit fil d'ariane optionnel (Breadcrumb) -->
+            <span class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">
+                Espace de travail
+            </span>
+        </div>
+    </div>
+
+    <!-- SECTION DROITE : Notifications + Profil -->
+    <div class="flex items-center gap-2 sm:gap-4">
+        
+        <!-- Icône Notifications (Lien avec votre système précédent) -->
+        <button 
+            wire:click="selectTab('notifications')" 
+            class="relative p-2 text-slate-400 hover:text-slate-600 transition-colors rounded-full hover:bg-slate-50"
+        >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            
+            <!-- Badge Rouge (Dynamique) -->
+           
+                <span class="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                </span>
+          
+        </button>
+
+        <!-- Séparateur Vertical -->
+        <div class="h-8 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+
+        <!-- Dropdown Utilisateur -->
+        <div class="relative group">
+            <button class="flex items-center gap-3 p-1 rounded-full hover:bg-slate-50 transition-all border border-transparent hover:border-slate-200 focus:outline-none">
+                
+                <!-- Avatar avec bordure -->
+                <div class="relative">
+                    <img 
+                        src="{{ asset('images/user3.png') }}" 
+                        alt="Avatar" 
+                        class="h-9 w-9 rounded-full object-cover border-2 border-white shadow-sm group-hover:shadow-md transition-shadow"
+                    >
+                    <!-- Indicateur de statut (Connecté) -->
+                    <span class="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-white bg-green-500"></span>
                 </div>
-            </div>
-        </header>
+
+                <!-- Nom et Rôle (Masqué sur mobile) -->
+                <div class="hidden md:flex flex-col items-start text-sm mr-2">
+                    <span class="font-bold text-slate-700 leading-none group-hover:text-slate-900">
+                        {{ auth()->user()->first_name }}
+                    </span>
+                    <span class="text-[10px] text-slate-500 font-medium">
+                        {{ auth()->user()->poste ?? 'Utilisateur' }}
+                    </span>
+                </div>
+
+                <!-- Chevron bas -->
+                <svg class="w-4 h-4 text-slate-400 hidden md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+
+            <!-- Menu Dropdown (Optionnel, au cas où vous voulez l'ajouter) -->
+            <!-- 
+            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 focus:outline-none hidden group-hover:block z-50 animate-fade-in-down">
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profil</a>
+                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Déconnexion</a>
+            </div> 
+            -->
+        </div>
+
+    </div>
+</header>
 
         {{-- Le Contenu Principal (sous la Navbar) --}}
         <main class="content"> {{-- Cette classe est déjà définie dans votre CSS pour prendre l'espace et gérer le défilement --}}
