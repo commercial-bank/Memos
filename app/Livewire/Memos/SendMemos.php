@@ -267,3 +267,4 @@ class SendMemos extends Component
         ]);
     }
 }
+

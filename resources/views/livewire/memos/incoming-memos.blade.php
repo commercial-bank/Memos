@@ -709,14 +709,14 @@
                         
                         <!-- Nature -->
                         <div class="sm:col-span-1">
-                            <label class="block text-sm font-medium text-gray-700">Nature</label>
-                            <input type="text" wire:model="ref_nature" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2">
+                            
+                            <input type="hidden" wire:model="ref_nature" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2">
                         </div>
 
                         <!-- Date -->
                         <div class="sm:col-span-1">
-                            <label class="block text-sm font-medium text-gray-700">Date</label>
-                            <input type="text" wire:model="ref_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2">
+                            <label class="block text-sm font-medium text-gray-700">Date De Sortir</label>
+                            <input type="text" wire:model="ref_date" disabled class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2">
                         </div>
 
                         <!-- Numéro d'ordre -->

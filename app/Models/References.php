@@ -12,6 +12,7 @@ class References extends Model
         'numero_ordre_path',
         'object',
         'concerne',
+        'user_id',
         'memo_id'
     ];
 

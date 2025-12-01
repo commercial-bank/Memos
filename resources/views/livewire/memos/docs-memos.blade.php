@@ -69,29 +69,9 @@
                 </div>
             </div>
 
-            <!-- NOUVELLE SECTION : ZONE QR CODES -->
+          
 
-            <!-- Cette section est placée en bas du contenu principal, avant le footer -->
-            <div class="flex justify-between items-center bg-white border-t border-dashed border-gray-200 pt-3 mb-3">
-                <div class="text-xs text-gray-400 font-medium">
-                    Code de signature :
-                </div>
-                <div class="flex space-x-3">
-
-                    {{-- AJOUT ICI : PIED DE PAGE AVEC QR CODE CENTRÉ               --}}
-                    <div class="absolute bottom-4 left-0 w-full flex flex-col items-center justify-center">
-
-                        <!-- Le QR Code (Taille réduite à 50) -->
-                        @if(isset($qr_code) && !empty($qr_code))
-                            <div class="bg-white p-0.5 border border-gray-200 inline-block">
-                                {{ QrCode::size(50)->generate(route('memo.verify', $qr_code)) }}
-                            </div>
-                        @endif
-
-                    </div>
-
-                </div>
-            </div>
+            
 
             <!-- PIED DE LA CARTE : ACTIONS -->
             <div class="flex justify-between items-center pt-3 border-t border-gray-100 mt-auto">
@@ -442,7 +422,7 @@
                                             <!-- Le conteneur visuel de l'éditeur -->
                                             <div class="bg-white border border-gray-300 rounded-md overflow-hidden focus-within:border-yellow-500 focus-within:ring-1 focus-within:ring-yellow-500 transition-all duration-200">
                                                 <!-- La zone de saisie Quill -->
-                                                <div x-ref="quillEditor" class="min-h-[150px] max-h-[300px] text-gray-800 text-base font-sans"></div>
+                                                 <div x-ref="quillEditor" class="min-h-[150px] max-h-[300px] overflow-y-auto text-gray-800 text-base font-sans"></div>
                                             </div>
                                         </div>
 

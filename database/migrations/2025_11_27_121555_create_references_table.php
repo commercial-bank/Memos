@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('object');
             $table->string('concerne');
             $table->foreignId('memo_id')->constrained()->onDelete('cascade');
+            $table->string('entity_exp')->nullable();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }

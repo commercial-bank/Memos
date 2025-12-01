@@ -144,6 +144,7 @@ class Incoming2Memos extends Component
             'concerne' => $this->ref_concern ?? '', 
             'entity_exp' => $this->ref_entity_exp ?? '',
             'memo_id' => $memo->id,
+            'user_id' => Auth::id(),
         ]);
 
         // =========================================================
@@ -184,6 +185,14 @@ class Incoming2Memos extends Component
             $memo->workflow_direction = 'entrant'; // ou 'hierarchique' selon ta logique
             $memo->status = 'transmis';    // Optionnel
             $memo->save();
+
+            //=== AJOUT : ENREGISTRER L'HISTORIQUE SANS DOUBLON ===
+            Historiques::firstOrCreate([
+                'memo_id'          => $memo->id,
+                'user_id'          => Auth::id(),
+                'action'           => 'transmit',
+                'workflow_comment' => '',
+            ]);
 
             $this->dispatch('notify', message: 'Document enregistré et transmis à votre manager.', type: 'success');
         } else {

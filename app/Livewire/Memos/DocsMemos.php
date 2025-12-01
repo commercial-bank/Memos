@@ -37,6 +37,7 @@ class DocsMemos extends Component
     public $user_service = '';
     public $user_entity_name = '';
     public $user_entity_name_acronym='';
+    public $qr_code='';
 
     // NOUVEAU : Variables pour l'historique
     public $isHistoryOpen = false;
@@ -61,6 +62,7 @@ class DocsMemos extends Component
         $this->concern = $memo->concern;
         $this->signature_sd = $memo->signature_sd;
         $this->signature_dir = $memo->signature_dir;
+         $this->qr_code = $memo->qr_code;
         $this->date = $memo->created_at->format('d/m/Y');
         
         $this->user_first_name = $memo->user->first_name;
@@ -120,7 +122,7 @@ class DocsMemos extends Component
         $this->memoHistory = Historiques::where('memo_id', $id)
             ->with('user_id')
             ->orderBy('created_at', 'desc') // Le plus récent en haut
-            ->get();
+            ;
 
         $this->isHistoryOpen = true;
     }
@@ -164,12 +166,13 @@ class DocsMemos extends Component
 
         
        
-            // === AJOUT : ENREGISTRER L'HISTORIQUE ===
-            Historiques::create([
+          
+            // === AJOUT : ENREGISTRER L'HISTORIQUE SANS DOUBLON ===
+            Historiques::firstOrCreate([
+                'memo_id'          => $memo->id,
+                'user_id'          => Auth::id(),
+                'action'           => 'createur',
                 'workflow_comment' => $this->comment,
-                'action' => 'createur',
-                'memo_id' =>$memo->id,
-                'user_id' => Auth::id()
             ]);
 
             $currentUser = Auth::user();

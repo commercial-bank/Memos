@@ -128,12 +128,67 @@
                             </div>
 
 
-                            <!-- Champ Contenu -->
-                            <div class="mb-4">
-                                <label for="content" class="block text-sm font-medium text-gray-700 mb-1">Contenu</label>
-                                <textarea wire:model="content" id="content" rows="4" class="w-full p-4 min-h-[200px] max-h-[400px] border-yellow-300 overflow-y-auto outline-none prose max-w-none text-gray-800 bg-white"></textarea>
-                                @error('content') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-                            </div>
+                            <!-- Champ Contenu (Éditeur Riche) -->
+                                    <div class="mb-4">
+                                        <label for="content" class="block text-sm font-medium text-gray-700 mb-1">Contenu</label>
+                                        
+                                        <div wire:ignore 
+                                            class="rounded-md shadow-sm"
+                                            x-data="{
+                                                content: @entangle('content'),
+                                                initQuill() {
+                                                    const quill = new Quill(this.$refs.quillEditor, {
+                                                        theme: 'snow',
+                                                        placeholder: 'Rédigez votre mémo ici...',
+                                                        modules: {
+                                                            toolbar: [
+                                                                // GROUPE 1 : Titres et Polices
+                                                                [{ 'header': [1, 2, 3, false] }], // H1, H2, H3, Normal
+
+                                                                // GROUPE 2 : Formatage de base
+                                                                ['bold', 'italic', 'underline', 'strike'], // Gras, Italique, Souligné, Barré
+                                                                
+                                                                // GROUPE 3 : Couleurs
+                                                                [{ 'color': [] }, { 'background': [] }], // Couleur du texte & Surlignage
+
+                                                                // GROUPE 4 : Listes et Indentation
+                                                                [{ 'list': 'ordered'}, { 'list': 'bullet' }], 
+                                                                [{ 'indent': '-1'}, { 'indent': '+1' }], // Diminuer/Augmenter le retrait
+
+                                                                // GROUPE 5 : Alignement
+                                                                [{ 'align': [] }], 
+
+                                                                // GROUPE 6 : Insertion (Lien)
+                                                                ['link'], // Outil pour insérer un lien hypertexte
+
+                                                                // GROUPE 7 : Nettoyage
+                                                                ['clean'] // Effacer le formatage
+                                                            ]
+                                                        }
+                                                    });
+
+                                                    // Charger le contenu initial s'il existe (édition)
+                                                    if (this.content) {
+                                                        quill.root.innerHTML = this.content;
+                                                    }
+
+                                                    // Synchroniser Quill vers Livewire quand on tape
+                                                    quill.on('text-change', () => {
+                                                        this.content = quill.root.innerHTML;
+                                                    });
+                                                }
+                                            }"
+                                            x-init="initQuill()"
+                                        >
+                                            <!-- Le conteneur visuel de l'éditeur -->
+                                            <div class="bg-white border border-gray-300 rounded-md overflow-hidden focus-within:border-yellow-500 focus-within:ring-1 focus-within:ring-yellow-500 transition-all duration-200">
+                                                <!-- La zone de saisie Quill -->
+                                                <div x-ref="quillEditor" class="min-h-[150px] max-h-[300px] text-gray-800 text-base font-sans"></div>
+                                            </div>
+                                        </div>
+
+                                        @error('content') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                                    </div>
                         </div>
                         
                         <!-- Pied du modal (Boutons) -->

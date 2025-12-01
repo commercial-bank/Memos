@@ -103,300 +103,8 @@
         <main class="content"> {{-- Cette classe est déjà définie dans votre CSS pour prendre l'espace et gérer le défilement --}}
            {{-- Ici, le p-4 ajoute un padding général au contenu défilant --}}
 
-           @if($currentContent == 'dashboard-content')
-
-                <!-- Dashboard Container -->
-                <div class="space-y-6">
-
-                    <!-- 1. HEADER : Bienvenue & Date -->
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h2 class="text-2xl font-bold tracking-tight text-slate-900">
-                                Tableau de Bord
-                            </h2>
-                            <p class="text-sm text-slate-500 mt-1">
-                                Vue d'ensemble de vos activités et flux documentaires.
-                            </p>
-                        </div>
-                        
-                        <div class="mt-4 md:mt-0 flex items-center gap-3">
-                            <!-- Date Widget -->
-                            <div class="hidden md:flex items-center px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 shadow-sm">
-                                <svg class="w-4 h-4 mr-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                {{ now()->translatedFormat('d F Y') }}
-                            </div>
-                            
-                            <!-- Bouton Création Rapide -->
-                            <button wire:click="openModal" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-lg flex items-center">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                Nouveau Mémo
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- 2. KPI CARDS (Inspiration Bancaire) -->
-                    <!-- Grid de 4 cartes avec indicateurs de progression -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        
-                        <!-- Carte 1 : Mémos Sortants -->
-                        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <div class="absolute right-0 top-0 h-full w-1 bg-yellow-500 group-hover:w-2 transition-all"></div>
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Mémos Sortants</p>
-                                    <h3 class="text-3xl font-bold text-slate-900 mt-2">24</h3>
-                                </div>
-                                <div class="p-2 bg-yellow-50 rounded-lg text-yellow-600">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                                </div>
-                            </div>
-                            <div class="mt-4 flex items-center text-xs">
-                                <span class="text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded flex items-center">
-                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                                    +12%
-                                </span>
-                                <span class="text-slate-400 ml-2">depuis hier</span>
-                            </div>
-                        </div>
-
-                        <!-- Carte 2 : Mémos Entrants (Pending) -->
-                        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <div class="absolute right-0 top-0 h-full w-1 bg-blue-500 group-hover:w-2 transition-all"></div>
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Mémos Entrants</p>
-                                    <h3 class="text-3xl font-bold text-slate-900 mt-2">08</h3>
-                                </div>
-                                <div class="p-2 bg-blue-50 rounded-lg text-blue-600">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-                                </div>
-                            </div>
-                            <div class="mt-4 flex items-center text-xs">
-                                <span class="text-orange-600 font-bold bg-orange-50 px-1.5 py-0.5 rounded flex items-center">
-                                    3 Urgents
-                                </span>
-                                <span class="text-slate-400 ml-2">à traiter</span>
-                            </div>
-                        </div>
-
-                        <!-- Carte 3 : Courriers -->
-                        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <div class="absolute right-0 top-0 h-full w-1 bg-purple-500 group-hover:w-2 transition-all"></div>
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Courriers</p>
-                                    <h3 class="text-3xl font-bold text-slate-900 mt-2">142</h3>
-                                </div>
-                                <div class="p-2 bg-purple-50 rounded-lg text-purple-600">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                                </div>
-                            </div>
-                            <div class="mt-4 flex items-center text-xs">
-                                <span class="text-slate-500 font-medium">Archive globale</span>
-                            </div>
-                        </div>
-
-                        <!-- Carte 4 : Validation Requise (Action) -->
-                        <div class="bg-slate-900 rounded-xl p-6 shadow-lg shadow-slate-300 transform hover:-translate-y-1 transition-transform cursor-pointer">
-                            <div class="flex justify-between items-start text-white">
-                                <div>
-                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">À Valider</p>
-                                    <h3 class="text-3xl font-bold mt-2">5</h3>
-                                </div>
-                                <div class="p-2 bg-slate-800 rounded-lg text-yellow-400">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                </div>
-                            </div>
-                            <div class="mt-4 border-t border-slate-700 pt-2">
-                                <p class="text-xs text-slate-300">Documents en attente de votre signature.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 3. MAIN SECTION : Graphe & Notifications -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        
-                        <!-- A. GRAPHE DE SUIVI (2/3 largeur) -->
-                        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                            <div class="flex justify-between items-center mb-6">
-                                <h3 class="text-lg font-bold text-slate-800">Flux de Création</h3>
-                                <select class="bg-slate-50 border-none text-xs rounded-md text-slate-600 py-1 px-3 focus:ring-0 cursor-pointer">
-                                    <option>7 derniers jours</option>
-                                    <option>Ce mois</option>
-                                    <option>Cette année</option>
-                                </select>
-                            </div>
-                            
-                            <!-- Zone du Graphique (Placeholder pour ApexCharts) -->
-                            <div id="chart-timeline" class="h-80 w-full"></div>
-                        </div>
-
-                        <!-- B. ZONE DE NOTIFICATIONS & ACTIVITÉS (1/3 largeur) -->
-                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-full">
-                            <!-- Header Notifs -->
-                            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
-                                <h3 class="text-lg font-bold text-slate-800">Notifications</h3>
-                                <span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">3 new</span>
-                            </div>
-
-                            <!-- Liste Scrollable -->
-                            <div class="flex-1 overflow-y-auto max-h-[350px] p-2">
-                                <ul class="space-y-1">
-                                    <!-- Item 1 -->
-                                    <li class="hover:bg-slate-50 p-3 rounded-lg transition-colors cursor-pointer group">
-                                        <div class="flex items-start gap-3">
-                                            <div class="bg-blue-100 text-blue-600 rounded-full p-2 mt-1 shrink-0">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                                            </div>
-                                            <div>
-                                                <p class="text-sm font-medium text-slate-800 group-hover:text-blue-600 transition">Nouveau mémo reçu</p>
-                                                <p class="text-xs text-slate-500">Service Comptabilité - "Factures proforma"</p>
-                                                <p class="text-[10px] text-slate-400 mt-1">Il y a 10 min</p>
-                                            </div>
-                                        </div>
-                                    </li>
-
-                                    <!-- Item 2 -->
-                                    <li class="hover:bg-slate-50 p-3 rounded-lg transition-colors cursor-pointer group">
-                                        <div class="flex items-start gap-3">
-                                            <div class="bg-yellow-100 text-yellow-600 rounded-full p-2 mt-1 shrink-0">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                            </div>
-                                            <div>
-                                                <p class="text-sm font-medium text-slate-800 group-hover:text-yellow-600 transition">Validation en attente</p>
-                                                <p class="text-xs text-slate-500">Réf: #MEM-2023-089</p>
-                                                <p class="text-[10px] text-slate-400 mt-1">Il y a 2h</p>
-                                            </div>
-                                        </div>
-                                    </li>
-
-                                    <!-- Item 3 -->
-                                    <li class="hover:bg-slate-50 p-3 rounded-lg transition-colors cursor-pointer group">
-                                        <div class="flex items-start gap-3">
-                                            <div class="bg-green-100 text-green-600 rounded-full p-2 mt-1 shrink-0">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                            </div>
-                                            <div>
-                                                <p class="text-sm font-medium text-slate-800 group-hover:text-green-600 transition">Mémo #402 Approuvé</p>
-                                                <p class="text-xs text-slate-500">Par Directeur Général</p>
-                                                <p class="text-[10px] text-slate-400 mt-1">Hier, 16:30</p>
-                                            </div>
-                                        </div>
-                                    </li>
-                                </ul>
-                            </div>
-                            
-                            <!-- Footer Notifs -->
-                            <div class="p-3 border-t border-slate-100 text-center">
-                                <button class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline">Voir tout l'historique</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 4. SECTION TABLEAU RÉCENT (Style "Table Financière") -->
-                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                            <h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Derniers Mouvements</h3>
-                            <button class="text-slate-400 hover:text-slate-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg></button>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm whitespace-nowrap">
-                                <thead>
-                                    <tr class="text-slate-500 border-b border-slate-100">
-                                        <th class="px-6 py-3 font-medium">Référence</th>
-                                        <th class="px-6 py-3 font-medium">Objet</th>
-                                        <th class="px-6 py-3 font-medium">Statut</th>
-                                        <th class="px-6 py-3 font-medium">Date</th>
-                                        <th class="px-6 py-3 font-medium text-right">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    <!-- Row 1 -->
-                                    <tr class="hover:bg-slate-50 transition-colors group">
-                                        <td class="px-6 py-3 font-mono text-slate-600 font-bold">#REF-2023-001</td>
-                                        <td class="px-6 py-3 text-slate-800 font-medium">Rapport Financier T3</td>
-                                        <td class="px-6 py-3">
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                Envoyé
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-3 text-slate-500">29 Nov 2025</td>
-                                        <td class="px-6 py-3 text-right">
-                                            <button class="text-slate-400 hover:text-blue-600 group-hover:opacity-100 opacity-0 transition-opacity">Voir</button>
-                                        </td>
-                                    </tr>
-                                    <!-- Row 2 -->
-                                    <tr class="hover:bg-slate-50 transition-colors group">
-                                        <td class="px-6 py-3 font-mono text-slate-600 font-bold">#REF-2023-002</td>
-                                        <td class="px-6 py-3 text-slate-800 font-medium">Demande de congés</td>
-                                        <td class="px-6 py-3">
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                Pending
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-3 text-slate-500">30 Nov 2025</td>
-                                        <td class="px-6 py-3 text-right">
-                                            <button class="text-slate-400 hover:text-blue-600 group-hover:opacity-100 opacity-0 transition-opacity">Voir</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- SCRIPT POUR LE GRAPHE (ApexCharts) -->
-                <!-- À mettre idéalement dans votre layout principal ou pushé dans un stack 'scripts' -->
-                <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-                <script>
-                    document.addEventListener('livewire:initialized', () => {
-                        var options = {
-                            series: [{
-                                name: 'Mémos Entrants',
-                                data: [31, 40, 28, 51, 42, 109, 100]
-                            }, {
-                                name: 'Mémos Sortants',
-                                data: [11, 32, 45, 32, 34, 52, 41]
-                            }],
-                            chart: {
-                                height: 320,
-                                type: 'area', // Look "bancaire" moderne
-                                fontFamily: 'inherit',
-                                toolbar: { show: false }
-                            },
-                            colors: ['#3b82f6', '#eab308'], // Bleu et Jaune (Vos couleurs)
-                            dataLabels: { enabled: false },
-                            stroke: { curve: 'smooth', width: 2 },
-                            fill: {
-                                type: 'gradient',
-                                gradient: {
-                                    shadeIntensity: 1,
-                                    opacityFrom: 0.3,
-                                    opacityTo: 0.05,
-                                    stops: [0, 90, 100]
-                                }
-                            },
-                            xaxis: {
-                                categories: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"],
-                                axisBorder: { show: false },
-                                axisTicks: { show: false }
-                            },
-                            yaxis: { show: false }, // Minimaliste
-                            grid: {
-                                borderColor: '#f1f5f9',
-                                strokeDashArray: 4,
-                            },
-                            tooltip: {
-                                theme: 'light'
-                            }
-                        };
-
-                        var chart = new ApexCharts(document.querySelector("#chart-timeline"), options);
-                        chart.render();
-                    });
-                </script>
-
+            @if($currentContent == 'dashboard-content')
+                @livewire('nav.dashboard')
             @endif
 
             @if($currentContent == 'memos-content')
@@ -412,101 +120,313 @@
             @endif
 
             <!-- On change ici 'reports-content' par 'notifications-content' pour être logique -->
-@if($currentContent == 'reports-content')
-               
-    <div class="max-w-5xl mx-auto space-y-6 font-sans">
+            @if($currentContent == 'reports-content')
+                        
+               <!-- CONTENEUR PRINCIPAL -->
+                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-10">
 
-        <!-- 1. HEADER -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Centre de Notifications</h2>
-                <p class="text-slate-500 text-sm">Gérez vos alertes et le suivi de vos activités.</p>
-            </div>
-            
-            <div class="flex items-center gap-3">
-                <button wire:click="markAllAsRead" class="text-sm text-slate-600 hover:text-slate-900 font-medium bg-white border border-slate-300 px-4 py-2 rounded-lg shadow-sm transition hover:bg-slate-50">
-                    <i class="fa-solid fa-check-double mr-2"></i> Tout marquer comme lu
-                </button>
-            </div>
-        </div>
-
-        <!-- 2. FILTRES -->
-        <div class="flex space-x-1 bg-slate-100 p-1 rounded-xl w-fit">
-            <button wire:click="" class="px-4 py-2 text-sm font-medium rounded-lg transition-all ">
-                Toutes
-            </button>
-            <button wire:click="" class="px-4 py-2 text-sm font-medium rounded-lg transition-all ">
-                Non lues 
-                
-                    <span class="ml-1 bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded-full">0</span>
-              
-            </button>
-        </div>
-
-        <!-- 3. LISTE DES NOTIFICATIONS DYNAMIQUE -->
-        <div class="space-y-8">
-
-            <!-- On vérifie s'il y a des notifications -->
-           
-                
-                <!-- On groupe par jour (Optionnel, ici liste simple triée) -->
-                <div class="group relative bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer 
-                    ">
-                    
-                    <!-- Indicateur "Non Lu" -->
-                 
-                        <div class="absolute top-4 right-4 h-2 w-2 bg-blue-500 rounded-full" title="Non lu"></div>
-                    
-
-                    <div class="flex items-start gap-4">
-                        <!-- Icone Contextuelle basée sur le type de notif -->
-                        <div class="shrink-0 h-12 w-12 rounded-full flex items-center justify-center 
-                            ">
-                            
-                            <!-- Vous pouvez personnaliser l'icône selon $notification->type -->
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    <!-- EN-TÊTE DE SECTION -->
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Paramètres de l'application</h2>
+                            <p class="text-sm text-gray-500 mt-1">Gérez les configurations des modules et les privilèges d'accès.</p>
                         </div>
+                        <div class="flex gap-3">
+                            <button type="button" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition shadow-sm">
+                                Annuler
+                            </button>
+                            <button type="button" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition shadow-sm shadow-indigo-200">
+                                Enregistrer les modifications
+                            </button>
+                        </div>
+                    </div>
 
-                        <div class="flex-1">
-                            <div class="flex justify-between items-start pr-6">
-                                <!-- Titre (Assurez-vous de stocker 'title' dans data) -->
-                                <h4 class="text-sm font-bold text-slate-800"></h4>
-                                <span class="text-xs text-slate-400 font-mono"></span>
+                    <!-- 1. SECTION MODULES (GRID 2x2) -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-medium text-gray-900 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            Configuration des Tables (Modules)
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            
+                            <!-- MODULE 1 : PRODUITS (Exemple rempli) -->
+                            <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden">
+                                <div class="absolute top-0 right-0 p-4 opacity-10">
+                                    <span class="text-6xl font-bold text-gray-900">1</span>
+                                </div>
+                                <div class="relative z-10">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h4 class="font-semibold text-gray-800">Module Produits</h4>
+                                        <span class="px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full ring-1 ring-green-600/20">Actif</span>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Nom de la table (DB)</label>
+                                            <input type="text" value="app_products" class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
+                                        </div>
+                                        <div class="flex gap-3">
+                                            <div class="w-1/2">
+                                                <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Quota Entrées</label>
+                                                <input type="number" value="1000" class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
+                                            </div>
+                                            <div class="w-1/2">
+                                                <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Visibilité</label>
+                                                <select class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
+                                                    <option selected>Public</option>
+                                                    <option>Privé</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <!-- Message -->
-                            <p class="text-sm text-slate-600 mt-1 line-clamp-1"></p>
-                            
-                            <!-- Actions au survol -->
-                            <div class="mt-3 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                
-                                    <button wire:click="" class="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-md">
-                                        Marquer comme lu
-                                    </button>
-                                
-                                <button wire:click="" class="text-xs text-red-500 hover:text-red-700">Supprimer</button>
+
+                            <!-- MODULE 2 : CLIENTS (Exemple rempli) -->
+                            <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden">
+                                <div class="absolute top-0 right-0 p-4 opacity-10">
+                                    <span class="text-6xl font-bold text-gray-900">2</span>
+                                </div>
+                                <div class="relative z-10">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h4 class="font-semibold text-gray-800">Module Clients</h4>
+                                        <span class="px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full ring-1 ring-green-600/20">Actif</span>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Nom de la table (DB)</label>
+                                            <input type="text" value="app_customers" class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
+                                        </div>
+                                        <div class="flex gap-3">
+                                            <div class="w-1/2">
+                                                <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Quota Entrées</label>
+                                                <input type="number" value="5000" class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
+                                            </div>
+                                            <div class="w-1/2">
+                                                <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Export</label>
+                                                <select class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
+                                                    <option selected>Autorisé</option>
+                                                    <option>Bloqué</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- MODULE 3 : COMMANDES (Exemple Maintenance) -->
+                            <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden">
+                                <div class="absolute top-0 right-0 p-4 opacity-10">
+                                    <span class="text-6xl font-bold text-gray-900">3</span>
+                                </div>
+                                <div class="relative z-10">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h4 class="font-semibold text-gray-800">Module Commandes</h4>
+                                        <span class="px-2 py-1 bg-yellow-50 text-yellow-700 text-xs font-medium rounded-full ring-1 ring-yellow-600/20">Maintenance</span>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 uppercase mb-1">API Endpoint</label>
+                                            <input type="text" value="/api/v1/orders" class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
+                                        </div>
+                                        <div class="flex gap-3">
+                                            <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg w-full cursor-pointer hover:bg-gray-50">
+                                                <input type="checkbox" checked class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
+                                                <span class="text-sm text-gray-700">Lecture seule</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- MODULE 4 : STOCKS (Exemple Inactif) -->
+                            <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden">
+                                <div class="absolute top-0 right-0 p-4 opacity-10">
+                                    <span class="text-6xl font-bold text-gray-900">4</span>
+                                </div>
+                                <div class="relative z-10">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h4 class="font-semibold text-gray-800">Module Stocks</h4>
+                                        <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full ring-1 ring-gray-500/20">Inactif</span>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Nom de la table (DB)</label>
+                                            <input type="text" placeholder="Non configuré" class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
+                                        </div>
+                                        <div class="flex gap-3">
+                                            <button type="button" class="w-full py-2.5 text-sm text-indigo-600 font-medium bg-indigo-50 hover:bg-indigo-100 rounded-lg transition">Activer le module</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-           
-               
+                    <hr class="border-gray-200">
 
-        </div>
+                    <!-- 2. SECTION UTILISATEURS (STATIQUE) -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-medium text-gray-900 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                Contrôle d'accès & Droits
+                            </h3>
+                            <div class="relative">
+                                <input type="text" placeholder="Rechercher un user..." class="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500 w-64 shadow-sm">
+                                <svg class="w-4 h-4 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </div>
+                        </div>
 
-        <!-- PAGINATION -->
-        <div class="pt-6 flex justify-center">
-             <!-- Si vous utilisez paginate() dans le composant Livewire -->
-              $notifications->links() 
-        </div>
+                        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Utilisateur</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date d'ajout</th>
+                                        <th scope="col" class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Droits Admin</th>
+                                        <th scope="col" class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Statut</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    
+                                    <!-- Ligne 1 : Utilisateur Standard (Actif) -->
+                                    <tr class="hover:bg-gray-50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-9 w-9">
+                                                    <div class="h-9 w-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm">JD</div>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-gray-900">Jean Dupont</div>
+                                                    <div class="text-sm text-gray-500">jean.d@example.com</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            12 Jan 2024
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                                            <!-- Toggle switch désactivé (pas admin) -->
+                                            <label class="inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer">
+                                                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                            </label>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-green-600"></span> Actif
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button type="button" class="text-red-600 hover:text-red-900 hover:bg-red-50 px-3 py-1.5 rounded-md transition border border-transparent hover:border-red-200">
+                                                Désactiver
+                                            </button>
+                                        </td>
+                                    </tr>
 
-    </div>        
+                                    <!-- Ligne 2 : Administrateur (Actif) -->
+                                    <tr class="hover:bg-gray-50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-9 w-9">
+                                                    <img class="h-9 w-9 rounded-full object-cover" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-gray-900">Sarah Connor</div>
+                                                    <div class="text-sm text-gray-500">sarah@skynet.com</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            15 Fev 2024
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                                            <!-- Toggle switch activé (checked) -->
+                                            <label class="inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" class="sr-only peer" checked>
+                                                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                            </label>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-green-600"></span> Actif
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button type="button" class="text-gray-400 cursor-not-allowed px-3 py-1.5" disabled>
+                                                Désactiver
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Ligne 3 : Utilisateur Désactivé -->
+                                    <tr class="bg-gray-50 opacity-60">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="flex items-center">
+                                                <div class="flex-shrink-0 h-9 w-9">
+                                                    <div class="h-9 w-9 rounded-full bg-gray-300 flex items-center justify-center text-gray-500 font-bold text-sm">AE</div>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <div class="text-sm font-medium text-gray-900">Ancien Employé</div>
+                                                    <div class="text-sm text-gray-500">ex@example.com</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            01 Jan 2023
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                                            <span class="text-xs text-gray-400">-</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-600">
+                                                Inactif
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button type="button" class="text-indigo-600 hover:text-indigo-900 font-semibold px-3 py-1.5">
+                                                Réactiver
+                                            </button>
+                                        </td>
+                                    </tr>
 
-@endif
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination Visuelle -->
+                        <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg">
+                            <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-700">
+                                        Affichage de <span class="font-medium">1</span> à <span class="font-medium">3</span> sur <span class="font-medium">12</span> résultats
+                                    </p>
+                                </div>
+                                <div>
+                                    <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                                        <a href="#" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
+                                            <span class="sr-only">Précédent</span>
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" /></svg>
+                                        </a>
+                                        <a href="#" aria-current="page" class="relative z-10 inline-flex items-center bg-indigo-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">1</a>
+                                        <a href="#" class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">2</a>
+                                        <a href="#" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
+                                            <span class="sr-only">Suivant</span>
+                                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" /></svg>
+                                        </a>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>    
+
+            @endif
 
             @if($currentContent == 'settings-content')reports-content
-               @livewire('setting.settings')
+              
             @endif
 
         </main>

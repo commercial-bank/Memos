@@ -147,6 +147,7 @@ class IncomingMemos extends Component
             'object' => $this->ref_object,
             'concerne' => $this->ref_concern ?? '', // Gérer le cas null
             'memo_id' => $memo->id,
+            'user_id' => Auth::id(),
         ]);
 
         // B. Gestion de l'historique (Previous Holders)
@@ -185,6 +186,14 @@ class IncomingMemos extends Component
             $memo->workflow_direction = 'entrant'; // Mise à jour du sens
             $memo->status = 'transmit'; // Optionnel
             $memo->save();
+
+            // === AJOUT : ENREGISTRER L'HISTORIQUE SANS DOUBLON ===
+            Historiques::firstOrCreate([
+                'memo_id'          => $memo->id,
+                'user_id'          => Auth::id(),
+                'action'           => 'transmit',
+                'workflow_comment' => '',
+            ]);
 
             $this->dispatch('notify', message: 'Document enregistré et transmis aux secrétariats destinatrices.', type: 'success');
         } else {
@@ -296,12 +305,12 @@ class IncomingMemos extends Component
 
         $memo = Memo::findOrFail($this->selectedMemoId);
        
-        // === AJOUT : ENREGISTRER L'HISTORIQUE ===
-        Historiques::create([
+        // === AJOUT : ENREGISTRER L'HISTORIQUE SANS DOUBLON ===
+        Historiques::firstOrCreate([
+            'memo_id'          => $memo->id,
+            'user_id'          => Auth::id(),
+            'action'           => $this->action,
             'workflow_comment' => $this->comment,
-            'action' => $this->action,
-            'memo_id' =>$memo->id,
-            'user_id' => Auth::id()
         ]);
 
         $currentUser = Auth::user();
