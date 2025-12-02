@@ -59,13 +59,21 @@
                 
             </button>
 
+            <button
+                class="pb-3 px-4 text-lg font-medium {{ $activeTab === 'favorites' ? 'border-b-2 border-yellow-500 text-orange-600' : 'text-gray-500 hover:text-gray-700' }}"
+                wire:click="selectTab('favorites')"
+            >
+                Favoris
+    
+            </button>
+
         @endif
 
     </div>
 
     <div class="flex justify-end mb-4 space-x-2">
         <button wire:click="openModal"
-            class="bg-yellow-400 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded flex items-center"
+            class="bg-[#daaf2c] hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded flex items-center"
 
         >
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
@@ -87,6 +95,8 @@
             <livewire:memos.blockout-memos />
         @elseif ($activeTab === 'blockint')  
             <livewire:memos.blockint-memos />
+        @elseif ($activeTab === 'favorites')  
+            <livewire:favorites.favorite-memos />
         @endif
     </div>
 

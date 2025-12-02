@@ -497,14 +497,13 @@
                                         Si index pair ($index % 2 == 0) -> Droite (flex-row)
                                         Si index impair -> Gauche (flex-row-reverse)
                                     -->
-                                    <div class="relative flex flex-col md:{{ $index % 2 == 0 ? 'flex-row' : 'flex-row-reverse' }} items-center justify-between mb-12 group">
+                                    <div class="relative flex flex-col  items-center justify-between mb-12 group">
                                         
                                         <!-- Espaceur -->
                                         <div class="hidden md:block w-5/12"></div>
                                         
                                         <!-- Point de connexion -->
-                                        <div class="absolute left-8 md:left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-slate-900 z-10 
-                                            {{ $step->action_type == 'rejection' ? 'bg-red-500 shadow-[0_0_10px_#ef4444]' : 'bg-emerald-500 shadow-[0_0_10px_#10b981]' }}">
+                                        <div class="absolute left-8 md:left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border-4 border-slate-900 z-10">
                                         </div>
 
                                         <!-- Contenu -->
@@ -512,25 +511,25 @@
                                             
                                             <!-- Trait de liaison -->
                                             <div class="absolute top-4 -left-8 w-8 md:w-10 h-0.5 
-                                                {{ $step->action_type == 'rejection' ? 'bg-red-500/50' : 'bg-emerald-500/50' }}
+                                                {{ $step->action == 'rejection' ? 'bg-red-500/50' : 'bg-emerald-500/50' }}
                                                 md:{{ $index % 2 == 0 ? '-left-10' : 'left-auto -right-10' }}">
                                             </div>
                                             
                                             <!-- Carte -->
                                             <div class="p-5 rounded-xl backdrop-blur-sm transition-colors border-l-4 shadow-lg
-                                                {{ $step->action_type == 'rejection' 
+                                                {{ $step->action == 'rejection' 
                                                     ? 'bg-red-900/20 border-red-500 hover:bg-red-900/30' 
                                                     : 'bg-slate-800/80 border-emerald-500 hover:bg-slate-800' }}">
                                                 
                                                 <div class="flex justify-between items-start mb-2">
-                                                    <span class="{{ $step->action_type == 'rejection' ? 'text-red-400' : 'text-emerald-400' }} text-xs font-bold tracking-widest uppercase">
+                                                    <span class="{{ $step->action == 'rejection' ? 'text-red-400' : 'text-emerald-400' }} text-xs font-bold tracking-widest uppercase">
                                                         {{ $step->created_at->format('d/m/Y à H:i') }}
                                                     </span>
                                                     
                                                     <!-- Badge Action -->
-                                                    @if($step->action_type == 'rejection')
+                                                    @if($step->action == 'rejection')
                                                         <span class="px-2 py-0.5 rounded bg-red-500/20 text-red-300 text-[10px] border border-red-500/50">Rejeté</span>
-                                                    @elseif($step->action_type == 'validation')
+                                                    @elseif($step->action == 'validation')
                                                         <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] border border-purple-500/50">Diffusé</span>
                                                     @else
                                                         <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] border border-emerald-500/50">Transmis</span>

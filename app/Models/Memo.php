@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Destinataires;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
 
 class Memo extends Model
@@ -57,6 +58,23 @@ class Memo extends Model
         return $this->belongsToMany(Entity::class, 'destinataires', 'memo_id', 'entity_id')
                     ->withPivot('action') // Pour récupérer le champ 'action' de la table pivot
                     ->withTimestamps();
+    }
+
+    public function favoritedBy()
+    {
+        return $this->belongsToMany(User::class, 'favorites', 'memo_id', 'user_id')->withTimestamps();
+    }
+
+    // Accessor pour utiliser $document->is_favorited dans la vue
+    public function getIsFavoritedAttribute()
+    {
+        // Si l'utilisateur n'est pas connecté, ce n'est pas un favori
+        if (!Auth::check()) {
+            return false;
+        }
+        
+        // Vérifie si l'ID de l'utilisateur actuel existe dans la relation favoritedBy
+        return $this->favoritedBy()->where('user_id', Auth::id())->exists();
     }
 
     

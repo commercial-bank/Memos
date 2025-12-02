@@ -64,6 +64,16 @@ class TopBar extends Component
         }
     }
 
+    public function forceGoToProfile()
+    {
+        // 1. On change le contenu affiché
+        $this->currentContent = 'profile-content';
+        $this->navbarTitle = 'Profile';
+        
+        // 2. On émet l'événement pour que la Sidebar mette aussi à jour sa surbrillance (optionnel mais recommandé)
+        $this->dispatch('tabSelected', tab: 'profile'); 
+    }
+
     public function render()
     {
         return view('livewire.nav.topbar');

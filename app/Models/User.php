@@ -40,10 +40,11 @@ class User extends Authenticatable implements LdapAuthenticatable
         'sous_direction',
         'departement',
         'service',
-        'role',
+        'is_admin',
+        'is_active',
         'manager_id',
         'manager_replace_id',
-        'director_assistant_id',
+        'director_assistant_id'
     ];
 
 
@@ -51,6 +52,8 @@ class User extends Authenticatable implements LdapAuthenticatable
     {
         return $this->hasMany(Memo::class);
     }
+
+
 
 
 
@@ -63,6 +66,12 @@ class User extends Authenticatable implements LdapAuthenticatable
     {
         // Un User a plusieurs Memos... à travers les WrittenMemos
         return $this->hasManyThrough(Memo::class, WrittenMemo::class);
+    }
+
+
+    public function favorites()
+    {
+        return $this->belongsToMany(Memo::class, 'favorites', 'user_id', 'memo_id')->withTimestamps();
     }
 
 
@@ -94,6 +103,41 @@ class User extends Authenticatable implements LdapAuthenticatable
         // 4. On retourne en majuscules
         return mb_strtoupper($acronym);
     }
+
+
+    /**
+     * Vérifie si le profil est incomplet.
+     */
+    public function hasIncompleteProfile(): bool
+    {
+        // Liste des champs OBLIGATOIRES pour utiliser l'app
+        $requiredFields = [
+            'poste',
+            'entity_name',
+            'sous_direction',
+            'departement',
+            'service',
+            'manager_id', 
+        ];
+
+        foreach ($requiredFields as $field) {
+            if (empty($this->$field)) {
+                return true; // Le profil est incomplet
+            }
+        }
+
+        return false; // Tout est bon
+    }
+
+        /**
+     * Vérifie si le compte de l'utilisateur est désactivé.
+     */
+        public function isInactive(): bool
+        {
+            // Retourne true si is_active est à 0 (false) ou null
+            return !$this->is_active;
+        }
+
 
     /**
      * The attributes that should be hidden for serialization.

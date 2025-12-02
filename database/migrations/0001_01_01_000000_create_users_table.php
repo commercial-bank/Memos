@@ -37,7 +37,8 @@ return new class extends Migration
                 $table->string('sous_direction')->nullable();
                 $table->string('departement')->nullable();
                 $table->string('service')->nullable();
-                $table->string('role')->nullable();
+                $table->boolean('is_admin')->default(false);
+                $table->boolean('is_active')->default(true);
                 $table->unsignedBigInteger('manager_id')->nullable();
                 $table->unsignedBigInteger('manager_replace_id')->nullable();
                 $table->unsignedBigInteger('director_assistant_id')->nullable();

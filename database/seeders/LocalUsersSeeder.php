@@ -20,11 +20,11 @@ class LocalUsersSeeder extends Seeder
         // 2. CRÉATION
         $password = Hash::make('password');
 
-        $entiteDTDSI = 'Direction Transformation Digital Et systeme information';
-        $entiteDRH   = 'Direction des Ressources Humaines';
+        $entiteDTDSI = 'Direction Transformation Digital  Systeme information';
+        $entiteDRH   = 'Direction Ressources Humaines';
         $entiteDG    = 'Direction Générale';
         
-        $sousDirProd = 'Production et si';
+        $sousDirProd = 'Production Si';
         $deptDev     = 'Dev';
         $serviceMgt  = 'Management';
 
@@ -42,7 +42,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => null,
             'domain'      => 'local',
         ]);
@@ -59,7 +60,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => $dtdsiDirecteur->id,
             'domain'      => 'local',
         ]);
@@ -79,7 +81,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => $dtdsiDirecteur->id,
             'domain'      => 'local',
         ]);
@@ -96,7 +99,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => $dtdsiSousDirecteur->id,
             'domain'      => 'local',
         ]);
@@ -113,7 +117,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => $dtdsiChefDept->id,
             'domain'      => 'local',
         ]);
@@ -130,7 +135,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => 'Transformation Digital Et System Information',
             'service'     => 'Direction',
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => $dtdsiChefService->id,
             'domain'      => 'local',
         ]);
@@ -149,7 +155,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => null,
             'domain'      => 'local',
         ]);
@@ -168,7 +175,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => null,
             'domain'      => 'local',
         ]);
@@ -185,7 +193,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => $drhDirecteur->id,
             'domain'      => 'local',
         ]);
@@ -202,7 +211,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => $drhDirecteur->id,
             'domain'      => 'local',
         ]);
@@ -218,7 +228,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => $drhDirecteur->id,
             'domain'      => 'local',
         ]);
@@ -235,7 +246,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => $drhSousDir1->id,
             'domain'      => 'local',
         ]);
@@ -251,7 +263,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => $drhSousDir2->id,
             'domain'      => 'local',
         ]);
@@ -268,7 +281,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => $drhChefDept1->id,
             'domain'      => 'local',
         ]);
@@ -284,7 +298,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => $drhChefDept2->id,
             'domain'      => 'local',
         ]);
@@ -301,7 +316,8 @@ class LocalUsersSeeder extends Seeder
             'sous_direction' => $sousDirProd,
             'departement' => $deptDev,
             'service'     => $serviceMgt,
-            'role'        => 'simple_user',
+            'is_admin'    => false,
+            'is_active'   => true,
             'manager_id'  => $drhChefService1->id,
             'domain'      => 'local',
         ]);

@@ -407,6 +407,23 @@ class IncomingMemos extends Component
     }
 
 
+    public function toggleFavorite($memoId)
+    {
+        $memo = Memo::find($memoId);
+
+        if ($memo) {
+            // La méthode toggle() de Laravel ajoute si ça n'existe pas, 
+            // et supprime si ça existe déjà. C'est magique !
+            Auth::user()->favorites()->toggle($memoId);
+            
+            // Notification optionnelle (si vous utilisez un système de toast)
+            // $this->dispatch('notify', message: 'Favoris mis à jour');
+        }
+    }
+
+    
+
+
 
     public function render()
     {
@@ -420,8 +437,19 @@ class IncomingMemos extends Component
             ->with('destinataires')
             ->get();
 
+
+        $documents = Memo::query()
+            // ... vos filtres existants ...
+            ->withExists(['favoritedBy as is_favorited_by_auth' => function ($query) {
+                $query->where('user_id', Auth::id());
+            }])
+            ->latest()
+            ->paginate(10);
+
+
         return view('livewire.memos.incoming-memos', [
             'memos' => $memos,
+            'documents' => $documents
         ]);
     }
 }

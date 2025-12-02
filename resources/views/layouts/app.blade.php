@@ -18,9 +18,10 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
         <!-- Style de l'éditeur -->
         <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-        <!-- Script de l'éditeur -->
         <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+        <!-- Script graph et pdf -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <script>
     async function prepareAndDownloadPDF() {
@@ -131,6 +132,8 @@
 </script>
     </head>
     <body class="font-sans antialiased">
+
+        
 
         {{ $slot }}
 
