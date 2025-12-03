@@ -7,14 +7,6 @@
                             <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Paramètres de l'application</h2>
                             <p class="text-sm text-gray-500 mt-1">Gérez les configurations des modules et les privilèges d'accès.</p>
                         </div>
-                        <div class="flex gap-3">
-                            <button type="button" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition shadow-sm">
-                                Annuler
-                            </button>
-                            <button type="button" class="px-4 py-2 bg-[#daaf2c] text-white rounded-lg text-sm font-medium hover:bg-[#daaf2c] transition shadow-sm shadow-indigo-200">
-                                Enregistrer les modifications
-                            </button>
-                        </div>
                     </div>
 
                     <!-- 1. SECTION MODULES (GRID 2x2) -->
@@ -26,116 +18,102 @@
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             
-                            <!-- MODULE 1 : PRODUITS (Exemple rempli) -->
-                            <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden">
-                                <div class="absolute top-0 right-0 p-4 opacity-10">
-                                    <span class="text-6xl font-bold text-gray-900">1</span>
-                                </div>
-                                <div class="relative z-10">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <h4 class="font-semibold text-gray-800">Module Produits</h4>
-                                        <span class="px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full ring-1 ring-green-600/20">Actif</span>
+                            <!-- GRILLE PRINCIPALE : "grid-cols-2" met les cartes côte à côte sur écran moyen et large -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+
+                                <!-- FORMULAIRE 1 : ENTITY (Gauche) -->
+                                <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-500 h-full">
+                                    <div class="flex items-center justify-between mb-6">
+                                        <h3 class="text-xl font-bold text-gray-900">Nouvelle Entité</h3>
+                                        <span class="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-1 rounded-full uppercase">Entity</span>
                                     </div>
-                                    <div class="space-y-3">
-                                        <div>
-                                            <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Nom de la table (DB)</label>
-                                            <input type="text" value="app_products" class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
-                                        </div>
-                                        <div class="flex gap-3">
-                                            <div class="w-1/2">
-                                                <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Quota Entrées</label>
-                                                <input type="number" value="1000" class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
+                                    
+                                    <form action="#" method="POST" class="flex flex-col h-full">
+                                        <div class="space-y-4 flex-grow">
+                                            <!-- Champ REF -->
+                                            <div>
+                                                <label for="entity_ref" class="block text-sm font-medium text-gray-700 mb-1">Réf (Ref)</label>
+                                                <input type="text" id="entity_ref" name="ref" placeholder="Ex: ENT-001" 
+                                                    class="w-full rounded-md border border-gray-300 p-2.5 focus:border-blue-500 focus:ring-blue-500 shadow-sm transition">
                                             </div>
-                                            <div class="w-1/2">
-                                                <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Visibilité</label>
-                                                <select class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
-                                                    <option selected>Public</option>
-                                                    <option>Privé</option>
+
+                                            <!-- Champ NAME -->
+                                            <div>
+                                                <label for="entity_name" class="block text-sm font-medium text-gray-700 mb-1">Nom (Name)</label>
+                                                <input type="text" id="entity_name" name="name" placeholder="Nom de l'entité" 
+                                                    class="w-full rounded-md border border-gray-300 p-2.5 focus:border-blue-500 focus:ring-blue-500 shadow-sm transition">
+                                            </div>
+
+                                            <!-- Champ TYPE -->
+                                            <div>
+                                                <label for="entity_type" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                                <select id="entity_type" name="type" 
+                                                        class="w-full rounded-md border border-gray-300 p-2.5 bg-white focus:border-blue-500 focus:ring-blue-500 shadow-sm transition">
+                                                    <option value="">Sélectionner...</option>
+                                                    <option value="interne">Interne</option>
+                                                    <option value="externe">Externe</option>
+                                                    <option value="partenaire">Partenaire</option>
                                                 </select>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <!-- MODULE 2 : CLIENTS (Exemple rempli) -->
-                            <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden">
-                                <div class="absolute top-0 right-0 p-4 opacity-10">
-                                    <span class="text-6xl font-bold text-gray-900">2</span>
-                                </div>
-                                <div class="relative z-10">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <h4 class="font-semibold text-gray-800">Module Clients</h4>
-                                        <span class="px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full ring-1 ring-green-600/20">Actif</span>
-                                    </div>
-                                    <div class="space-y-3">
-                                        <div>
-                                            <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Nom de la table (DB)</label>
-                                            <input type="text" value="app_customers" class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
+                                        <!-- Bouton en bas -->
+                                        <div class="mt-8">
+                                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-md shadow-sm transition duration-150 ease-in-out flex items-center justify-center">
+                                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                                Ajouter l'Entité
+                                            </button>
                                         </div>
-                                        <div class="flex gap-3">
-                                            <div class="w-1/2">
-                                                <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Quota Entrées</label>
-                                                <input type="number" value="5000" class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
+                                    </form>
+                                </div>
+
+                                <!-- FORMULAIRE 2 : SERVICE (Droite) -->
+                                <div class="bg-white rounded-lg shadow-md p-6 border-t-4 border-green-500 h-full">
+                                    <div class="flex items-center justify-between mb-6">
+                                        <h3 class="text-xl font-bold text-gray-900">Nouveau Service</h3>
+                                        <span class="text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-full uppercase">Service</span>
+                                    </div>
+                                    
+                                    <form action="#" method="POST" class="flex flex-col h-full">
+                                        <div class="space-y-4 flex-grow">
+                                            <!-- Champ NAME -->
+                                            <div>
+                                                <label for="service_name" class="block text-sm font-medium text-gray-700 mb-1">Nom du Service</label>
+                                                <input type="text" id="service_name" name="name" placeholder="Ex: Marketing, IT..." 
+                                                    class="w-full rounded-md border border-gray-300 p-2.5 focus:border-green-500 focus:ring-green-500 shadow-sm transition">
                                             </div>
-                                            <div class="w-1/2">
-                                                <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Export</label>
-                                                <select class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
-                                                    <option selected>Autorisé</option>
-                                                    <option>Bloqué</option>
+
+                                            <!-- Champ TYPE -->
+                                            <div>
+                                                <label for="service_type" class="block text-sm font-medium text-gray-700 mb-1">Type de Service</label>
+                                                <select id="service_type" name="type" 
+                                                        class="w-full rounded-md border border-gray-300 p-2.5 bg-white focus:border-green-500 focus:ring-green-500 shadow-sm transition">
+                                                    <option value="">Sélectionner...</option>
+                                                    <option value="support">Support</option>
+                                                    <option value="operationnel">Opérationnel</option>
+                                                    <option value="direction">Direction</option>
                                                 </select>
                                             </div>
+                                            
+                                            <!-- Bloc vide pour équilibrer la hauteur si nécessaire ou description -->
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">Description (Optionnel)</label>
+                                                <textarea rows="2" class="w-full rounded-md border border-gray-300 p-2.5 focus:border-green-500 focus:ring-green-500 shadow-sm"></textarea>
+                                            </div>
                                         </div>
-                                    </div>
+
+                                        <!-- Bouton en bas -->
+                                        <div class="mt-8">
+                                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded-md shadow-sm transition duration-150 ease-in-out flex items-center justify-center">
+                                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                                Ajouter le Service
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
+
                             </div>
 
-                            <!-- MODULE 3 : COMMANDES (Exemple Maintenance) -->
-                            <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden">
-                                <div class="absolute top-0 right-0 p-4 opacity-10">
-                                    <span class="text-6xl font-bold text-gray-900">3</span>
-                                </div>
-                                <div class="relative z-10">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <h4 class="font-semibold text-gray-800">Module Commandes</h4>
-                                        <span class="px-2 py-1 bg-yellow-50 text-yellow-700 text-xs font-medium rounded-full ring-1 ring-yellow-600/20">Maintenance</span>
-                                    </div>
-                                    <div class="space-y-3">
-                                        <div>
-                                            <label class="block text-xs font-medium text-gray-500 uppercase mb-1">API Endpoint</label>
-                                            <input type="text" value="/api/v1/orders" class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
-                                        </div>
-                                        <div class="flex gap-3">
-                                            <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg w-full cursor-pointer hover:bg-gray-50">
-                                                <input type="checkbox" checked class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
-                                                <span class="text-sm text-gray-700">Lecture seule</span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- MODULE 4 : STOCKS (Exemple Inactif) -->
-                            <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden">
-                                <div class="absolute top-0 right-0 p-4 opacity-10">
-                                    <span class="text-6xl font-bold text-gray-900">4</span>
-                                </div>
-                                <div class="relative z-10">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <h4 class="font-semibold text-gray-800">Module Stocks</h4>
-                                        <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full ring-1 ring-gray-500/20">Inactif</span>
-                                    </div>
-                                    <div class="space-y-3">
-                                        <div>
-                                            <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Nom de la table (DB)</label>
-                                            <input type="text" placeholder="Non configuré" class="w-full text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 border p-2.5">
-                                        </div>
-                                        <div class="flex gap-3">
-                                            <button type="button" class="w-full py-2.5 text-sm text-indigo-600 font-medium bg-indigo-50 hover:bg-indigo-100 rounded-lg transition">Activer le module</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
 

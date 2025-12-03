@@ -122,7 +122,7 @@
             <!-- On change ici 'reports-content' par 'notifications-content' pour être logique -->
             @if($currentContent == 'reports-content')
                         
-               
+               xvxcvcvxcvxcv
 
             @endif
 
