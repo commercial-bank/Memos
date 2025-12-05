@@ -11,4 +11,15 @@ class Destinataires extends Model
         'memo_id',
         'entity_id',
     ];
+
+    // Cette relation est celle que le "with('destinataires.entity')" cherche
+    public function entity()
+    {
+        return $this->belongsTo(Entity::class, 'entity_id');
+    }
+
+    public function memo()
+    {
+        return $this->belongsTo(Memo::class, 'memo_id');
+    }
 }

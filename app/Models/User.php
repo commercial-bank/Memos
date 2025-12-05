@@ -36,15 +36,13 @@ class User extends Authenticatable implements LdapAuthenticatable
         'domain',
         'password',
         'poste',
-        'entity_name',
-        'sous_direction',
+        'entity_id',
+        'sous_direction_id',
         'departement',
         'service',
         'is_admin',
         'is_active',
         'manager_id',
-        'manager_replace_id',
-        'director_assistant_id'
     ];
 
 
@@ -54,13 +52,6 @@ class User extends Authenticatable implements LdapAuthenticatable
     }
 
 
-
-
-
-    public function writtenMemos()
-    {
-        return $this->hasMany(WrittenMemo::class); 
-    }
 
     public function sentMemos()
     {
@@ -113,11 +104,10 @@ class User extends Authenticatable implements LdapAuthenticatable
         // Liste des champs OBLIGATOIRES pour utiliser l'app
         $requiredFields = [
             'poste',
-            'entity_name',
-            'sous_direction',
+            'entity_id',
+            'sous_direction_id',
             'departement',
             'service',
-            'manager_id', 
         ];
 
         foreach ($requiredFields as $field) {

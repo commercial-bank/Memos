@@ -11,15 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('references', function (Blueprint $table) {
+        Schema::create('blocs_enregistrements', function (Blueprint $table) {
             $table->id();
-            $table->string('nature');
-            $table->string('date');
-            $table->string('numero_ordre_path');
-            $table->string('object');
-            $table->string('concerne');
+            $table->string('nature_memo');
+            $table->string('date_enreg');
+            $table->string('reference');
             $table->foreignId('memo_id')->constrained()->onDelete('cascade');
-            $table->string('entity_exp')->nullable();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
@@ -30,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('references');
+        Schema::dropIfExists('blocs_enregistrements');
     }
 };

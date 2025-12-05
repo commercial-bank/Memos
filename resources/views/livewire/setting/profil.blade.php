@@ -27,7 +27,11 @@
                 <p class="text-gray-500 text-sm">{{ '@' . $user->user_name }}</p>
                 
                 <div class="mt-4 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Compte Actif
+                    
+                    @if($user->is_active)
+                        Compte Actif
+                    @endif 
+
                 </div>
 
                 <hr class="my-6 border-gray-200">
@@ -40,12 +44,7 @@
                             <i class="far fa-calendar-alt mr-2"></i> {{ $user->created_at ? $user->created_at->format('d M Y') : 'N/A' }}
                         </p>
                     </div>
-                    <div>
-                        <p class="text-xs text-gray-400 uppercase">Domaine</p>
-                        <p class="text-sm font-medium text-gray-700">
-                            <i class="fas fa-globe mr-2"></i> {{ $user->domain ?? 'Non défini' }}
-                        </p>
-                    </div>
+                  
                 </div>
             </div>
         </div>
@@ -107,7 +106,7 @@
                             <select id="poste" wire:model="poste" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
                                 <option value="">Sélectionner un poste...</option>
                                 <option value="Stagiaire Professionnel">Stagiaire Professionnel</option>
-                                <option value="Employer">Employé</option>
+                                <option value="Employer">Employer</option>
                                 <option value="Chef-Service">Chef-Service</option>
                                 <option value="Chef-Departement">Chef-Departement</option>
                                 <option value="Secretaire">Secretaire/Assistante</option>
@@ -124,37 +123,80 @@
                         <!-- ENTITE -->
                         <div class="sm:col-span-3">
                             <label for="entity" class="block text-sm font-medium text-gray-700">Entité</label>
-                            <input type="text" id="entity" wire:model="entity" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
+
+                            <select id="entity" wire:model="entity_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
+                                
+                                @if($user_entity)
+                                    <option value="{{ $user_entity->id }}">{{ $user_entity->name }}</option>
+                                @else
+                                    <option value="">Sélectionner votre entité</option>
+                                @endif
+
+                                @foreach($entites as $entite)
+                                    <option value="{{ $entite->id }}">{{ $entite->name }}</option>
+                                @endforeach
+                               
+                            </select>
+
                             @error('entity') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
 
-                        <!-- SIGLE ENTITE (Ici mis en lecture seule comme demandé précédemment, sinon changer en wire:model) -->
+                        <!-- Sous Direction -->
                         <div class="sm:col-span-3">
-                            <label for="entity_sigle" class="block text-sm font-medium text-gray-700">Sigle Entité</label>
-                            <input 
-                                type="text" 
-                                id="entity_sigle" 
-                                wire:model="entity_sigle" 
-                                placeholder="Ex: DPTDSI"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm border p-2"
-                            >
-                            <!-- Affichage de l'erreur de validation si nécessaire -->
-                            @error('entity_sigle') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            <label for="sous_direction" class="block text-sm font-medium text-gray-700">Sous Direction</label>
+
+                            <select id="sous_direction" wire:model="sous_direction_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
+                                
+                                @if($user_sd)
+                                    <option value="{{ $user_sd->id }}">{{ $user_sd->name }}</option>
+                                @else
+                                    <option value="">Sélectionner votre Sous Direction</option>
+                                @endif
+
+                                @foreach($sd as $value)
+                                    <option value="{{ $value->id }}">{{ $value->name }}</option>
+                                @endforeach
+                               
+                            </select>
+
+                            @error('entity') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- SERVICE -->
                         <div class="sm:col-span-3">
-                            <label for="service" class="block text-sm font-medium text-gray-700">Service / Département</label>
+                            <label for="departement" class="block text-sm font-medium text-gray-700">Département</label>
+                            <input type="text" id="departement" wire:model="departement" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
+                            @error('departement') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- SERVICE -->
+                        <div class="sm:col-span-3">
+                            <label for="service" class="block text-sm font-medium text-gray-700">Service</label>
                             <input type="text" id="service" wire:model="service" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
                             @error('service') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- N+1 -->
                         <div class="sm:col-span-3">
-                            <label for="n1" class="block text-sm font-medium text-gray-700">Manager (N+1)</label>
-                            <input type="text" id="n1" wire:model="n1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
-                            @error('n1') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            <label for="manager" class="block text-sm font-medium text-gray-700">Manager(N1)</label>
+
+                            <select id="manager" wire:model="manager_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
+                                
+                                @if($user_manager)
+                                    <option value="{{ $user_manager->id }}">{{ $user_manager->first_name }} {{ $user_manager->last_name }}</option>
+                                @else
+                                    <option value="">Sélectionner votre Manager </option>
+                                @endif
+
+                                @foreach($user_all as $value)
+                                    <option value="{{ $value->id }}">{{ $value->first_name }} {{ $value->last_name }}</option>
+                                @endforeach
+                               
+                            </select>
+
+                            @error('manager_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
+
                     </div>
                 </div>
 

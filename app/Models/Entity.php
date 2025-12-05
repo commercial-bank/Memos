@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class Entity extends Model
 {
 
-    // Laravel cherche 'entities' par défaut, donc on force le nom
-    protected $table = 'entity'; 
+     
 
     protected $fillable = [
-        'title',
+        'ref',
+        'name',
     ];
 
     protected $appends = ['acronym'];

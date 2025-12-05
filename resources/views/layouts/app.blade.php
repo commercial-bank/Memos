@@ -20,116 +20,11 @@
         <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
         <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
         <!-- Script graph et pdf -->
+         
         <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
-<script>
-    async function prepareAndDownloadPDF() {
-        const container = document.getElementById('export-container');
-        const page1 = document.getElementById('page-1');
-        const contentArea = document.querySelector('#content-area > div'); // La div qui contient les <p>
-        const signatures = document.getElementById('signatures-section');
-        const goldFrame = page1.querySelector('.gold-frame');
 
-        // 1. Nettoyage préventif (au cas où on clique 2 fois)
-        const existingPage2 = document.getElementById('page-2');
-        if (existingPage2) existingPage2.remove();
-
-        // 2. Calcul de la limite de hauteur (Bas du cadre doré - marge signature)
-        // Hauteur A4 ~ 1122px (96dpi). Cadre doré ~ 1050px.
-        // On définit une ligne de flottaison sûre.
-        const SAFE_HEIGHT = 1020; 
-
-        // 3. Vérification : Est-ce que ça dépasse ?
-        // scrollHeight donne la hauteur totale réelle du contenu
-        if (goldFrame.scrollHeight > 1100) { // Si le contenu dépasse la hauteur d'une page A4
-            
-            console.log("Détection de dépassement. Création de la Page 2...");
-
-            // --- CRÉATION PAGE 2 ---
-            let page2 = document.createElement('div');
-            page2.id = 'page-2';
-            // Mêmes classes que Page 1 + marge top pour l'espace visuel
-            page2.className = "page-a4 bg-white w-[210mm] h-[297mm] shadow-2xl p-[10mm] text-black text-[13px] leading-snug relative text-left mx-auto mt-10";
-            
-            // Structure HTML Page 2 (Cadre + Header SIMPLIFIÉ sans tableau)
-            page2.innerHTML = `
-                <div class="border-[3px] border-[#D4AF37] rounded-tr-[60px] rounded-bl-[60px] p-8 h-full flex flex-col relative">
-                    
-                    <!-- HEADER RÉPÉTÉ (Logo + Titre uniquement) -->
-                    <div class="flex flex-col items-center justify-center mb-6 text-center">
-                        <div class="mb-2">
-                            <div class="w-17 h-16 flex items-center justify-center mx-auto mb-1">
-                                <img src="{{ asset('images/logo.jpg') }}" alt="logo" class="w-full h-full object-contain">
-                            </div>
-                        </div>
-                        <h1 class="font-['Arial'] font-extrabold text-2xl uppercase mt-2 italic inline-block">
-                            Memorandum
-                        </h1>
-                    </div>
-
-                    <!-- Indication suite -->
-                    <div class="text-xs text-gray-400 text-center italic mb-4">(Suite)</div>
-
-                    <!-- CONTENEUR POUR LE TEXTE DÉPLACÉ -->
-                    <div id="content-page-2" class="flex-grow px-2 text-justify space-y-3 text-[14px] leading-relaxed font-serif text-gray-900">
-                    fgfgfgfgfgfgf
-                    </div>
-
-                    <!-- CONTENEUR POUR SIGNATURES -->
-                    <div id="signatures-page-2" class="mt-auto">fggfgfgfgfgfg</div>
-                </div>
-            `;
-
-            container.appendChild(page2);
-
-            // --- DÉPLACEMENT DU CONTENU ---
-            const children = Array.from(contentArea.children); // Les paragraphes <p>
-            const destContent = page2.querySelector('#content-page-2');
-            let move = false;
-            
-            // On calcule la position du bas du cadre Page 1
-            const page1Rect = goldFrame.getBoundingClientRect();
-            // Limite visuelle (bas de page - place pour signature si elle restait là)
-            const limit = page1Rect.top + SAFE_HEIGHT; 
-
-            children.forEach(child => {
-                const rect = child.getBoundingClientRect();
-                
-                // Si on a déjà commencé à déplacer OU si cet élément dépasse la limite
-                if (move || rect.bottom > limit) {
-                    move = true;
-                    contentArea.removeChild(child); // Enlever de page 1
-                    destContent.appendChild(child); // Mettre dans page 2
-                }
-            });
-
-            // --- DÉPLACEMENT DES SIGNATURES ---
-            // Les signatures vont TOUJOURS à la fin, donc sur la Page 2
-            signatures.remove();
-            page2.querySelector('#signatures-page-2').appendChild(signatures);
-        }
-
-        // 4. GÉNÉRATION PDF
-        // Petite pause pour que le DOM se mette à jour
-        await new Promise(r => setTimeout(r, 500));
-
-        const element = document.getElementById('export-container');
-        const opt = {
-            margin:       0,
-            filename:     'Memorandum.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak:    { mode: ['css', 'legacy'] } // css permet de respecter les div séparées
-        };
-
-        html2pdf().set(opt).from(element).save().then(() => {
-            // Optionnel : Recharger la page ou fermer la modale après téléchargement
-            // location.reload(); 
-        });
-    }
-</script>
     </head>
     <body class="font-sans antialiased">
 
@@ -156,7 +51,64 @@
                 <span x-text="message"></span>
             </div>
         </div> 
+
+
+     <!-- Quill CSS -->
+
+<style>
+    /* Correctifs pour que les tableaux s'affichent bien */
+    .ql-editor table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+    .ql-editor td { border: 1px solid #ccc; padding: 8px; }
+    /* Style A4 pour l'éditeur */
+    .ql-container.ql-snow { border: none !important; }
+    .ql-editor { 
+        min-height: 29.7cm; /* Hauteur A4 */
+        padding: 2.5cm 2cm; /* Marges standard */
+        background: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    /* Toolbar style Word */
+    .ql-toolbar.ql-snow {
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 8px 8px 0 0;
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        padding: 12px !important;
+    }
+    .ql-formats { margin-right: 24px !important; border-right: 1px solid #e5e7eb; padding-right: 12px; }
+    .ql-formats:last-child { border-right: none; }
+</style>   
         
      @livewireScripts   
+     <!-- Quill JS -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <!-- TinyMCE (Version Open Source) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js" referrerpolicy="origin"></script>
+
+    <script>
+    function downloadMemoPDF() {
+        // 1. On cible uniquement la feuille blanche (ton ID existant #page-1)
+        const element = document.getElementById('page-1');
+        
+        // 2. Configuration du PDF
+        const opt = {
+            margin:       0,
+            filename:     'Memorandum.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true }, // Scale 2 améliore la netteté
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // 3. Génération et téléchargement
+        // On clone l'élément pour enlever l'ombre (shadow-2xl) qui rend mal en PDF
+        var clone = element.cloneNode(true);
+        clone.classList.remove('shadow-2xl'); // Enlève l'ombre juste pour le PDF
+        
+        // On génère le PDF à partir du clone
+        html2pdf().set(opt).from(clone).save();
+    }
+</script>
     </body>
 </html>

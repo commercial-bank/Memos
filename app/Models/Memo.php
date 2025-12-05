@@ -27,7 +27,10 @@ class Memo extends Model
         'workflow_comment',
         
         // RÉFÉRENCES
-        'numero_ref',        // Si tu utilises toujours celui-ci
+        'numero_ref',    
+
+        //Pieces Jointe
+        'pieces_jointes',
         
         'user_id',
     ];
@@ -39,25 +42,24 @@ class Memo extends Model
 
         // Convertit automatiquement le JSON de la BDD en tableau PHP
         'previous_holders'  => 'array',
+
+        // Conversion automatique JSON <-> Array
+        'pieces_jointes' => 'array',
+        'created_at' => 'datetime',
     ];
 
 
-    public function user()
-    {
-        // Laravel devine automatiquement que la clé étrangère est 'user_id'
-        return $this->belongsTo(User::class);
-    }
 
 
-    /**
-     * Relation vers les destinataires (qui sont des entités).
-     */
     public function destinataires()
     {
-        // Une mémo "appartient à plusieurs" entités via la table 'destinataires'
-        return $this->belongsToMany(Entity::class, 'destinataires', 'memo_id', 'entity_id')
-                    ->withPivot('action') // Pour récupérer le champ 'action' de la table pivot
-                    ->withTimestamps();
+        // Attention au nom du modèle : Destinataire ou Destinataires (selon votre fichier)
+        return $this->hasMany(Destinataires::class, 'memo_id');
+    }
+    
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function favoritedBy()

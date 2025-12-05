@@ -28,21 +28,19 @@ return new class extends Migration
                 $table->string('guid')->unique()->nullable();
                 $table->string('domain')->nullable();
                 
-                // PASSWORD : On retire '->change()' car on est dans un Schema::create
+                // PASSWORD 
                 $table->string('password')->nullable(); 
 
-                // INFO MÉTIER (Tout en nullable, c'est parfait)
+                // INFO MÉTIER 
                 $table->string('poste')->nullable(); 
-                $table->string('entity_name')->nullable();
-                $table->string('sous_direction')->nullable();
+                $table->unsignedBigInteger('entity_id')->nullable();
+                $table->unsignedBigInteger('sous_direction_id')->nullable();
                 $table->string('departement')->nullable();
                 $table->string('service')->nullable();
                 $table->boolean('is_admin')->default(false);
                 $table->boolean('is_active')->default(true);
                 $table->unsignedBigInteger('manager_id')->nullable();
-                $table->unsignedBigInteger('manager_replace_id')->nullable();
-                $table->unsignedBigInteger('director_assistant_id')->nullable();
-                
+    
                 $table->rememberToken();
                 $table->timestamps();
         });

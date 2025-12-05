@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('memos', function (Blueprint $table) {
             $table->id();
             $table->string('object');
-            $table->string('reference');
-            $table->string('concern');
+            $table->string('reference')->nullable();
+            $table->string('concern')->nullable();
             $table->longText('content');
-            $table->string('status')->default('brouillon'); 
+            $table->string('status')->default('document'); 
             $table->json('current_holders')->nullable();
             $table->json('previous_holders')->nullable();
             $table->string('signature_sd')->nullable();
@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('qr_code')->nullable();
             $table->string('workflow_direction')->default('sortant');
             $table->string('workflow_comment')->nullable();
+            $table->json('pieces_jointes')->nullable();
             $table->string('numero_ref')->default('FOR-ME-07-V1');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
@@ -36,6 +37,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('written_memos');
+        Schema::dropIfExists('memos');
     }
 };

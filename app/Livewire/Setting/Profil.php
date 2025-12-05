@@ -2,58 +2,114 @@
 
 namespace App\Livewire\Setting;
 
+use App\Models\User;
+use App\Models\Entity;
 use Livewire\Component;
-use Illuminate\Support\Facades\Auth;
+use App\Models\SousDirection;
 use Illuminate\Validation\Rule;
+use App\Rules\ProperDepartmentCase;
+use Illuminate\Support\Facades\Auth;
 
 class Profil extends Component
 {
-    // On déclare une variable pour l'utilisateur complet (pour l'affichage en lecture seule)
     public $user;
 
-    // On déclare des variables spécifiques pour les champs modifiables
+    // Listes pour les menus déroulants (Select)
+    public $entites;
+    public $sd;
+    public $user_all;
+
+    // Variables pour l'affichage initial (optionnel si on utilise directement les IDs)
+    public $user_entity;
+    public $user_sd;
+    public $user_manager;
+
+    // --- CHAMPS DU FORMULAIRE (Liés via wire:model) ---
     public $poste;
-    public $entity;
-    public $entity_sigle;
+    public $departement;
     public $service;
-    public $n1;
+    
+    // Ces variables doivent correspondre aux wire:model de votre vue
+    public $entity_id; 
+    public $sous_direction_id;
+    public $manager_id;
 
     public function mount()
     {
-        // On récupère l'utilisateur connecté
         $this->user = Auth::user();
 
-        // On initialise les champs modifiables avec les valeurs actuelles
+        // 1. Initialisation des listes déroulantes
+        // On récupère toutes les entités/SD/users pour les choix
+        $this->entites = Entity::all(); // Ou votre filtre spécifique
+        $this->sd = SousDirection::all();
+        $this->user_all = User::where('id', '!=', $this->user->id)->get();
+
+        // 2. Initialisation des objets liés (pour l'affichage actuel si besoin)
+        $this->user_entity = Entity::find($this->user->entity_id);
+        $this->user_sd = SousDirection::find($this->user->sous_direction_id);
+        $this->user_manager = User::find($this->user->manager_id);
+
+        // 3. Initialisation des champs du formulaire avec les valeurs actuelles
         $this->poste = $this->user->poste;
-        $this->entity = $this->user->entity;
-        $this->entity_sigle = $this->user->entity_sigle;
+        $this->departement = $this->user->departement;
         $this->service = $this->user->service;
-        $this->n1 = $this->user->n1;
+        
+        // IMPORTANT : Initialiser les IDs pour que les <select> affichent la bonne valeur
+        $this->entity_id = $this->user->entity_id;
+        $this->sous_direction_id = $this->user->sous_direction_id;
+        $this->manager_id = $this->user->manager_id;
     }
 
     public function save()
     {
-        // Validation des données
-        $this->validate([
-            'poste' => 'nullable|string|max:255',
-            'entity' => 'nullable|string|max:255',
-            'entity_sigle' => 'nullable|string|max:255', // J'ai laissé modifiable ici, mais tu peux le bloquer si besoin
-            'service' => 'nullable|string|max:255',
-            'n1' => 'nullable|string|max:255',
+        // 1. Validation des données
+        $validatedData = $this->validate([
+            'poste' => ['nullable', 'string', 'max:255'],
+            'departement' => ['nullable', 'string', 'max:255', new ProperDepartmentCase()],
+            'service' =>  ['nullable', 'string', 'max:255', new ProperDepartmentCase()],
+            // Validation des clés étrangères
+            'entity_id' => ['nullable', 'exists:entities,id'], // Assurez-vous que la table s'appelle 'entities'
+            'sous_direction_id' => ['nullable', 'exists:sous_direction,id'],
+            'manager_id' => ['nullable', 'exists:users,id'],
         ]);
 
-        // Mise à jour dans la base de données
+        // 2. Logique pour récupérer le sigle de l'entité (si nécessaire dans votre DB)
+        // Si vous stockez le nom ou le sigle en dur dans la table users :
+        $entitySigle = null;
+        $entityName = null;
+        
+        if ($this->entity_id) {
+            $selectedEntity = Entity::find($this->entity_id);
+            if ($selectedEntity) {
+                $entitySigle = $selectedEntity->sigle ?? null; // Si la colonne sigle existe
+                $entityName = $selectedEntity->name ?? null;
+            }
+        }
+
+        // 3. Mise à jour dans la base de données
+        // J'utilise $this->manager_id car wire:model="manager_id" dans la vue
         $this->user->update([
             'poste' => $this->poste,
-            'entity' => $this->entity,
-            'entity_sigle' => $this->entity_sigle,
+            'departement' => $this->departement,
             'service' => $this->service,
-            'n1' => $this->n1,
+            
+            // Mise à jour des clés étrangères (IDs)
+            'entity_id' => $this->entity_id,
+            'sous_direction_id' => $this->sous_direction_id,
+            'manager_id' => $this->manager_id, 
+            
+            // Si votre base de données utilise d'autres noms de colonnes (comme dans votre ancien code)
+            // décommentez et adaptez les lignes ci-dessous :
+            // 'entity' => $entityName,       // Si vous stockez le nom texte
+            // 'entity_sigle' => $entitySigle,// Si vous stockez le sigle
+            // 'n1' => $this->manager_id,     // Si la colonne s'appelle 'n1' au lieu de manager_id
         ]);
 
-        // Message de succès (Flash message)
-         $this->dispatch('notify', message: "Profil mise a jour avec succès !");
-    
+        // 4. Message de succès
+        $this->dispatch('notify', message: "Profil mis à jour avec succès !");
+        
+        // Optionnel : Rafraîchir l'utilisateur pour voir les changements immédiatement s'ils sont affichés ailleurs
+        // $this->user->refresh(); 
     }
 
     public function render()

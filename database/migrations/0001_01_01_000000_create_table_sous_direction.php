@@ -11,8 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('written_memos', function (Blueprint $table) {
-             $table->text('content')->change();
+        Schema::create('sous_direction', function (Blueprint $table) {
+            $table->id();
+            $table->string('ref');
+            $table->string('name');
+            $table->timestamps();
         });
     }
 
@@ -21,8 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('written_memos', function (Blueprint $table) {
-            $table->string('content', 255)->change();
-        });
+        Schema::dropIfExists('sous_direction');
     }
 };

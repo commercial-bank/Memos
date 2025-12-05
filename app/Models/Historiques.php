@@ -9,7 +9,7 @@ class Historiques extends Model
 {
     protected $fillable = [
         'workflow_comment',
-        'action',
+        'visa',
         'memo_id',
         'user_id',
     ];

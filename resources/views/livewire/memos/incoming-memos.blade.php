@@ -1,256 +1,220 @@
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-    @forelse($memos as $document)
-
-        @if($document->status == 'rejected')
-        
-
-            <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12">
-                <div class="text-gray-400 mb-2">
-                    <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-                </div>
-                <p class="text-gray-500 text-lg">Votre boîte de réception est vide.</p>
-                <p class="text-gray-400 text-sm">Aucun mémo en attente de traitement.</p>
-            </div>
-
-        @else
-        <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200 flex flex-col justify-between relative overflow-hidden h-full">
-            
-            <!-- Décoration coin -->
-            <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 opacity-50 transform rotate-45 translate-x-12 -translate-y-12 flex items-center justify-center"></div>
-            <button 
-                wire:click="toggleFavorite({{ $document->id }})" 
-                class="absolute top-2 right-2 z-10 p-1.5 rounded-full hover:bg-gray-50 transition-colors duration-200 focus:outline-none group"
-                title="{{ $document->is_favorited ? 'Retirer des favoris' : 'Ajouter aux favoris' }}">
-                
-                @if($document->is_favorited)
-                    <!-- Étoile PLEINE (Jaune) : Affichée si c'est un favori -->
-                    <svg class="w-6 h-6 text-yellow-400 fill-current" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                @else
-                    <!-- Étoile VIDE (Grise) : Affichée si ce n'est PAS un favori -->
-                    <!-- Elle devient jaune au survol grâce à group-hover -->
-                    <svg class="w-6 h-6 text-gray-300 group-hover:text-yellow-400 fill-none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                @endif
-
-            </button>
-
-            <div>
-                <!-- EN-TÊTE DE LA CARTE : Le Document -->
-                <div class="mb-4">
-                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Réf: #
-                    </span>
-                    <h3 class="text-lg font-bold text-gray-800 leading-tight mt-1 truncate" title="{{ $document->object }}">
-                        {{ $document->object }}
-                    </h3>
-                    <p class="text-xs text-gray-500 mt-1">
-                        Créé le {{ $document->created_at->format('d/m/Y à H:i') }}
-                    </p>
-                </div>
-
-               
+<div class="min-h-screen bg-gray-50 py-8 font-sans">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         
-                <!-- CORPS DE LA CARTE : La liste des destinataires -->
-                <div class="bg-gray-50 rounded-lg p-3 mb-4 max-h-40 overflow-y-auto custom-scrollbar">
-                    <h4 class="text-xs font-semibold text-gray-500 uppercase mb-2 border-b border-gray-200 pb-1">
-                        Destinataires & Actions
-                    </h4>
-                    
-                    <ul class="space-y-2">
-                        @foreach($document->destinataires as $destinataire)
-                            <li class="flex justify-between items-start text-sm">
-                                <!-- Nom de l'entité -->
-                                <span class="font-medium text-gray-700 w-1/2">
-                                    {{ $destinataire->title  ?? 'Entité inconnue' }}
-                                        <span class="text-xs text-gray-400">{{ $destinataire->acronym }}</span>
-                                </span>
+
+        <!-- TABLEAU MODERNE -->
+        <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-200">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Objet & Concerne</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destinataires</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pièces Jointes</th>
+                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @forelse ($memos as $memo)
+                            <tr class="hover:bg-gray-50 transition-colors duration-150 group">
                                 
-                                <!-- Action demandée -->
-                                <span class="text-xs bg-white border border-gray-200 px-2 py-0.5 rounded text-purple-600 font-semibold w-1/2 text-right">
-                                    {{ $destinataire->pivot->action }}
-                                </span>
-                            </li>
-                        @endforeach
-                    </ul>
-                </div>
+                                <!-- 1. DATE -->
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <div class="flex flex-col">
+                                        <span class="font-medium text-gray-900">{{ $memo->created_at->format('d/m/Y') }}</span>
+                                        <span class="text-xs">{{ $memo->created_at->format('H:i') }}</span>
+                                    </div>
+                                </td>
+
+                                <!-- 2. OBJET -->
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col max-w-xs sm:max-w-sm md:max-w-md">
+                                        <span class="text-sm font-bold text-gray-800 truncate" title="{{ $memo->object }}">{{ $memo->object }}</span>
+                                        <span class="text-xs text-gray-500 truncate mt-1">Concerne: {{ $memo->concern }}</span>
+                                    </div>
+                                </td>
+
+                               <!-- 3. DESTINATAIRES (Badges avec Action) -->
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-wrap gap-2">
+                                        @php 
+                                            // Récupération de la relation chargée dans le contrôleur
+                                            $destinataires = $memo->destinataires; 
+                                            $count = $destinataires->count();
+                                            $displayLimit = 3; // Augmenté un peu pour la lisibilité
+                                        @endphp
+
+                                        @if($count > 0)
+                                            @foreach($destinataires->take($displayLimit) as $dest)
+                                                @php
+                                                    // Logique de couleur selon l'action
+                                                    $isActionRequired = Str::contains(Str::lower($dest->action), 'nécessaire');
+                                                    $badgeClasses = $isActionRequired 
+                                                        ? 'bg-orange-100 text-orange-800 border border-orange-200' 
+                                                        : 'bg-blue-100 text-blue-800 border border-blue-200';
+                                                @endphp
+
+                                                <div class="inline-flex flex-col items-start justify-center px-2.5 py-1 rounded-md text-xs font-medium {{ $badgeClasses }}" 
+                                                    title="Action attendue : {{ $dest->action }}">
+                                                    
+                                                    <!-- Nom de l'entité (REF ou Nom tronqué) -->
+                                                    <span class="font-bold">
+                                                        {{ $dest->entity->ref ?? Str::limit($dest->entity->name, 15) }}
+                                                    </span>
+                                                    
+                                                    <!-- L'action affichée en tout petit en dessous -->
+                                                    <span class="text-[10px] opacity-80 leading-tight">
+                                                        {{ Str::limit($dest->action, 20) }}
+                                                    </span>
+                                                </div>
+                                            @endforeach
+
+                                            @if($count > $displayLimit)
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200" title="Et {{ $count - $displayLimit }} autres...">
+                                                    +{{ $count - $displayLimit }}
+                                                </span>
+                                            @endif
+                                        @else
+                                            <span class="text-xs text-gray-400 italic flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                Non assigné
+                                            </span>
+                                        @endif
+                                    </div>
+                                </td>
+
+                                <!-- COLONNE PIÈCES JOINTES -->
+                                <td class="px-6 py-4 whitespace-nowrap" x-data="{ openFiles: false }">
+                                    @php
+                                        $pj = $memo->pieces_jointes;
+                                        if (is_string($pj)) { $pj = json_decode($pj, true); }
+                                        $pj = is_array($pj) ? $pj : [];
+                                        $countPj = count($pj);
+                                    @endphp
+
+                                    @if($countPj > 0)
+                                        <!-- 1. Le bouton Trombone (Déclencheur) -->
+                                        <button 
+                                            @click="openFiles = true" 
+                                            type="button"
+                                            class="flex items-center space-x-1 text-gray-600 hover:text-blue-600 transition-colors focus:outline-none">
+                                            
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                            <span class="text-sm font-bold">{{ $countPj }}</span>
+                                        </button>
+
+                                        <!-- 2. Le Mini-Modal (S'affiche par dessus TOUT le site) -->
+                                        <div 
+                                            x-show="openFiles" 
+                                            style="display: none;"
+                                            class="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm"
+                                            @click.self="openFiles = false"
+                                            x-transition:enter="transition ease-out duration-200"
+                                            x-transition:enter-start="opacity-0"
+                                            x-transition:enter-end="opacity-100"
+                                            x-transition:leave="transition ease-in duration-150"
+                                            x-transition:leave-start="opacity-100"
+                                            x-transition:leave-end="opacity-0">
+                                            
+                                            <!-- Contenu du Popup -->
+                                            <div class="bg-white rounded-lg shadow-2xl w-80 max-w-sm mx-4 overflow-hidden border border-gray-100">
+                                                
+                                                <!-- En-tête Popup -->
+                                                <div class="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                                                    <h3 class="text-sm font-bold text-gray-700">Pièces Jointes ({{ $countPj }})</h3>
+                                                    <button @click="openFiles = false" class="text-gray-400 hover:text-gray-600">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                    </button>
+                                                </div>
+
+                                                <!-- Liste des fichiers (Scrollable) -->
+                                                <div class="max-h-64 overflow-y-auto p-2">
+                                                    <ul class="space-y-1">
+                                                        @foreach($pj as $file)
+                                                            @php
+                                                                $filePath = is_string($file) ? $file : ($file['path'] ?? $file['url'] ?? $file[0] ?? '');
+                                                                $fileName = is_string($file) ? basename($file) : ($file['original_name'] ?? $file['name'] ?? basename($filePath));
+                                                            @endphp
+
+                                                            @if($filePath)
+                                                                <li>
+                                                                    <a href="{{ Storage::url($filePath) }}" target="_blank" class="flex items-center p-2 hover:bg-blue-50 rounded-md text-sm text-gray-700 transition-colors group">
+                                                                        <div class="bg-blue-100 p-1.5 rounded-md mr-3 text-blue-600 group-hover:bg-blue-200">
+                                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                                                        </div>
+                                                                        <div class="flex-1 min-w-0">
+                                                                            <p class="truncate font-medium">{{ Str::limit($fileName, 30) }}</p>
+                                                                            <p class="text-[10px] text-gray-400">Cliquez pour ouvrir</p>
+                                                                        </div>
+                                                                        <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                                                    </a>
+                                                                </li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <span class="text-gray-300 text-xs">-</span>
+                                    @endif
+                                </td>
+
+                                <!-- 4. ACTIONS (Boutons Icones) -->
+                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                    <div class="flex items-center justify-center space-x-3">
+                                        
+                                        <!-- VOIR -->
+                                        <button wire:click="viewMemo({{ $memo->id }})" class="text-gray-400 hover:text-blue-600 transition-colors" title="Aperçu">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                        </button>
+
+
+                                        <!-- ENVOYER / ASSIGNER -->
+                                        <button wire:click="assignMemo({{ $memo->id }})" class="text-gray-400 hover:text-green-600 transition-colors" title="Attribuer & Envoyer">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                        </button>
+
+                                        <!-- REJETER -->
+                                        <button wire:click="askReject({{ $memo->id }})" class="text-gray-400 hover:text-red-600 transition-colors" title="Rejeter / Renvoyer">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                        </button>
+
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="px-6 py-12 text-center">
+                                    <div class="flex flex-col items-center justify-center text-gray-500">
+                                        <svg class="h-12 w-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                        <p class="text-lg font-medium text-gray-900">Aucun brouillon trouvé</p>
+                                        <p class="text-sm">Commencez par créer un nouveau mémorandum.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
 
-            <!-- PIED DE LA CARTE -->
-            <div class="flex justify-between items-center pt-4 border-t border-gray-100 mt-auto">
-                <div class="text-xs text-gray-400">
-                    {{ $document->destinataires->count() }} destinataire(s)
-                </div>
-
-                <!-- Boutons d'action sur le document global -->
-                <div class="flex space-x-2">
-
-                    @if(auth()->user()->poste == "Sous-Directeur" || auth()->user()->poste == "Directeur")
-
-                        @if(auth()->user()->poste == "Sous-Directeur")
-
-                            @if($document->signature_sd == null)
-
-                                <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
-                                </button>
-
-                                <button wire:click="signDocument({{ $document->id }}, '{{ auth()->user()->poste }}')"   class="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition ring-2 ring-purple-300 ring-opacity-50" title="Signer numériquement (Générer QR)">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 17h4.01M16 3h5m-3 12v3m0 0h6m-6 0H9a2 2 0 00-2 2v6a2 2 0 002 2h14a2 2 0 002-2v-9a2 2 0 00-2-2h-6zM5 12a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2v-6a2 2 0 00-2-2H5z" />
-                                    </svg>
-                                </button>
-                            @else
-                                <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
-                                </button>
-
-                                <button wire:click="openSendModal({{ $document->id }})" class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" title="Transmettre / Valider">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                                </button>
-                    
-                             @endif
-
-                        @endif
-
-
-                        @if(auth()->user()->poste == "Directeur")
-
-                            @if($document->signature_dir == null)
-
-                                <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
-                                </button>
-
-                                <button wire:click="signDocument({{ $document->id }}, '{{ auth()->user()->poste }}')"   class="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition ring-2 ring-purple-300 ring-opacity-50" title="Signer numériquement (Générer QR)">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 17h4.01M16 3h5m-3 12v3m0 0h6m-6 0H9a2 2 0 00-2 2v6a2 2 0 002 2h14a2 2 0 002-2v-9a2 2 0 00-2-2h-6zM5 12a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2v-6a2 2 0 00-2-2H5z" />
-                                    </svg>
-                                </button>
-                            @else
-                                @if($document->qr_code == null)
-                                    <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
-                                    </button>
-
-                                    <button 
-                                        wire:click="qrDocument({{ $document->id }})" 
-                                        class="p-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 transition" 
-                                        title="Générer QR Code">
-                                        
-                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                                        </svg>
-                                    </button>  
-                                @else
-                                    <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
-                                    </button>
-                                    <button 
-                                        wire:click="openSendAssistModal({{ $document->id }})" 
-                                        class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" 
-                                        title="Transmettre à Votre Assistante">
-                                        
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 12h14"></path>
-                                        </svg>
-                                    </button> 
-                                @endif
-                    
-                             @endif
-
-                        @endif
-
-                    @elseif(auth()->user()->poste == "Secretaire")
-
-                        @if($document->archive_status_sec == false)
-                            <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
-                            </button>
-                            <button 
-                                wire:click="EnregistrerDocument({{ $document->id }})" 
-                                class="p-2 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 transition" 
-                                title="Enregistrer">
-                                
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
-                                </svg>
-                            </button>     
-                        @else
-                            <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
-                            </button>
-
-                            <button wire:click="openSendModal({{ $document->id }})" class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" title="Transmettre / Valider">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                            </button>
-                        @endif
-
-
-
-                    @else
-
-                        @if($document->user->manager_id == auth()->user()->id || $document->user->manager_replace_id == auth()->user()->id)
-                            <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
-                            </button>
-                        
-                            <button wire:click="openSendModal({{ $document->id }})" class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" title="Transmettre / Valider">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                            </button>
-
-                            <button wire:click="openRejectModal({{ $document->id }})" class="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition" title="Rejeter">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </button>
-                        @else
-                            <button wire:click="viewDocument({{ $document->id }})" class="p-2 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition" title="Voir le document">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>    
-                            </button>
-
-                            <button wire:click="openSendModal({{ $document->id }})" class="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition" title="Transmettre / Valider">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                            </button>
-                        @endif  
-                     
-                    @endif    
-                        
-                  
-                </div>
-
-
-                <!-- BADGE DE STATUT (En haut à gauche par exemple) -->
-                <div class="absolute top-0 left-0 p-2">
-                    @if($document->status == 'rejected')
-                        <span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded">Retourné (Rejet)</span>
-                    @else
-                        <span class="bg-orange-100 text-orange-600 text-xs font-bold px-2 py-1 rounded">À traiter</span>
-                    @endif
-                </div>
+            <!-- PAGINATION -->
+            <div class="px-6 py-4 border-t border-gray-200">
+                {{ $memos->links() }} 
             </div>
-
         </div>
-     @endif
-   
-    @empty
-            <div class="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12">
-                <div class="text-gray-400 mb-2">
-                    <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-                </div>
-                <p class="text-gray-500 text-lg">Votre boîte de réception est vide.</p>
-                <p class="text-gray-400 text-sm">Aucun mémo en attente de traitement.</p>
-            </div>
+
+    </div>
+
+    {{-- MODALS --}}
     
-    @endforelse
-
-
-
     @if($isOpen)
-
-     <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Modal Aperçu -->
+        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             
             <!-- Overlay -->
             <div wire:click="closeModal" class="fixed inset-0 bg-gray-900 bg-opacity-90 transition-opacity backdrop-blur-sm cursor-pointer"></div>
@@ -262,6 +226,25 @@
                 </button>
             </div>
 
+            <!-- LOGIQUE BACKEND POUR RÉCUPÉRER LES DONNÉES MANQUANTES -->
+            @php
+                // Récupération du mémo complet avec les relations pour l'affichage
+                $currentMemo = \App\Models\Memo::with('destinataires.entity')->find($memo_id);
+                
+                // Groupement des destinataires par leur Action
+                $recipientsByAction = $currentMemo 
+                    ? $currentMemo->destinataires->groupBy('action') 
+                    : collect([]);
+
+                // Helper pour formater la liste des entités (REF ou Nom)
+                $formatRecipients = function($group) {
+                    return $group->map(function($dest) {
+                        // Utilise 'ref' (acronyme) sinon 'name'
+                        return $dest->entity->ref ?? Str::limit($dest->entity->name, 15);
+                    })->join(', ');
+                };
+            @endphp
+
             <!-- Conteneur Scrollable -->
             <div class="fixed inset-0 z-10 w-screen overflow-y-auto pt-20 pb-10">
                 <div class="flex min-h-full items-start justify-center p-4 text-center sm:p-0">
@@ -269,15 +252,24 @@
                     <div class="relative flex flex-col items-center font-sans w-full max-w-[210mm]">
 
                         <!-- BOUTON TÉLÉCHARGER -->
-                        <button onclick="prepareAndDownloadPDF()" type="button" class="mb-4 pointer-events-auto bg-red-600 text-white hover:bg-red-700 px-6 py-2.5 rounded-full shadow-lg font-bold flex items-center gap-3 border border-red-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            <span>Télécharger PDF</span>
-                        </button>
+                        <!-- Note: Assurez-vous d'avoir la fonction JS prepareAndDownloadPDF() ou remplacez par une action Livewire -->
+                        <!-- BOUTON TÉLÉCHARGER -->
+                    <button 
+                        onclick="downloadMemoPDF()" 
+                        type="button" 
+                        class="mb-4 pointer-events-auto bg-red-600 text-white hover:bg-red-700 px-6 py-2.5 rounded-full shadow-lg font-bold flex items-center gap-3 border border-red-500 transition-transform transform hover:scale-105">
+                        
+                        <!-- Icone Download -->
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        <span>Télécharger PDF</span>
+                    </button>
 
                         <!-- ID GLOBAL POUR HTML2PDF -->
                         <div id="export-container">
 
-                            <!-- PAGE 1 (VOTRE DESIGN ORIGINAL) -->
+                            <!-- PAGE 1 -->
                             <div id="page-1" class="page-a4 bg-white w-[210mm] h-[297mm] shadow-2xl p-[10mm] text-black text-[13px] leading-snug relative text-left mx-auto mb-8">
                                 
                                 <!-- CADRE DORÉ -->
@@ -287,20 +279,19 @@
                                     <div class="header-section flex flex-col items-center justify-center mb-6 text-center">
                                         <div class="mb-2">
                                             <div class="w-17 h-16 flex items-center justify-center mx-auto mb-1">
+                                                <!-- Assurez-vous que l'image existe dans public/images/logo.jpg -->
                                                 <img src="{{ asset('images/logo.jpg') }}" alt="logo" class="w-full h-full object-contain">
                                             </div>
                                         </div>
+                                        <!-- Nom de l'entité de l'utilisateur connecté -->
                                         <h2 class="font-bold text-xs uppercase text-gray-800">{{ $user_entity_name }}</h2>
                                         <h1 class="font-['Arial'] font-extrabold text-2xl uppercase mt-2 italic inline-block">
                                             Memorandum
                                         </h1>
                                     </div>
 
-                                    <!-- VOTRE TABLEAU ORIGINAL (INTACT) -->
+                                    <!-- TABLEAU DESTINATAIRES -->
                                     <div id="recipient-table" class="mb-6 text-sm w-full">
-                                        <style>
-                                            .checkbox-square { display: inline-block; width: 12px; height: 12px; border: 1px solid black; margin-right: 6px; vertical-align: middle; }
-                                        </style>
                                         
                                         <!-- LIGNE D'ALIGNEMENT -->
                                         <div class="flex w-full text-[13px] font-bold font-['Arial'] pb-1 text-black">
@@ -311,71 +302,65 @@
                                         
                                         <!-- TABLEAU COMPLET -->
                                         <table class="w-full border-collapse border border-black text-[13px] font-['Arial'] text-black">
-                                            <!-- LIGNE 1 : Faire le nécessaire (VERT) -->
-                                            @php $recipients1 = collect($recipientsByAction['Faire le nécessaire'] ?? []); @endphp
+                                            
+                                            <!-- LIGNE 1 : Faire le nécessaire -->
+                                            @php $recipients1 = $recipientsByAction['Faire le nécessaire'] ?? collect([]); @endphp
                                             <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold w-[35%] align-top">Date : {{ $date }}</td>
+                                                <td class="border border-black p-1 pl-2 font-bold w-[35%] align-top">
+                                                    Date : {{ $date }}
+                                                </td>
                                                 <td class="border border-black p-1 pl-2 w-[30%]">
                                                     <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients1->count() > 0 ? 'bg-green-600' : '' }}"></span> 
                                                     <span class="{{ $recipients1->count() > 0 ? 'font-bold' : '' }}">Faire le nécessaire</span>
                                                 </td>
                                                 <td class="border border-black p-1 text-center w-[35%] {{ $recipients1->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    @if($recipients1->count() > 0)
-                                                        {{-- CORRECTION : On retire ['entity'] car $m est déjà l'entité --}}
-                                                        {{ $recipients1->map(fn($m) => $m['acronym'] ?? $m['title'])->join(', ') }}
-                                                    @else
-                                                        &nbsp;
-                                                    @endif
+                                                    {{ $recipients1->count() > 0 ? $formatRecipients($recipients1) : '' }}
                                                 </td>
                                             </tr>
-                                            <!-- LIGNE 2 : Prendre connaissance (BLEU) -->
-                                           @php $recipients2 = collect($recipientsByAction['Prendre connaissance'] ?? []); @endphp
+
+                                            <!-- LIGNE 2 : Prendre connaissance -->
+                                            @php $recipients2 = $recipientsByAction['Prendre connaissance'] ?? collect([]); @endphp
                                             <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">N° : 298/DGR/SDGR/WT</td>
+                                                <td class="border border-black p-1 pl-2 font-bold align-top">
+                                                    N° : {{ $currentMemo->reference ?? 'En attente' }}
+                                                </td>
                                                 <td class="border border-black p-1 pl-2">
                                                     <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients2->count() > 0 ? 'bg-blue-600' : '' }}"></span> 
                                                     <span class="{{ $recipients2->count() > 0 ? 'font-bold' : '' }}">Prendre connaissance</span>
                                                 </td>
                                                 <td class="border border-black p-1 text-center {{ $recipients2->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                     @if(count($recipients2) > 0)
-                                                        {{-- On utilise collect() pour transformer le tableau en collection et faciliter le map/join --}}
-                                                        {{ collect($recipients2)->map(fn($m) => $m['acronym'] ?? $m['title'])->join(', ') }}
-                                                    @else 
-                                                        &nbsp; 
-                                                    @endif
+                                                    {{ $recipients2->count() > 0 ? $formatRecipients($recipients2) : '' }}
                                                 </td>
                                             </tr>
-                                            <!-- LIGNE 3 : Prendre position (ORANGE) -->
-                                           @php $recipients3 = collect($recipientsByAction['Prendre position'] ?? []); @endphp
+
+                                            <!-- LIGNE 3 : Prendre position (Optionnel si vous l'utilisez) -->
+                                            @php $recipients3 = $recipientsByAction['Prendre position'] ?? collect([]); @endphp
                                             <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">Emetteur : {{ $user_entity_name_acronym }}</td>
+                                                <td class="border border-black p-1 pl-2 font-bold align-top">
+                                                    <!-- On affiche le nom de l'utilisateur ici ou son entité -->
+                                                    Emetteur : {{ $user_entity_name }}
+                                                </td>
                                                 <td class="border border-black p-1 pl-2">
                                                     <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients3->count() > 0 ? 'bg-orange-500' : '' }}"></span> 
                                                     <span class="{{ $recipients3->count() > 0 ? 'font-bold' : '' }}">Prendre position</span>
                                                 </td>
                                                 <td class="border border-black p-1 text-center {{ $recipients3->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                  @if(count($recipients3) > 0) 
-                                                        {{-- On utilise collect() pour pouvoir utiliser map() et join() sur le tableau --}}
-                                                        {{ collect($recipients3)->map(fn($m) => $m['acronym'] ?? $m['title'])->join(', ') }} 
-                                                    @else 
-                                                        &nbsp; 
-                                                    @endif 
+                                                    {{ $recipients3->count() > 0 ? $formatRecipients($recipients3) : '' }}
                                                 </td>
                                             </tr>
-                                            <!-- LIGNE 4 : Décider (JAUNE) -->
-                                           @php $recipients4 = collect($recipientsByAction['Décider'] ?? []); @endphp
+
+                                            <!-- LIGNE 4 : Décider (ou autre action) -->
+                                            @php $recipients4 = $recipientsByAction['Décider'] ?? collect([]); @endphp
                                             <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">Service : {{ $user_service }}</td>
+                                                <td class="border border-black p-1 pl-2 font-bold align-top">
+                                                    Service : {{ $user_service }}
+                                                </td>
                                                 <td class="border border-black p-1 pl-2">
                                                     <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients4->count() > 0 ? 'bg-yellow-400' : '' }}"></span> 
                                                     <span class="{{ $recipients4->count() > 0 ? 'font-bold' : '' }}">Décider</span>
                                                 </td>
                                                 <td class="border border-black p-1 text-center {{ $recipients4->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    @if(count($recipients4) > 0) 
-                                                        {{ collect($recipients4)->map(fn($m) => $m['acronym'] ?? $m['title'])->join(', ') }} 
-                                                    @else 
-                                                        &nbsp; 
-                                                    @endif
+                                                    {{ $recipients4->count() > 0 ? $formatRecipients($recipients4) : '' }}
                                                 </td>
                                             </tr>
                                         </table>
@@ -384,33 +369,38 @@
                                     <!-- OBJET & CONCERNE -->
                                     <div class="mb-4">
                                         <div class="mb-6">
-                                            <p class="mb-1"><span class="font-bold text-[15px] underline">Objet :</span> <span class="uppercase font-bold"> {{$object}} </span></p>
+                                            <p class="mb-1">
+                                                <span class="font-bold text-[15px] underline">Objet :</span> 
+                                                <span class="uppercase font-bold"> {{ $object }} </span>
+                                            </p>
                                         </div>
                                         <div class="mb-6">
-                                            <p class="mb-1"><span class="font-bold text-[15px] underline">Concerne :</span> <span class="lowercase">{{ $concern }}</span></p>
+                                            <p class="mb-1">
+                                                <span class="font-bold text-[15px] underline">Concerne :</span> 
+                                                <span class="lowercase text-gray-800"> {{ $concern }} </span>
+                                            </p>
                                         </div>
                                     </div>
 
-                                    <!-- CORPS DU TEXTE (Identifié pour le JS) -->
+                                    <!-- CORPS DU TEXTE -->
                                     <div id="content-area" class="flex-grow px-2">
                                         <div class="text-justify space-y-3 text-[14px] leading-relaxed font-serif text-gray-900">
                                             {!! $content !!}
                                         </div>
                                     </div>
 
-                                    {{-- AJOUT ICI : PIED DE PAGE AVEC QR CODE CENTRÉ               --}}
+                                    <!-- PIED DE PAGE AVEC QR CODE -->
                                     <div class="absolute bottom-4 left-0 w-full flex flex-col items-center justify-center">
-
-                                            <!-- Le QR Code (Taille réduite à 50) -->
-                                        @if(isset($qr_code) && !empty($qr_code))
-                                            <div class="bg-white p-0.5 border border-gray-200 inline-block">
-                                                {{ QrCode::size(50)->generate(route('memo.verify', $qr_code)) }}
+                                        @if($currentMemo && $currentMemo->qr_code)
+                                            <div class="bg-white p-0.5 border border-gray-200 inline-block mb-2">
+                                                <!-- Génération du QR Code -->
+                                                {{ QrCode::size(50)->generate(route('memo.verify', $currentMemo->qr_code)) }}
                                             </div>
                                         @endif
-
+                                        
+                                        <!-- Numéro de version du formulaire -->
+                                        <div class="text-[10px] text-gray-500 italic">FOR-ME-07-V1</div>
                                     </div>
-
-                                    
 
                                 </div> 
                             </div>
@@ -422,341 +412,451 @@
         </div>
     @endif
 
-    @if($isSendOpen)
-        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
-
+    @if($isOpenReject)
+       <!-- Modal Rejet -->
+       <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" wire:click="closeRejectModal"></div>
+            
             <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
                 <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-                    <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                    
+                    <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-red-200">
                         
-                        <form wire:submit.prevent="sendMemo">
-                            <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Transmettre le Mémo</h3>
+                        <!-- Header Rouge -->
+                        <div class="bg-red-50 px-4 py-4 border-b border-red-100 flex items-center gap-3">
+                            <div class="bg-red-100 rounded-full p-2">
+                                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            </div>
+                            <h3 class="text-lg font-bold text-red-800">Rejeter le Mémo</h3>
+                        </div>
 
-                                <!-- Sélection du destinataire -->
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Envoyer à :</label>
-                                    <select wire:model="next_user_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 py-2 px-3 border">
-                                        <option value="">Sélectionner un collaborateur...</option>
-                                        @foreach($usersList as $user)
-                                            <option value="{{ $user->id }}">
-                                                {{ $user->first_name }} {{ $user->last_name }} 
-                                                ({{ $user->poste ?? 'Employé' }})
-                                            </option>
+                        <div class="p-6">
+                            <p class="text-sm text-gray-500 mb-4">
+                                Vous êtes sur le point de renvoyer ce mémo à son créateur initial. <br>
+                                <span class="font-bold text-gray-700">Cette action nécessite un motif valable.</span>
+                            </p>
+
+                            <!-- Champ Motif -->
+                            <div>
+                                <label for="reject_reason" class="block text-sm font-bold text-gray-700 mb-1">Motif du rejet <span class="text-red-500">*</span></label>
+                                <textarea wire:model="reject_comment" id="reject_reason" rows="4" class="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm placeholder-gray-400" placeholder="Ex: Informations manquantes, document non conforme, à corriger..."></textarea>
+                                @error('reject_comment') <span class="text-red-500 text-xs font-bold mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
+                        <!-- Footer Actions -->
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                            <button wire:click="processReject" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm transition-colors">
+                                Confirmer le Rejet
+                            </button>
+                            <button wire:click="closeRejectModal" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-colors">
+                                Annuler
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+       </div>
+    @endif
+
+    @if($isOpen2)
+       <!-- Modal Édition (Grand Format) -->
+       <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <!-- Backdrop -->
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" wire:click="closeModalDeux"></div>
+            
+            <!-- Conteneur Scrollable -->
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                    
+                    <!-- Le Modal Lui-même -->
+                    <div class="relative transform overflow-hidden rounded-xl bg-gray-50 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-5xl border border-gray-200">
+                        
+                        <!-- Header / Toolbar du modal -->
+                        <div class="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 flex justify-between items-center sticky top-0 z-20 shadow-sm">
+                            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <span class="bg-yellow-100 text-yellow-700 p-2 rounded-lg">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                </span>
+                                Modifier le Brouillon
+                            </h3>
+                            
+                            <div class="flex items-center space-x-3">
+                                <button type="button" wire:click="closeModalDeux" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                                    Annuler
+                                </button>
+                                
+                                <button type="button" wire:click="save" wire:loading.attr="disabled" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-bold rounded-lg text-white bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 shadow-sm disabled:opacity-50">
+                                    <svg wire:loading.remove wire:target="save" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                                    <svg wire:loading wire:target="save" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    Enregistrer
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Corps du formulaire (Similaire au design fourni) -->
+                        <div class="p-6 sm:p-8 space-y-8 bg-white min-h-[500px]">
+                            
+                            <!-- 1. Méta-données (Concern & Objet) -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div class="relative group">
+                                    <label for="concern" class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Pour (Concerne)</label>
+                                    <input type="text" wire:model="concern" id="concern" 
+                                        class="block w-full border-0 border-b-2 border-gray-200 bg-transparent py-2 px-0 text-gray-900 placeholder-gray-300 focus:border-yellow-500 focus:ring-0 sm:text-lg transition-colors" 
+                                        placeholder="Ex: Direction Générale...">
+                                    @error('concern') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div class="relative group">
+                                    <label for="object" class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Objet</label>
+                                    <input type="text" wire:model="object" id="object" 
+                                        class="block w-full border-0 border-b-2 border-gray-200 bg-transparent py-2 px-0 text-gray-900 font-semibold placeholder-gray-300 focus:border-yellow-500 focus:ring-0 sm:text-lg transition-colors" 
+                                        placeholder="Sujet principal...">
+                                    @error('object') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+
+                            <!-- 2. Gestion des Destinataires -->
+                            <div class="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                                <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4 flex items-center">
+                                    <svg class="w-4 h-4 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                    Destinataires
+                                </h3>
+
+                                <div class="flex flex-col md:flex-row gap-3 mb-4">
+                                    <div class="flex-1">
+                                        <select wire:model="newRecipientEntity" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 text-sm py-2">
+                                            <option value="">-- Sélectionner --</option>
+                                            @foreach($entities as $entity)
+                                                <option value="{{ $entity->id }}">{{ $entity->title ?? $entity->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('newRecipientEntity') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div class="flex-1">
+                                        <select wire:model="newRecipientAction" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 text-sm py-2">
+                                            <option value="">-- Action --</option>
+                                            @foreach($actionsList as $act)
+                                                <option value="{{ $act }}">{{ $act }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('newRecipientAction') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                    </div>
+                                    <button wire:click="addRecipient" type="button" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-800 hover:bg-gray-900">
+                                        Ajouter
+                                    </button>
+                                </div>
+
+                                <!-- Tableau Destinataires -->
+                                @if(count($recipients) > 0)
+                                    <div class="bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden">
+                                        <table class="min-w-full divide-y divide-gray-200">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Entité</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Action</th>
+                                                    <th class="px-4 py-2"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-200">
+                                                @foreach($recipients as $index => $recipient)
+                                                    <tr>
+                                                        <td class="px-4 py-2 text-sm font-medium text-gray-900">{{ $recipient['entity_name'] }}</td>
+                                                        <td class="px-4 py-2 text-sm">
+                                                            <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                                                                {{ $recipient['action'] }}
+                                                            </span>
+                                                        </td>
+                                                        <td class="px-4 py-2 text-right">
+                                                            <button wire:click="removeRecipient({{ $index }})" class="text-red-500 hover:text-red-700">
+                                                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @else
+                                    <p class="text-sm text-gray-400 italic text-center py-2">Aucun destinataire.</p>
+                                @endif
+                            </div>
+
+                            <!-- 3. Éditeur Quill -->
+                            <div class="pt-2">
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Contenu</label>
+                                <div wire:ignore 
+                                     class="flex flex-col bg-white rounded-lg border border-gray-300 shadow-sm"
+                                     x-data="{
+                                        content: @entangle('content'),
+                                        quill: null,
+                                        initQuill() {
+                                            if(this.quill) return;
+                                            this.quill = new Quill(this.$refs.quillEditor, {
+                                                theme: 'snow',
+                                                placeholder: 'Rédigez votre mémo...',
+                                                modules: {
+                                                    toolbar: [
+                                                        [{ 'header': [1, 2, 3, false] }],
+                                                        ['bold', 'italic', 'underline', 'strike'],
+                                                        [{ 'color': [] }, { 'background': [] }],
+                                                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                                        [{ 'align': [] }],
+                                                        ['clean']
+                                                    ]
+                                                }
+                                            });
+                                            // Set initial content
+                                            if (this.content) { this.quill.root.innerHTML = this.content; }
+                                            
+                                            // Sync changes
+                                            this.quill.on('text-change', () => {
+                                                this.content = this.quill.root.innerHTML;
+                                            });
+                                        }
+                                     }"
+                                     x-init="setTimeout(() => initQuill(), 50)"
+                                >
+                                    <div x-ref="quillEditor" class="h-64 sm:h-80 font-serif text-base"></div>
+                                </div>
+                                @error('content') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            </div>
+
+                            <!-- 4. Pièces Jointes -->
+                            <div class="pt-4 border-t border-gray-100">
+                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Pièces Jointes</label>
+                                
+                                <div class="space-y-4">
+                                    <!-- Zone d'upload -->
+                                    <div class="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-gray-50 relative">
+                                        <div class="space-y-1 text-center">
+                                            <svg class="mx-auto h-10 w-10 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                            <div class="flex text-sm text-gray-600 justify-center">
+                                                <label for="file-upload-edit" class="relative cursor-pointer bg-white rounded-md font-medium text-yellow-600 hover:text-yellow-500">
+                                                    <span>Téléverser</span>
+                                                    <input id="file-upload-edit" wire:model="newAttachments" type="file" class="sr-only" multiple>
+                                                </label>
+                                                <p class="pl-1">ou glisser-déposer</p>
+                                            </div>
+                                        </div>
+                                        <!-- Loading -->
+                                        <div wire:loading wire:target="newAttachments" class="absolute inset-0 bg-white/80 flex items-center justify-center">
+                                            <span class="text-yellow-600 font-bold flex items-center gap-2">
+                                                <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                Upload...
+                                            </span>
+                                        </div>
+                                    </div>
+                                    @error('newAttachments.*') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+
+                                    <!-- Liste combinée (Existants + Nouveaux) -->
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <!-- Existants -->
+                                        @foreach($existingAttachments as $idx => $fileData)
+                                            @php
+                                                // Logique défensive pour récupérer le nom du fichier
+                                                // Si $fileData est un tableau, on cherche la clé 'path', 'url' ou on prend le premier élément
+                                                if (is_array($fileData)) {
+                                                    $filePath = $fileData['path'] ?? $fileData['url'] ?? reset($fileData) ?? '';
+                                                } else {
+                                                    // Sinon c'est une simple chaîne de caractères
+                                                    $filePath = $fileData;
+                                                }
+                                                
+                                                // On extrait le nom pour l'affichage
+                                                $fileName = $filePath ? basename($filePath) : 'Fichier inconnu';
+                                            @endphp
+
+                                            <div class="flex items-center p-2 bg-gray-50 border border-gray-200 rounded-lg">
+                                                <div class="bg-blue-100 p-1.5 rounded text-blue-600 mr-3">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                                                    </svg>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <!-- Utilisation de la variable calculée $fileName -->
+                                                    <p class="text-xs font-medium truncate" title="{{ $fileName }}">
+                                                        {{ Str::limit($fileName, 25) }}
+                                                    </p>
+                                                    <p class="text-[10px] text-gray-500">Existant</p>
+                                                </div>
+                                                <button wire:click="removeExistingAttachment({{ $idx }})" type="button" class="text-gray-400 hover:text-red-500">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        @endforeach
+
+                                        <!-- Nouveaux -->
+                                        @foreach($newAttachments as $idx => $file)
+                                            <div class="flex items-center p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                                <div class="bg-yellow-100 p-1.5 rounded text-yellow-600 mr-3"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></div>
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-xs font-medium truncate">{{ $file->getClientOriginalName() }}</p>
+                                                    <p class="text-[10px] text-gray-500">Nouveau</p>
+                                                </div>
+                                                <button wire:click="removeNewAttachment({{ $idx }})" class="text-gray-400 hover:text-red-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+       </div>
+    @endif
+
+    @if($isOpen3)
+       <!-- Modal Envoi & Workflow -->
+       <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" wire:click="closeModalTrois"></div>
+            
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                    
+                    <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-200">
+                        <form wire:submit.prevent="sendMemo">
+                            
+                            <!-- Header -->
+                            <div class="bg-gray-50 px-4 py-4 border-b border-gray-200 flex justify-between items-center">
+                                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                    Transmettre le Mémo
+                                </h3>
+                                <button type="button" wire:click="closeModalTrois" class="text-gray-400 hover:text-gray-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+
+                            <div class="px-6 py-6 space-y-6">
+
+                                <!-- 1. DESTINATAIRE PRINCIPAL (N+1 ou REMPLAÇANT) -->
+                                <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                                    <p class="text-xs font-bold text-blue-500 uppercase mb-2">Destinataire Hiérarchique</p>
+                                    
+                                    @if($effectiveReceiver)
+                                        <div class="flex items-center">
+                                            <div class="h-10 w-10 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-sm">
+                                                {{ substr($effectiveReceiver->first_name ?? 'U', 0, 1) }}{{ substr($effectiveReceiver->last_name ?? 'S', 0, 1) }}
+                                            </div>
+                                            <div class="ml-3">
+                                                <p class="text-sm font-bold text-gray-900">
+                                                    {{ $effectiveReceiver->name ?? ($effectiveReceiver->first_name . ' ' . $effectiveReceiver->last_name) }}
+                                                </p>
+                                                
+                                                @if($isReplaced && $nPlusOneUser)
+                                                    <p class="text-xs text-orange-600 flex items-center gap-1 mt-0.5">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                                        Remplace {{ $nPlusOneUser->name }} (Absent)
+                                                    </p>
+                                                @else
+                                                    <p class="text-xs text-gray-500">{{ $effectiveReceiver->job_title ?? 'Supérieur Hiérarchique' }}</p>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @else
+                                        <p class="text-sm text-red-500 italic">Aucun supérieur hiérarchique défini. Veuillez sélectionner un destinataire manuellement ci-dessous.</p>
+                                    @endif
+                                </div>
+
+                                <!-- 2. AUTRES DESTINATAIRES (Optionnel) -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Autres destinataires (Copie / Info)</label>
+                                    <select wire:model="target_users_ids" multiple class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm h-24">
+                                        @foreach($usersList as $u)
+                                            <option value="{{ $u->id }}">{{ $u->first_name }} {{ $u->last_name }} ({{ $u->departement ?? 'N/A' }})</option>
                                         @endforeach
                                     </select>
-                                    @error('next_user_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                    <p class="text-[10px] text-gray-500 mt-1">Maintenez CTRL pour sélectionner plusieurs personnes.</p>
                                 </div>
 
-                                
-                                
+                                <hr class="border-gray-100">
 
-                                <!-- Commentaire -->
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Note / Commentaire (Optionnel)</label>
-                                    <textarea wire:model="comment" rows="3" class="w-full rounded-md border-gray-300 shadow-sm border p-2"></textarea>
-                                </div>
-                                
-                                
-                                <!-- Visa -->
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">VISE</label>
-                                    
-                                    <div class="flex items-center space-x-6">
-                                        <!-- Option Favorable -->
-                                        <div class="flex items-center">
-                                            <input wire:model="action" 
-                                                id="visa_favorable" 
-                                                name="action" 
-                                                type="radio" 
-                                                value="Vue" 
-                                                class="h-4 w-4 text-yellow-600 border-gray-300 focus:ring-yellow-500 cursor-pointer">
-                                            <label for="visa_favorable" class="ml-2 block text-sm text-gray-700 cursor-pointer">
-                                                Vue
-                                            </label>
-                                        </div>
+                                <!-- 3. VISA (ACTION) -->
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-3">Votre Visa / Action</label>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        
+                                        <!-- Vu -->
+                                        <label class="cursor-pointer">
+                                            <input type="radio" wire:model="selected_visa" value="Vu" class="peer sr-only">
+                                            <div class="rounded-md border border-gray-200 p-3 hover:bg-gray-50 peer-checked:border-gray-500 peer-checked:bg-gray-100 peer-checked:ring-1 peer-checked:ring-gray-500 transition-all text-center">
+                                                <div class="text-gray-500 mb-1 mx-auto"><svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></div>
+                                                <span class="text-xs font-medium text-gray-900">Vu</span>
+                                            </div>
+                                        </label>
 
-                                        <!-- Option Défavorable -->
-                                        <div class="flex items-center">
-                                            <input wire:model="action" 
-                                                id="visa_defavorable" 
-                                                name="action" 
-                                                type="radio" 
-                                                value="Vue & D'accord" 
-                                                class="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500 cursor-pointer">
-                                            <label for="visa_defavorable" class="ml-2 block text-sm text-gray-700 cursor-pointer">
-                                                Vue & D'accord
-                                            </label>
-                                        </div>
+                                        <!-- Vu & Accord -->
+                                        <label class="cursor-pointer">
+                                            <input type="radio" wire:model="selected_visa" value="Vu & Accord" class="peer sr-only">
+                                            <div class="rounded-md border border-gray-200 p-3 hover:bg-green-50 peer-checked:border-green-500 peer-checked:bg-green-50 peer-checked:ring-1 peer-checked:ring-green-500 transition-all text-center">
+                                                <div class="text-green-500 mb-1 mx-auto"><svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                                                <span class="text-xs font-medium text-green-900">D'accord</span>
+                                            </div>
+                                        </label>
+
+                                        <!-- Pas d'accord -->
+                                        <label class="cursor-pointer">
+                                            <input type="radio" wire:model="selected_visa" value="Vu & Pas d'accord" class="peer sr-only">
+                                            <div class="rounded-md border border-gray-200 p-3 hover:bg-red-50 peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:ring-1 peer-checked:ring-red-500 transition-all text-center">
+                                                <div class="text-red-500 mb-1 mx-auto"><svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                                                <span class="text-xs font-medium text-red-900">Pas d'accord</span>
+                                            </div>
+                                        </label>
                                     </div>
-                                    @error('action') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                    @error('selected_visa') <span class="text-red-500 text-xs mt-1 block">Le visa est obligatoire.</span> @enderror
                                 </div>
 
-                                
+                                <!-- 4. COMMENTAIRE -->
+                                <div>
+                                    <label for="comment" class="block text-sm font-medium text-gray-700 mb-1">Commentaire / Observation</label>
+                                    <textarea wire:model="workflow_comment" id="comment" rows="3" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="Ajouter une note pour le destinataire..."></textarea>
+                                    @error('workflow_comment') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                </div>
 
                             </div>
 
-                            <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                                <button type="submit" class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto">
-                                        Transmettre
+                            <!-- Footer Actions -->
+                            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                                <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                    Envoyer le Mémo
                                 </button>
-                                <button type="button" wire:click="closeSendModal" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                                <button type="button" wire:click="closeModalTrois" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                                     Annuler
                                 </button>
                             </div>
+
                         </form>
                     </div>
                 </div>
             </div>
-        </div>
+       </div>
     @endif
 
-
-    @if($isSendAssistOpen)
-        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    @if($isOpen4)
+       <!-- Modal Suppression -->
+       <div class="relative z-50" role="dialog" aria-modal="true">
             <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
-
             <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-                <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-                    <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-                        
-                        <form wire:submit.prevent="sendMemoAssist">
-                            <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Transmettre le Mémo</h3>
-
-                                <!-- Sélection du destinataire -->
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Envoyer à :</label>
-                                    <select wire:model="next_user_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 py-2 px-3 border">
-                                        <option value="">Sélectionner Votre Secretaire...</option>
-                                            <option value="{{ $assist->id }}">
-                                                {{ $assist->first_name }} {{ $assist->last_name }} 
-                                                ({{ $assist->poste }})
-                                            </option>
-                                    </select>
-                                    @error('next_user_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                                </div>
-
-                                
-                                
-
-                                <!-- Commentaire -->
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Note / Commentaire (Optionnel)</label>
-                                    <textarea wire:model="comment" rows="3" class="w-full rounded-md border-gray-300 shadow-sm border p-2"></textarea>
-                                </div>
-                                
-                                
-                                <!-- Visa -->
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">VISE</label>
-                                    
-                                    <div class="flex items-center space-x-6">
-                                        <!-- Option Favorable -->
-                                        <div class="flex items-center">
-                                            <input wire:model="action" 
-                                                id="visa_favorable" 
-                                                name="action" 
-                                                type="radio" 
-                                                value="Vue" 
-                                                class="h-4 w-4 text-yellow-600 border-gray-300 focus:ring-yellow-500 cursor-pointer">
-                                            <label for="visa_favorable" class="ml-2 block text-sm text-gray-700 cursor-pointer">
-                                                Vue
-                                            </label>
-                                        </div>
-
-                                        <!-- Option Défavorable -->
-                                        <div class="flex items-center">
-                                            <input wire:model="action" 
-                                                id="visa_defavorable" 
-                                                name="action" 
-                                                type="radio" 
-                                                value="Vue & D'accord" 
-                                                class="h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500 cursor-pointer">
-                                            <label for="visa_defavorable" class="ml-2 block text-sm text-gray-700 cursor-pointer">
-                                                Vue & D'accord
-                                            </label>
-                                        </div>
-                                    </div>
-                                    @error('action') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                                </div>
-
-                                
-
-                            </div>
-
-                            <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                                <button type="submit" class="inline-flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 sm:ml-3 sm:w-auto">
-                                        Transmettre
-                                </button>
-                                <button type="button" wire:click="closeSendAssistModal" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
-                                    Annuler
-                                </button>
-                            </div>
-                        </form>
+                <div class="flex min-h-full items-center justify-center p-4 text-center">
+                    <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:w-full sm:max-w-lg border border-gray-200 p-6">
+                        <h3 class="text-lg font-bold text-red-600 mb-2">Supprimer le brouillon ?</h3>
+                        <p class="text-gray-500 mb-6">Cette action est irréversible.</p>
+                        <div class="flex justify-end gap-3">
+                             <button wire:click="closeModalQuatre" class="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200">Annuler</button>
+                             <button wire:click="del" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Supprimer</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+       </div>
     @endif
-
-
-    @if($isRejectOpen)
-        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
-
-            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-                <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-                    <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border-2 border-red-100">
-                        
-                        <form wire:submit.prevent="confirmRejection">
-                            <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                                
-                                <!-- En-tête rouge -->
-                                <div class="sm:flex sm:items-start mb-4">
-                                    <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                                        <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                                        </svg>
-                                    </div>
-                                    <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                                        <h3 class="text-base font-semibold leading-6 text-gray-900">Rejeter le mémo</h3>
-                                        <div class="mt-2">
-                                            <p class="text-sm text-gray-500">Vous êtes sur le point de renvoyer ce mémo à son auteur. Veuillez indiquer le motif ci-dessous.</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Champ Motif -->
-                                <div class="mt-4">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Motif du rejet <span class="text-red-500">*</span></label>
-                                    <textarea 
-                                        wire:model="rejection_comment" 
-                                        rows="4" 
-                                        class="w-full rounded-md border-red-300 shadow-sm focus:border-red-500 focus:ring-red-500 py-2 px-3 border text-gray-900 placeholder-gray-400"
-                                        placeholder="Ex: Il manque la pièce jointe, veuillez corriger la date..."
-                                    ></textarea>
-                                    @error('rejection_comment') <span class="text-red-500 text-xs font-bold">{{ $message }}</span> @enderror
-                                </div>
-
-                            </div>
-
-                            <!-- Boutons -->
-                            <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                                <button type="submit" class="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto">
-                                    Confirmer le rejet
-                                </button>
-                                <button type="button" wire:click="closeRejectModal" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
-                                    Annuler
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    @if($enregistrer)
-    <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <!-- Fond sombre -->
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div wire:click="closeRegisterModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-            <!-- Contenu de la modale -->
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-                
-                <!-- En-tête -->
-                <div class="bg-indigo-600 px-4 py-3 sm:px-6">
-                    <h3 class="text-lg leading-6 font-medium text-white" id="modal-title">
-                        Enregistrement du Courrier
-                    </h3>
-                </div>
-
-                <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    
-                    <!-- PARTIE 1 : LISTE DES SECRÉTAIRES CIBLES -->
-                    <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <!-- Icone Info -->
-                                <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-medium text-yellow-800">
-                                    Le document sera transmis aux secrétaires suivantes :
-                                </h3>
-                                <div class="mt-2 text-sm text-yellow-700">
-                                    <ul class="list-disc pl-5 space-y-1">
-                                        @forelse($targetSecretaires as $sec)
-                                            <li>
-                                                <span class="font-bold">{{ $sec->first_name }} {{ $sec->last_name }}</span>
-                                                <span class="text-xs">({{ $sec->entity_name }})</span>
-                                            </li>
-                                        @empty
-                                            <li class="text-red-600 italic">Aucune secrétaire trouvée pour les entités destinataires !</li>
-                                        @endforelse
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- PARTIE 2 : FORMULAIRE -->
-                    <div class="grid grid-cols-1 gap-y-4 gap-x-4 sm:grid-cols-2">
-                        
-                        <!-- Nature -->
-                        <div class="sm:col-span-1">
-                            
-                            <input type="hidden" wire:model="ref_nature" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2">
-                        </div>
-
-                        <!-- Date -->
-                        <div class="sm:col-span-1">
-                            <label class="block text-sm font-medium text-gray-700">Date De Sortir</label>
-                            <input type="text" wire:model="ref_date" disabled class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2">
-                        </div>
-
-                        <!-- Numéro d'ordre -->
-                        <div class="sm:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700">Numéro d'ordre / Réf</label>
-                            <input type="text" wire:model="ref_numero" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 bg-gray-50">
-                        </div>
-
-                        <!-- Objet -->
-                        <div class="sm:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700">Objet</label>
-                            <textarea wire:model="ref_object" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"></textarea>
-                        </div>
-
-                        <!-- Concerne -->
-                        <div class="sm:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700">Concerne </label>
-                            <input type="text" wire:model="ref_concern" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2">
-                        </div>
-
-                    </div>
-                </div>
-
-                <!-- Pied de page (Boutons) -->
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button wire:click="confirmRegistration" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
-                        Enregistrer & Transmettre
-                    </button>
-                    <button wire:click="closeRegisterModal" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                        Annuler
-                    </button>
-                </div>
-
-            </div>
-        </div>
-    </div>
-@endif
-   
 
 </div>

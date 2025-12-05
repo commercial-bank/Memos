@@ -11,12 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('historiques', function (Blueprint $table) {
+        Schema::create('replaces_users', function (Blueprint $table) {
             $table->id();
-            $table->string('workflow_comment');
-            $table->string('action');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('memo_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('user_id_replace');
+            $table->string('action_replace');
+            $table->string('date_begin_replace');
+            $table->string('date_end_replace');
             $table->timestamps();
         });
     }
@@ -26,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('historiques');
+        Schema::dropIfExists('replaces_users');
     }
 };

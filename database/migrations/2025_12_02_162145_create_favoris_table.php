@@ -11,8 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('entities', function (Blueprint $table) {
-            $table->string('acronym')->nullable()->after('name');
+        Schema::create('favoris', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('memo_id')->constrained()->onDelete('cascade');
+            $table->timestamps();
         });
     }
 
@@ -21,8 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('entities', function (Blueprint $table) {
-            $table->dropColumn('acronym');
-        });
+        Schema::dropIfExists('favoris');
     }
 };

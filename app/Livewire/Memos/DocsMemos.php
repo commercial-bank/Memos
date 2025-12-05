@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Memos;
 
+use Carbon\Carbon;
 use App\Models\Memo;
 use App\Models\User;
 use App\Models\Entity;
@@ -9,267 +10,242 @@ use Livewire\Component;
 use App\Models\Historiques;
 use App\Models\MemoHistory;
 use App\Models\WrittenMemo;
+use App\Models\ReplacesUser;
 use Illuminate\Support\Facades\Auth;
 
 class DocsMemos extends Component
 {
-    public $isOpen = false;
-    public $isOpen2 = false;
-    public $isSendOpen = false; // Modal Envoyer
-    public $isRejectOpen = false; // Modal Rejeter
 
-    // Variables pour l'envoi
-    public $selectedMemoId;
-    public $next_user_id; // L'utilisateur à qui on envoie
-    public $comment = ''; // Commentaire (optionnel)
-    public $action = ''; 
+     // --- RECHERCHE & DATATABLE ---
+    public $search = '';
 
-    // Variables pour stocker les infos du mémo sélectionné
-    public $memo_id;
-    public $object = '';
-    public $content = '';
-    public $concern = '';
-    public $signature_sd = '';
-    public $signature_dir = '';
-    public $date = '';
-    public $user_first_name = '';
-    public $user_last_name = '';
-    public $user_service = '';
-    public $user_entity_name = '';
-    public $user_entity_name_acronym='';
-    public $qr_code='';
+    // --- MODALS STATES ---
+    public $isOpen = false; 
+    public $isOpen3 = false; 
+    public $isOpenHistory = false; 
 
-    // NOUVEAU : Variables pour l'historique
-    public $isHistoryOpen = false;
+    // --- CHAMPS DU MÉMO (SCHEMA DB) ---
+    public $memo_id = null;
     public $memoHistory = [];
 
-    // Variable tableau pour stocker les destinataires triés par action
-    public $recipientsByAction = [];
+     // --- DATA VIEW (Aperçu) ---
+    public $date;
+    public $user_service;
+    public $user_first_name;
+    public $user_last_name;
+    public $user_entity_name;
 
-    public $author_memo;
-    public $usersList = []; // Liste des destinataires possibles
+    // --- VARIABLES REJET ---
+    public $isOpenReject = false;
+    public $reject_comment = '';
+
+    // --- VARIABLES POUR L'ENVOI (WORKFLOW) ---
+    public $workflow_comment = '';
+    public $selected_visa = ''; 
+    public $target_users_ids = []; // Pour ajouter d'autres destinataires en plus du N+1
+
+    // Pour l'affichage dans le modal
+    public $nPlusOneUser = null;
+    public $effectiveReceiver = null; // Celui qui reçoit vraiment (N+1 ou Remplaçant)
+    public $isReplaced = false;
+    public $usersList = []; // Liste de tous les users pour choix multiple
 
 
-    public function viewDocument($id)
-    {
-        // 1. Récupérer le document
-        // J'ai retiré 'user.entity' du with() car cette relation n'existe pas chez toi
-        $memo = Memo::with(['destinataires', 'user'])->findOrFail($id);
+    
 
-        // 2. Remplir les variables
-        $this->object = $memo->object;
-        $this->content = $memo->content;
-        $this->concern = $memo->concern;
-        $this->signature_sd = $memo->signature_sd;
-        $this->signature_dir = $memo->signature_dir;
-         $this->qr_code = $memo->qr_code;
-        $this->date = $memo->created_at->format('d/m/Y');
-        
-        $this->user_first_name = $memo->user->first_name;
-        $this->user_last_name = $memo->user->last_name;
-        $this->user_service = $memo->user->service ?? 'Service Non Défini';
-        $this->user_entity_name = $memo->user->entity_name; // Valeur par défaut
-        $this->user_entity_name_acronym = Entity::StatgetAcronymAttribute($this->user_entity_name);
+    #[Rule('required|string|max:255')]
+    public string $object = '';
 
-        // 3. CORRECTION : Utiliser une fonction anonyme pour cibler 'pivot.action'
-        $this->recipientsByAction = $memo->destinataires
-            ->groupBy(function ($destinataire) {
-                // On groupe selon la colonne 'action' de la table PIVOT
-                return $destinataire->pivot->action;
-            })
-            ->toArray();
+    #[Rule('required|string|max:255')]
+    public string $concern = '';
 
-        // 4. Ouvrir le modal
+    #[Rule('required|string')]
+    public string $content = '';
+
+    public function viewMemo($id) {
+        $memo = Memo::with('user')->findOrFail($id);
+        $this->fillMemoDataView($memo);
         $this->isOpen = true;
     }
 
-    public function editMemo($id)
+     public function viewHistory($id)
     {
-        $memo = Memo::findOrFail($id);
+        // 1. On récupère les historiques liés à ce mémo
+        // 2. On charge la relation 'user' pour afficher le nom (pas juste l'ID)
+        // 3. On trie du plus récent au plus ancien
+        $this->memoHistory = Historiques::with('user')
+            ->where('memo_id', $id)
+            ->orderBy('created_at', 'desc') 
+            ->get();
+
+        // 4. On ouvre le modal
+        $this->isOpenHistory = true;
+    }
+
+    /**
+     * Ferme le modal historique
+     */
+    public function closeHistoryModal()
+    {
+        $this->isOpenHistory = false;
+        $this->memoHistory = []; // Nettoyage
+    }
+
+    private function fillMemoDataView($memo) {
+        // Logique simplifiée pour l'aperçu lecture seule
+        $this->memo_id = $memo->id;
         $this->object = $memo->object;
         $this->concern = $memo->concern;
         $this->content = $memo->content;
-        $this->memo_id = $memo->id;
-        $this->date = $memo->created_at->format('d/m/Y');   
-        $this->user_first_name = $memo->user->first_name;
-        $this->user_last_name = $memo->user->last_name;
+        $this->date = $memo->created_at->format('d/m/Y');
+        $entity = Entity::find($memo->user->entity_id);
+        $this->user_entity_name = $entity->name ?? 'Entité';
         $this->user_service = $memo->user->service;
-        $this->user_entity_name = $memo->user->entity_name;
-        $this->openModalDeux();
     }
 
-    public function closeModal()
-    {
-        $this->isOpen = false;
-        $this->reset(['object','concern', 'content', 'recipientsByAction']);
+    // GESTION MODALS
+    public function closeModal() 
+    { 
+        $this->isOpen = false; 
     }
 
-    // Ouvrir le modal
-    public function openModalDeux()
+    
+    public function assignMemo($id)
     {
-        $this->isOpen2 = true;
-    }
+        $this->memo_id = $id;
+        
+        // Reset des champs du formulaire
+        $this->workflow_comment = '';
+        $this->selected_visa = 'Vu'; // Valeur par défaut
+        $this->target_users_ids = [];
+        $this->isReplaced = false;
 
-    public function closeModalDeux()
-    {
-        $this->isOpen2 = false;
-    }
+        // 1. Récupérer le Manager (N+1) de l'utilisateur connecté
+        $currentUser = Auth::user();
+        $managerId = $currentUser->manager_id; 
 
+        if ($managerId) {
+            $this->nPlusOneUser = User::find($managerId);
+            
+            if ($this->nPlusOneUser) {
+                // 2. Vérifier si ce manager est actuellement remplacé
+                // Note : On suppose que les dates sont stockées au format 'Y-m-d' dans la DB
+                $today = Carbon::now()->format('Y-m-d'); 
 
-    public function openHistoryModal($id)
-    {
-        // On récupère l'historique trié par date (du plus récent au plus vieux ou inversement)
-        $this->memoHistory = Historiques::where('memo_id', $id)
-            ->with('user_id')
-            ->orderBy('created_at', 'desc') // Le plus récent en haut
-            ;
+                $replacement = ReplacesUser::where('user_id', $managerId)
+                    ->where('date_begin_replace', '<=', $today)
+                    ->where('date_end_replace', '>=', $today)
+                    ->first();
 
-        $this->isHistoryOpen = true;
-    }
+                if ($replacement) {
+                    // CAS : Le manager est absent et remplacé
+                    $this->isReplaced = true;
+                    $this->effectiveReceiver = User::find($replacement->user_id_replace);
+                } else {
+                    // CAS : Le manager est présent
+                    $this->effectiveReceiver = $this->nPlusOneUser;
+                }
+            }
+        } else {
+            // Pas de manager défini dans la table users
+            $this->nPlusOneUser = null;
+            $this->effectiveReceiver = null;
+        }
 
-    public function closeHistoryModal()
-    {
-        $this->isHistoryOpen = false;
-    }
+        // 3. Charger la liste des autres utilisateurs (sauf soi-même)
+        // Pour permettre d'envoyer en copie ou à d'autres personnes
+        $this->usersList = User::where('id', '!=', Auth::id())
+                               ->orderBy('last_name')
+                               ->orderBy('first_name')
+                               ->get();
 
-    public function openSendModal($id)
-    {
-        $this->selectedMemoId = $id;
-        $memo = Memo::findOrFail($id);
-        $this->author_memo = $memo->user_id;
-
-        // 1. On récupère les IDs cibles (Manager + Remplaçant)
-        $targetIds = [
-            Auth::user()->manager_id, 
-            Auth::user()->manager_replace_id
-        ];
-
-        // 2. On filtre pour enlever les valeurs nulles (si pas de remplaçant par exemple)
-        // array_filter va retirer les entrées vides/nulles du tableau
-        $targetIds = array_filter($targetIds);
-
-        // 3. On récupère uniquement ces utilisateurs
-        $this->usersList = User::whereIn('id', $targetIds)->get();
-        $this->isSendOpen = true;
+        $this->isOpen3 = true;
     }
 
     public function sendMemo()
     {
+        $this->validate([
+            'selected_visa' => 'required', // Le visa est obligatoire
+            'workflow_comment' => 'nullable|string|max:1000',
+        ]);
 
-        $memo = Memo::findOrFail($this->selectedMemoId);
+        $memo = Memo::find($this->memo_id);
+        $currentUser = Auth::user();
 
-        if(Auth::id() == $memo->user_id)
-        {
-            $this->validate([
-                'next_user_id' => 'required|exists:users,id',
-            ]);
+        // --- 1. Calcul des Destinataires (Current Holders) ---
+        $nextHolders = [];
 
-        
-       
-          
-            // === AJOUT : ENREGISTRER L'HISTORIQUE SANS DOUBLON ===
-            Historiques::firstOrCreate([
-                'memo_id'          => $memo->id,
-                'user_id'          => Auth::id(),
-                'action'           => 'createur',
-                'workflow_comment' => $this->comment,
-            ]);
-
-            $currentUser = Auth::user();
-
-            // LOGIQUE DES SIGNATURES AUTOMATIQUES SELON LE POSTE
-        
-        
-
-            // Mise à jour du détenteur
-            $memo->previous_holders =  Auth::id();
-            $memo->current_holders = (int) $this->next_user_id;
-            $memo->workflow_comment = $this->comment;
-            $memo->status = 'pending';
-            $memo->save();
-
-            $this->isSendOpen = false;
-            $this->dispatch('notify', message: 'Mémo envoyer avec succès !', type: 'success');
-
-        }else{
-
-            $this->validate([
-                'next_user_id' => 'required|exists:users,id',
-                'action' => 'required',
-            ]);
-
-        
-       
-            // === AJOUT : ENREGISTRER L'HISTORIQUE ===
-            Historiques::create([
-                'workflow_comment' => $this->comment,
-                'action' => $this->action,
-                'memo_id' =>$memo->id,
-                'user_id' => Auth::id()
-            ]);
-
-            $currentUser = Auth::user();
-
-            // LOGIQUE DES SIGNATURES AUTOMATIQUES SELON LE POSTE
-        
-        
-
-            // Mise à jour du détenteur
-            $memo->previous_holders =  [Auth::id()];
-            $memo->current_holders = [$this->next_user_id];
-            $memo->workflow_comment = $this->comment;
-            $memo->status = 'pending';
-            $memo->save();
-
-            $this->isSendOpen = false;
-            $this->dispatch('notify', message: 'Mémo envoyer avec succès !', type: 'success');
-
-
+         // A. Ajouter le destinataire hiérarchique
+        if ($this->effectiveReceiver) {
+            // Plus besoin de (string), on garde l'ID tel quel (entier ou string selon la DB)
+            $nextHolders[] = $this->effectiveReceiver->id;
         }
+
+        /// B. Ajouter les destinataires manuels
+        if (!empty($this->target_users_ids)) {
+            foreach ($this->target_users_ids as $uid) {
+                // On s'assure que $uid est un entier pour la cohérence (optionnel, mais propre)
+                $uidClean = is_numeric($uid) ? (int)$uid : $uid;
+
+                if (!in_array($uidClean, $nextHolders)) {
+                    $nextHolders[] = $uidClean;
+                }
+            }
+        }
+
+        // Sécurité : Si personne n'est ciblé
+        if (empty($nextHolders)) {
+            $this->addError('effectiveReceiver', 'Veuillez sélectionner au moins un destinataire.');
+            return;
+        }
+
+        // --- 2. Mise à jour du Mémo ---
         
-    }
+        $memo->previous_holders = [$currentUser->id];
+        $memo->current_holders = $nextHolders;
 
-    public function closeSendModal()
-    {
-        $this->isSendOpen = false;
-    }
-
-    public function save()
-    {
+        $memo->status = 'envoyer'; 
+        $memo->workflow_comment = $this->workflow_comment; 
         
+        $memo->save();
 
-        Memo::updateOrCreate(
-            ['id' => $this->memo_id],
+        Historiques::firstOrCreate(
             [
-                'object' => $this->object,
-                'concern' => $this->concern,
-                'content' => $this->content,
-                'user_id' => Auth::id()
+                // Critères de recherche (Ce qui rend l'action unique)
+                'user_id' => $currentUser->id,
+                'memo_id' => $memo->id,
+                'visa'    => $this->selected_visa,
+                'workflow_comment' => $this->workflow_comment ?? 'R.A.S',
             ]
         );
-
-        $action = $this->memo_id ? 'modifié' : 'créé';
-        
-        $this->closeModalDeux();
-        
-        // Envoi de l'événement pour le Toast
-        $this->dispatch('notify', message: "Brouillon $action avec succès !");
+        // --- 4. Fin ---
+        $this->closeModalTrois();
+        $this->dispatch('notify', message: "Le mémo a été envoyer avec succès.");
     }
+
+    public function closeModalTrois() { $this->isOpen3 = false; }
 
     
 
-
     public function render()
     {
-        
-        $groupedMemos = Memo::where('user_id', Auth::id())
-            ->has('destinataires')
-            ->with(['destinataires', 'user'])
-            ->latest()
-            ->get();
+        $memos = Memo::with(['destinataires.entity'])
+            ->where('user_id', Auth::id())
+            
+            // UTILISATION DE whereIn POUR PLUSIEURS STATUTS
+            ->whereIn('status', ['envoyer', 'rejeter']) 
+            
+            ->where(function($query) {
+                $query->where('object', 'like', '%'.$this->search.'%')
+                    ->orWhere('concern', 'like', '%'.$this->search.'%');
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(9);
 
         return view('livewire.memos.docs-memos', [
-            'groupedMemos' => $groupedMemos
+                'memos' => $memos,
         ]);
     }
+
+           
 }
