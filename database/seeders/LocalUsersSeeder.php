@@ -32,8 +32,8 @@ class LocalUsersSeeder extends Seeder
 
         // 1. LE DIRECTEUR (Top niveau - j5)
         $dtdsiDirecteur = User::create([
-            'first_name'  => 'paul',
-            'last_name'   => 'nba',
+            'first_name'  => 'Marc Arthur',
+            'last_name'   => 'Kemayou',
             'user_name'   => 'j1',
             'email'       => '1@local.test',
             'password'    => $password,
@@ -50,8 +50,26 @@ class LocalUsersSeeder extends Seeder
 
         // 1. LE DIRECTEUR (Top niveau - j5)
         $dtdsiDirecteur = User::create([
-            'first_name'  => 'paul',
-            'last_name'   => 'nba',
+            'first_name'  => 'Derick ',
+            'last_name'   => 'Monsieur Derick',
+            'user_name'   => 'j11',
+            'email'       => '11@local.test',
+            'password'    => $password,
+            'poste'       => 'Employer',
+            'entity_id' => 1,
+            'sous_direction_id' => 2,
+            'departement' => "Departement Transformation Digital et Systeme d'Information",
+            'service'     => "Production et Developement",
+            'is_admin'    => false,
+            'is_active'   => true,
+            'manager_id'  => null,
+            'domain'      => 'local',
+        ]);
+
+        // 1. LE DIRECTEUR (Top niveau - j5)
+        $dtdsiDirecteur = User::create([
+            'first_name'  => 'Renan Francois',
+            'last_name'   => 'Eyokinack',
             'user_name'   => 'j2',
             'email'       => '2@local.test',
             'password'    => $password,
@@ -68,8 +86,8 @@ class LocalUsersSeeder extends Seeder
 
         // 1. LE DIRECTEUR (Top niveau - j5)
         $dtdsiDirecteur = User::create([
-            'first_name'  => 'paul',
-            'last_name'   => 'nba',
+            'first_name'  => 'Brice',
+            'last_name'   => 'Soh Nanda',
             'user_name'   => 'j3',
             'email'       => '3@local.test',
             'password'    => $password,
@@ -86,8 +104,8 @@ class LocalUsersSeeder extends Seeder
 
         // 1. LE DIRECTEUR (Top niveau - j5)
         $dtdsiDirecteur = User::create([
-            'first_name'  => 'paul',
-            'last_name'   => 'nba',
+            'first_name'  => 'yannick',
+            'last_name'   => 'Mengue',
             'user_name'   => 'j4',
             'email'       => '4@local.test',
             'password'    => $password,
@@ -105,7 +123,7 @@ class LocalUsersSeeder extends Seeder
         // 1. LE DIRECTEUR (Top niveau - j5)
         $dtdsiDirecteur = User::create([
             'first_name'  => 'paul',
-            'last_name'   => 'nba',
+            'last_name'   => 'Monsieur',
             'user_name'   => 'j5',
             'email'       => '5@local.test',
             'password'    => $password,
@@ -122,13 +140,49 @@ class LocalUsersSeeder extends Seeder
 
         // 1. LE DIRECTEUR (Top niveau - j5)
         $dtdsiDirecteur = User::create([
-            'first_name'  => 'paul',
-            'last_name'   => 'nba',
+            'first_name'  => 'olivia',
+            'last_name'   => 'elong essongo',
             'user_name'   => 'j6',
             'email'       => '6@local.test',
             'password'    => $password,
             'poste'       => 'Secretaire',
             'entity_id' => 1,
+            'sous_direction_id' => 2,
+            'departement' => "Departement Transformation Digital et Systeme d'Information",
+            'service'     => "Production et Developement",
+            'is_admin'    => false,
+            'is_active'   => true,
+            'manager_id'  => null,
+            'domain'      => 'local',
+        ]);
+
+         // 1. LE DIRECTEUR (Top niveau - j5)
+        $dtdsiDirecteur = User::create([
+            'first_name'  => 'ol',
+            'last_name'   => 'essongo',
+            'user_name'   => 'j10',
+            'email'       => '10@local.test',
+            'password'    => $password,
+            'poste'       => 'Secretaire',
+            'entity_id' => 5,
+            'sous_direction_id' => 2,
+            'departement' => "Departement Transformation Digital et Systeme d'Information",
+            'service'     => "Production et Developement",
+            'is_admin'    => false,
+            'is_active'   => true,
+            'manager_id'  => null,
+            'domain'      => 'local',
+        ]);
+
+         // 1. LE DIRECTEUR (Top niveau - j5)
+        $dtdsiDirecteur = User::create([
+            'first_name'  => 'oli',
+            'last_name'   => 'ess',
+            'user_name'   => 'j12',
+            'email'       => '12@local.test',
+            'password'    => $password,
+            'poste'       => 'Secretaire',
+            'entity_id' => 4,
             'sous_direction_id' => 2,
             'departement' => "Departement Transformation Digital et Systeme d'Information",
             'service'     => "Production et Developement",

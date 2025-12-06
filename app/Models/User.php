@@ -4,10 +4,11 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Memo;
+use App\Models\Entity;
 use App\Models\WrittenMemo;
-use Illuminate\Notifications\Notifiable;
 
 // 1. AJOUTER CES DEUX IMPORTATIONS
+use Illuminate\Notifications\Notifiable;
 use LdapRecord\Laravel\Auth\LdapAuthenticatable;
 use LdapRecord\Laravel\Auth\AuthenticatesWithLdap;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -63,6 +64,27 @@ class User extends Authenticatable implements LdapAuthenticatable
     public function favorites()
     {
         return $this->belongsToMany(Memo::class, 'favorites', 'user_id', 'memo_id')->withTimestamps();
+    }
+
+    public function sousDirection() {
+         return $this->belongsTo(SousDirection::class); // Ou le nom exact de ta classe
+    }
+
+     /**
+     * Relation avec l'Entité (table entities)
+     */
+    public function entity()
+    {
+        // Laravel va chercher automatiquement la colonne 'entity_id'
+        return $this->belongsTo(Entity::class);
+    }
+
+     /**
+     * Relation pour le manager (N+1) - Utile aussi
+     */
+    public function manager()
+    {
+        return $this->belongsTo(User::class, 'manager_id');
     }
 
 

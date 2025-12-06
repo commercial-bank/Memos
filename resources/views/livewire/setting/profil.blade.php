@@ -181,7 +181,7 @@
                             <label for="manager" class="block text-sm font-medium text-gray-700">Manager(N1)</label>
 
                             <select id="manager" wire:model="manager_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
-                                
+                                <option value="null">Selectionner Un Manager</option>
                                 @if($user_manager)
                                     <option value="{{ $user_manager->id }}">{{ $user_manager->first_name }} {{ $user_manager->last_name }}</option>
                                 @else

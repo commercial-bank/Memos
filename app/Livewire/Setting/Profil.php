@@ -96,7 +96,7 @@ class Profil extends Component
             // Mise à jour des clés étrangères (IDs)
             'entity_id' => $this->entity_id,
             'sous_direction_id' => $this->sous_direction_id,
-            'manager_id' => $this->manager_id, 
+            'manager_id' => $this->manager_id ?? null,
             
             // Si votre base de données utilise d'autres noms de colonnes (comme dans votre ancien code)
             // décommentez et adaptez les lignes ci-dessous :

@@ -35,8 +35,8 @@
                             $tabs['blockout'] = 'Blocs Sortants';
                             $tabs['blockint'] = 'Blocs Entrants';
                         } else {
-                            $tabs['drafted'] = 'Brouillons';
-                            $tabs['document'] = 'Documents';
+                            $tabs['drafted'] = 'Mémos Documents';
+                            $tabs['document'] = 'Mémos Envoyés';
                             $tabs['favorites'] = 'Favoris';
                         }
                     @endphp

@@ -24,7 +24,7 @@ class Memos extends Component
     #[Rule('required|min:5')]
     public string $object = '';
 
-    #[Rule('required|min:3')]
+    #[Rule('min:3')]
     public string $concern = '';
 
     #[Rule('required')]
@@ -148,13 +148,11 @@ class Memos extends Component
             }
         }
 
-        // 1. Sauvegarde du Mémo
-        $ref = 'REF-' . strtoupper(uniqid()); 
+     
 
         $memo = Memo::updateOrCreate(
             ['id' => $this->memoId],
             [
-                'reference' => $this->memoId ? Memo::find($this->memoId)->reference : $ref,
                 'object' => $this->object,
                 'concern' => $this->concern,
                 'content' => $this->content,

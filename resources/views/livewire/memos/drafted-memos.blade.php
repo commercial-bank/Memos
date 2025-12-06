@@ -4,7 +4,7 @@
         <!-- EN-TÊTE & RECHERCHE -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <div>
-                <h2 class="text-2xl font-bold text-gray-800">Mes Brouillons</h2>
+                <h2 class="text-2xl font-bold text-gray-800">Mes Mémos</h2>
                 <p class="text-sm text-gray-500">Gérez vos mémos en attente d'envoi.</p>
             </div>
 
@@ -216,7 +216,7 @@
                                 <td colspan="4" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center justify-center text-gray-500">
                                         <svg class="h-12 w-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                        <p class="text-lg font-medium text-gray-900">Aucun brouillon trouvé</p>
+                                        <p class="text-lg font-medium text-gray-900">Aucun Mémo trouvé</p>
                                         <p class="text-sm">Commencez par créer un nouveau mémorandum.</p>
                                     </div>
                                 </td>
@@ -362,7 +362,7 @@
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold align-top">
                                                     <!-- On affiche le nom de l'utilisateur ici ou son entité -->
-                                                    Emetteur : {{ $user_entity_name }}
+                                                    Emetteur : #
                                                 </td>
                                                 <td class="border border-black p-1 pl-2">
                                                     <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients3->count() > 0 ? 'bg-orange-500' : '' }}"></span> 
@@ -688,7 +688,7 @@
             </div>
        </div>
     @endif
-
+    
     @if($isOpen3)
        <!-- Modal Envoi & Workflow -->
        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -697,14 +697,14 @@
             <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
                 <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
                     
-                    <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-200">
+                    <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-xl border border-gray-200">
                         <form wire:submit.prevent="sendMemo">
                             
                             <!-- Header -->
-                            <div class="bg-gray-50 px-4 py-4 border-b border-gray-200 flex justify-between items-center">
+                            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                                 <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                                    Transmettre le Mémo
+                                    Transmission du Mémo
                                 </h3>
                                 <button type="button" wire:click="closeModalTrois" class="text-gray-400 hover:text-gray-600">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -713,99 +713,196 @@
 
                             <div class="px-6 py-6 space-y-6">
 
-                                <!-- 1. DESTINATAIRE PRINCIPAL (N+1 ou REMPLAÇANT) -->
-                                <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                                    <p class="text-xs font-bold text-blue-500 uppercase mb-2">Destinataire Hiérarchique</p>
-                                    
-                                    @if($effectiveReceiver)
-                                        <div class="flex items-center">
-                                            <div class="h-10 w-10 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-sm">
-                                                {{ substr($effectiveReceiver->first_name ?? 'U', 0, 1) }}{{ substr($effectiveReceiver->last_name ?? 'S', 0, 1) }}
-                                            </div>
-                                            <div class="ml-3">
-                                                <p class="text-sm font-bold text-gray-900">
-                                                    {{ $effectiveReceiver->name ?? ($effectiveReceiver->first_name . ' ' . $effectiveReceiver->last_name) }}
-                                                </p>
-                                                
-                                                @if($isReplaced && $nPlusOneUser)
-                                                    <p class="text-xs text-orange-600 flex items-center gap-1 mt-0.5">
-                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                                                        Remplace {{ $nPlusOneUser->name }} (Absent)
-                                                    </p>
-                                                @else
-                                                    <p class="text-xs text-gray-500">{{ $effectiveReceiver->job_title ?? 'Supérieur Hiérarchique' }}</p>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @else
-                                        <p class="text-sm text-red-500 italic">Aucun supérieur hiérarchique défini. Veuillez sélectionner un destinataire manuellement ci-dessous.</p>
-                                    @endif
-                                </div>
-
-                                <!-- 2. AUTRES DESTINATAIRES (Optionnel) -->
+                                <!-- 1. CHOIX DU TYPE DE CIRCUIT -->
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Autres destinataires (Copie / Info)</label>
-                                    <select wire:model="target_users_ids" multiple class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm h-24">
-                                        @foreach($usersList as $u)
-                                            <option value="{{ $u->id }}">{{ $u->first_name }} {{ $u->last_name }} ({{ $u->departement ?? 'N/A' }})</option>
-                                        @endforeach
-                                    </select>
-                                    <p class="text-[10px] text-gray-500 mt-1">Maintenez CTRL pour sélectionner plusieurs personnes.</p>
+                                    <label class="text-sm font-bold text-gray-700 block mb-2">Type de circuit</label>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <!-- Option Standard -->
+                                        <label class="cursor-pointer relative">
+                                            <input type="radio" wire:model.live="memo_type" value="standard" class="peer sr-only">
+                                            <div class="p-4 rounded-lg border-2 border-gray-200 hover:border-blue-300 peer-checked:border-blue-600 peer-checked:bg-blue-50 transition-all text-center h-full flex flex-col items-center justify-center">
+                                                <svg class="w-6 h-6 text-gray-400 peer-checked:text-blue-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                                <span class="block text-sm font-bold text-gray-700 peer-checked:text-blue-800">Standard</span>
+                                                <span class="block text-[10px] text-gray-500 mt-1">Vers N+1 uniquement</span>
+                                            </div>
+                                        </label>
+
+                                        <!-- Option Projet -->
+                                        <label class="cursor-pointer relative">
+                                            <input type="radio" wire:model.live="memo_type" value="projet" class="peer sr-only">
+                                            <div class="p-4 rounded-lg border-2 border-gray-200 hover:border-purple-300 peer-checked:border-purple-600 peer-checked:bg-purple-50 transition-all text-center h-full flex flex-col items-center justify-center">
+                                                <svg class="w-6 h-6 text-gray-400 peer-checked:text-purple-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                                <span class="block text-sm font-bold text-gray-700 peer-checked:text-purple-800">Mode Projet</span>
+                                                <span class="block text-[10px] text-gray-500 mt-1">Multi-collaborateurs (hors N+1)</span>
+                                            </div>
+                                        </label>
+                                    </div>
                                 </div>
 
                                 <hr class="border-gray-100">
 
-                                <!-- 3. VISA (ACTION) -->
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-3">Votre Visa / Action</label>
-                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <!-- ZONE D'AFFICHAGE DYNAMIQUE SELON LE TYPE -->
+                                <div class="min-h-[100px]">
+                                    
+                                    <!-- A. AFFICHAGE STANDARD (N+1) -->
+                                @if($memo_type === 'standard')
+                                    <div class="bg-blue-50 rounded-lg p-4 border border-blue-100 animate-fade-in-down">
+                                        <p class="text-xs font-bold text-blue-500 uppercase mb-3">
+                                            Destinataire Final
+                                        </p>
                                         
-                                        <!-- Vu -->
-                                        <label class="cursor-pointer">
-                                            <input type="radio" wire:model="selected_visa" value="Vu" class="peer sr-only">
-                                            <div class="rounded-md border border-gray-200 p-3 hover:bg-gray-50 peer-checked:border-gray-500 peer-checked:bg-gray-100 peer-checked:ring-1 peer-checked:ring-gray-500 transition-all text-center">
-                                                <div class="text-gray-500 mb-1 mx-auto"><svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></div>
-                                                <span class="text-xs font-medium text-gray-900">Vu</span>
+                                        @if($managerData)
+                                            <div class="flex items-start">
+                                                
+                                                <!-- 1. AVATAR (Celui qui reçoit vraiment) -->
+                                                <div class="flex-shrink-0">
+                                                    <div class="h-10 w-10 rounded-full {{ $managerData['is_replaced'] ? 'bg-orange-200 text-orange-700' : 'bg-blue-200 text-blue-700' }} flex items-center justify-center font-bold shadow-sm">
+                                                        {{ substr($managerData['effective']->first_name, 0, 1) }}{{ substr($managerData['effective']->last_name, 0, 1) }}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="ml-3 flex-1">
+                                                    <!-- 2. NOM (Celui qui reçoit vraiment) -->
+                                                    <p class="text-sm font-bold text-gray-900">
+                                                        {{ $managerData['effective']->first_name }} {{ $managerData['effective']->last_name }}
+                                                    </p>
+                                                    
+                                                    <!-- 3. CONTEXTE -->
+                                                    @if($managerData['is_replaced'])
+                                                        <!-- Cas : Remplacement Actif -->
+                                                        <div class="flex flex-col mt-1">
+                                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 w-fit mb-1">
+                                                                Intérimaire / Remplaçant
+                                                            </span>
+                                                            <p class="text-xs text-gray-500 flex items-center gap-1">
+                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
+                                                                Remplace <span class="font-semibold">{{ $managerData['original']->first_name }} {{ $managerData['original']->last_name }}</span> (Absent)
+                                                            </p>
+                                                        </div>
+                                                    @else
+                                                        <!-- Cas : Normal -->
+                                                        <p class="text-xs text-gray-500">{{ $managerData['original']->poste ?? 'Supérieur Hiérarchique' }}</p>
+                                                    @endif
+                                                </div>
                                             </div>
-                                        </label>
-
-                                        <!-- Vu & Accord -->
-                                        <label class="cursor-pointer">
-                                            <input type="radio" wire:model="selected_visa" value="Vu & Accord" class="peer sr-only">
-                                            <div class="rounded-md border border-gray-200 p-3 hover:bg-green-50 peer-checked:border-green-500 peer-checked:bg-green-50 peer-checked:ring-1 peer-checked:ring-green-500 transition-all text-center">
-                                                <div class="text-green-500 mb-1 mx-auto"><svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
-                                                <span class="text-xs font-medium text-green-900">D'accord</span>
+                                        @else
+                                            <!-- Cas : Pas de manager configuré -->
+                                            <div class="flex items-center gap-2 text-red-500 bg-red-50 p-3 rounded border border-red-100">
+                                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                <div class="text-sm">
+                                                    <span class="font-bold">Erreur :</span> Aucun manager n'est associé à votre compte.
+                                                </div>
                                             </div>
-                                        </label>
-
-                                        <!-- Pas d'accord -->
-                                        <label class="cursor-pointer">
-                                            <input type="radio" wire:model="selected_visa" value="Vu & Pas d'accord" class="peer sr-only">
-                                            <div class="rounded-md border border-gray-200 p-3 hover:bg-red-50 peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:ring-1 peer-checked:ring-red-500 transition-all text-center">
-                                                <div class="text-red-500 mb-1 mx-auto"><svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
-                                                <span class="text-xs font-medium text-red-900">Pas d'accord</span>
-                                            </div>
-                                        </label>
+                                        @endif
                                     </div>
-                                    @error('selected_visa') <span class="text-red-500 text-xs mt-1 block">Le visa est obligatoire.</span> @enderror
+                                @endif
+
+                                    <!-- B. AFFICHAGE PROJET (LISTE SANS N+1) -->
+                                    @if($memo_type === 'projet')
+                                        <div class="bg-purple-50 rounded-lg p-4 border border-purple-100 animate-fade-in-down">
+                                            <p class="text-xs font-bold text-purple-600 uppercase mb-2">Collaborateurs du projet</p>
+                                            
+                                            <label class="block text-xs text-gray-500 mb-1">Sélectionnez les destinataires (Maintenez Ctrl pour plusieurs)</label>
+                                            
+                                            <select wire:model.live="selected_project_users" multiple class="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm h-32">
+                                                @foreach($projectUsersList as $userData)
+                                                    <option value="{{ $userData['original']->id }}">
+                                                        {{ $userData['original']->first_name }} {{ $userData['original']->last_name }} 
+                                                        ({{ $userData['original']->departement ?? 'N/A' }})
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            @error('selected_project_users') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+
+                                            <!-- Récapitulatif avec alertes remplacements -->
+                                            @if(!empty($selected_project_users))
+                                                <div class="mt-3 space-y-2 max-h-32 overflow-y-auto">
+                                                    <p class="text-[10px] font-bold text-gray-400 uppercase">Destinataires réels :</p>
+                                                    
+                                                    @foreach($selected_project_users as $selectedId)
+                                                        @php
+                                                            // On retrouve les données dans la collection préparée
+                                                            $uInfo = $projectUsersList->first(function($item) use ($selectedId) {
+                                                                return $item['original']->id == $selectedId;
+                                                            });
+                                                        @endphp
+
+                                                        @if($uInfo)
+                                                            <div class="flex items-center justify-between bg-white p-2 rounded border {{ $uInfo['is_replaced'] ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200' }}">
+                                                                <div class="flex items-center gap-2">
+                                                                    <div class="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold">
+                                                                        {{ substr($uInfo['original']->first_name, 0, 1) }}
+                                                                    </div>
+                                                                    <span class="text-xs font-medium text-gray-700">
+                                                                        {{ $uInfo['original']->first_name }} {{ $uInfo['original']->last_name }}
+                                                                    </span>
+                                                                </div>
+
+                                                                @if($uInfo['is_replaced'])
+                                                                    <div class="text-[10px] text-right">
+                                                                        <span class="text-yellow-600 font-bold flex items-center gap-1">
+                                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                                                                            Remplacé par
+                                                                        </span>
+                                                                        <span class="text-gray-900">{{ $uInfo['effective']->first_name }} {{ $uInfo['effective']->last_name }}</span>
+                                                                    </div>
+                                                                @else
+                                                                    <span class="text-[10px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded">Dispo</span>
+                                                                @endif
+                                                            </div>
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endif
+
                                 </div>
 
-                                <!-- 4. COMMENTAIRE -->
-                                <div>
-                                    <label for="comment" class="block text-sm font-medium text-gray-700 mb-1">Commentaire / Observation</label>
-                                    <textarea wire:model="workflow_comment" id="comment" rows="3" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md" placeholder="Ajouter une note pour le destinataire..."></textarea>
-                                    @error('workflow_comment') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                <!-- VISA & COMMENTAIRE (Commun) -->
+                                <div class="space-y-4 pt-2">
+                                    <hr class="border-gray-100">
+                                    
+                                    <!-- Visa -->
+                                    <div>
+                                        <label class="block text-sm font-bold text-gray-700 mb-2">Votre Visa / Action</label>
+                                        <div class="grid grid-cols-3 gap-3">
+                                            @foreach(['Vu' => 'gray', 'Vu & Accord' => 'green', "Vu & Pas d'accord" => 'red'] as $visa => $color)
+                                                <label class="cursor-pointer">
+                                                    <input type="radio" wire:model="selected_visa" value="{{ $visa }}" class="peer sr-only">
+                                                    <div class="rounded-md border border-gray-200 p-2 hover:bg-{{ $color }}-50 peer-checked:border-{{ $color }}-500 peer-checked:bg-{{ $color }}-50 peer-checked:ring-1 peer-checked:ring-{{ $color }}-500 transition-all text-center">
+                                                        <span class="text-xs font-medium text-{{ $color }}-900">{{ $visa }}</span>
+                                                    </div>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                        @error('selected_visa') <span class="text-red-500 text-xs mt-1">Le visa est obligatoire.</span> @enderror
+                                    </div>
+
+                                    <!-- Commentaire -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Commentaire</label>
+                                        <textarea wire:model="workflow_comment" rows="2" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md placeholder-gray-400" placeholder="Note optionnelle..."></textarea>
+                                        @error('workflow_comment') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                    </div>
                                 </div>
+
+                                <!-- Erreur Générale -->
+                                @error('general')
+                                    <div class="bg-red-50 border-l-4 border-red-500 p-4">
+                                        <p class="text-sm text-red-700">{{ $message }}</p>
+                                    </div>
+                                @enderror
 
                             </div>
 
                             <!-- Footer Actions -->
                             <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
-                                <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                                    Envoyer le Mémo
+                                <button type="submit" wire:loading.attr="disabled" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none disabled:opacity-50 sm:ml-3 sm:w-auto sm:text-sm">
+                                    <span wire:loading.remove>Transmettre</span>
+                                    <span wire:loading>Envoi...</span>
                                 </button>
-                                <button type="button" wire:click="closeModalTrois" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                                <button type="button" wire:click="closeModalTrois" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                                     Annuler
                                 </button>
                             </div>
