@@ -62,10 +62,7 @@ class Memo extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function favoritedBy()
-    {
-        return $this->belongsToMany(User::class, 'favorites', 'memo_id', 'user_id')->withTimestamps();
-    }
+ 
 
     // Accessor pour utiliser $document->is_favorited dans la vue
     public function getIsFavoritedAttribute()
@@ -77,6 +74,25 @@ class Memo extends Model
         
         // Vérifie si l'ID de l'utilisateur actuel existe dans la relation favoritedBy
         return $this->favoritedBy()->where('user_id', Auth::id())->exists();
+    }
+
+     /**
+     * Relation inverse (si besoin)
+     */
+    public function favoritedBy()
+    {
+        return $this->belongsToMany(User::class, 'favoris', 'memo_id', 'user_id');
+    }
+    
+    /**
+     * Helper pour savoir si le mémo est favori pour l'utilisateur connecté
+     * (Utile dans les vues Blade pour colorer l'étoile)
+     */
+    public function getIsFavoriteAttribute()
+    {
+        // Attention aux performances si utilisé dans une boucle de 100 éléments sans eager loading.
+        // Pour une pagination de 10, c'est acceptable.
+        return \Illuminate\Support\Facades\Auth::user()->favorites()->where('memo_id', $this->id)->exists();
     }
 
     

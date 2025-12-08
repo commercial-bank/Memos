@@ -12,8 +12,8 @@ use App\Models\Historiques;
 use App\Models\MemoHistory;
 use Illuminate\Support\Str;
 use App\Models\ReplacesUser;
+use App\Models\BlocEnregistrements;
 use Illuminate\Support\Facades\Auth;
-use App\Models\BlocsEnregistrements; 
 use Illuminate\Support\Facades\DB;   
 
 
@@ -346,22 +346,22 @@ class IncomingMemos extends Component
     public function closeModal() { $this->isOpen = false; }
 
 
+    
+
     public function sign($id)
     {
-        // 1. Récupération du mémo et de l'utilisateur
+        // 1. Récupération
         $memo = Memo::findOrFail($id);
         $user = Auth::user();
 
-        // 2. Génération du Token sécurisé
-        // Format : PREFIXE - TIMESTAMP - CHAINE_ALEATOIRE (ex: SD-17098234-Xy7z...)
+        // 2. Token de base
         $randomString = Str::upper(Str::random(10));
         $timestamp = now()->timestamp;
         $baseToken = "{$timestamp}-{$randomString}";
 
-        // 3. Logique d'application selon le poste
+        // 3. Logique par poste
         if ($user->poste === 'Sous-Directeur') {
             
-            // On vérifie qu'il n'a pas déjà signé
             if ($memo->signature_sd) {
                 $this->dispatch('notify', message: "Ce document est déjà signé.");
                 return;
@@ -373,18 +373,25 @@ class IncomingMemos extends Component
 
         } elseif ($user->poste === 'Directeur') {
             
-            // Logique similaire pour le Directeur
             if ($memo->signature_dir) {
                 $this->dispatch('notify', message: "Ce document est déjà signé.");
                 return;
             }
 
+            // Signature visuelle
             $token = 'DIR-' . $baseToken;
             $memo->signature_dir = $token;
-            $message = "Signature Directeur apposée.";
+
+            // --- AJOUT : GÉNÉRATION DU QR CODE ---
+            // On crée un UUID unique qui servira pour l'URL de vérification (route('memo.verify', $uuid))
+            $memo->qr_code = (string) Str::uuid();
+
+            // Optionnel : On verrouille le statut final du mémo
+            $memo->status = 'valider'; 
+
+            $message = "Signature Directeur apposée et QR Code généré.";
         
         } else {
-            // Sécurité : Si quelqu'un d'autre essaie d'appeler cette fonction
             $this->dispatch('notify', message: "Action non autorisée pour votre poste.");
             return;
         }
@@ -392,15 +399,15 @@ class IncomingMemos extends Component
         // 4. Sauvegarde
         $memo->save();
 
-        // 5. Ajout dans l'historique (Traçabilité)
+        // 5. Historique
         Historiques::create([
             'user_id' => $user->id,
             'memo_id' => $memo->id,
-            'visa'    => 'Signé', // Action spécifique
-            'workflow_comment' => "Signature numérique générée : " . $token,
+            'visa'    => 'Signé',
+            'workflow_comment' => "Signature numérique " . ($user->poste == 'Directeur' ? "(Finale)" : "(Partielle)") . " : " . $token,
         ]);
 
-        // 6. Feedback utilisateur
+        // 6. Feedback
         $this->dispatch('notify', message: $message);
     }
 
@@ -457,8 +464,8 @@ class IncomingMemos extends Component
             $referenceString = $this->generateSmartReference($memo);
             
             // B. CRÉATION DANS BLOCS_ENREGISTREMENTS
-            BlocsEnregistrements::create([
-                'nature_memo' => 'Mémorandum', // Ou dynamique selon besoin
+            BlocEnregistrements::create([
+                'nature_memo' => 'Memo Sortant', // Ou dynamique selon besoin
                 'date_enreg' => now()->format('d/m/Y'),
                 'reference' => $referenceString,
                 'memo_id' => $memo->id,
@@ -475,7 +482,7 @@ class IncomingMemos extends Component
                 'current_holders' => $nextHoldersIds,
                 'previous_holders' => [$currentUser->id],
                 'status' => 'transmit',
-                'numero_ref' => $referenceString, // On met à jour la ref visible sur le mémo aussi ?
+                'reference' => $referenceString, // On met à jour la ref visible sur le mémo aussi ?
             ]);
 
             // D. HISTORIQUE
@@ -496,7 +503,7 @@ class IncomingMemos extends Component
     private function generateSmartReference($memo)
     {
         // 1. Compteur + 1
-        $count = BlocsEnregistrements::count() + 1;
+        $count = BlocEnregistrements::count() + 1 ;
         
         // 2. Données de base du créateur du mémo
         $creator = User::with(['entity', 'sousDirection'])->find($memo->user_id);
@@ -518,7 +525,7 @@ class IncomingMemos extends Component
         // SCÉNARIO 1 : Le créateur a validé lui-même (Vu & Accord)
         if (in_array($creator->id, $validations)) {
             // Format : N°/Entity/SD/Dept/Service/Initiales
-            return sprintf("%04d/%s/%s/%s/%s/%s", $count, $refEntity, $refSD, $refDept, $refService, $userInitials);
+            return sprintf("%04dM/%s/%s/%s/%s/%s", $count , $refEntity, $refSD, $refDept, $refService, $userInitials);
         }
 
         // Pour les étapes suivantes, on remonte la hiérarchie du créateur

@@ -87,6 +87,8 @@ class User extends Authenticatable implements LdapAuthenticatable
         return $this->belongsTo(User::class, 'manager_id');
     }
 
+  
+
 
     /**
      * Accesseur pour créer l'acronyme de l'entité du user.

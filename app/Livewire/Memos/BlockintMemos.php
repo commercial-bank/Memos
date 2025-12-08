@@ -6,78 +6,86 @@ use App\Models\Memo;
 use App\Models\Entity;
 use Livewire\Component;
 use App\Models\References;
+use App\Models\BlocEnregistrements;
 use Illuminate\Support\Facades\Auth;
 
 class BlockintMemos extends Component
 {
     public $isOpen = false;
-    public $selectedYear; // Variable pour stocker l'année choisie
+    public $selectedYear;
+    
+    // 1. AJOUT DE LA VARIABLE DE RECHERCHE
+    public $search = ''; 
 
-    // Variables pour le modal (détails)
+    // ... (Vos autres variables pour le modal restent ici : object, content, etc.) ...
+    public $memo_id;
     public $object = '';
     public $content = '';
     public $concern = '';
     public $date = '';
-    public $signature_sd = '';
-    public $signature_dir = '';
-    public $user_first_name = '';
-    public $user_last_name = '';
-    public $user_service = '';
     public $user_entity_name = '';
-    public $user_entity_name_acronym = '';
-    public $qr_code;
-    public $recipientsByAction = [];
+    public $user_service = ''; // N'oubliez pas cette variable si elle manquait
 
-    // 1. Initialisation : On définit l'année par défaut au chargement de la page
     public function mount()
     {
-        $this->selectedYear = date('Y'); // Par défaut : 2025 (ou l'année actuelle)
+        $this->selectedYear = date('Y');
     }
 
-    public function viewReference($id)
+    // Réinitialiser la pagination ou la recherche quand l'année change (optionnel mais recommandé)
+    public function updatedSelectedYear()
     {
-        $memo = Memo::with(['destinataires', 'user'])->findOrFail($id);
+        $this->reset('search');
+    }
 
+    public function viewMemo($id) {
+        $memo = Memo::with('user')->findOrFail($id);
+        $this->fillMemoDataView($memo);
+        $this->isOpen = true;
+    }
+
+    private function fillMemoDataView($memo) {
+        // Logique simplifiée pour l'aperçu lecture seule
+        $this->memo_id = $memo->id;
         $this->object = $memo->object;
-        $this->content = $memo->content;
         $this->concern = $memo->concern;
-        $this->signature_sd = $memo->signature_sd;
-        $this->signature_dir = $memo->signature_dir;
-        $this->qr_code = $memo->qr_code;
+        $this->content = $memo->content;
         $this->date = $memo->created_at->format('d/m/Y');
-        
-        $this->user_first_name = $memo->user->first_name;
-        $this->user_last_name = $memo->user->last_name;
-        $this->user_service = $memo->user->service ?? 'Service Non Défini';
-        $this->user_entity_name = $memo->user->entity_name;
-        $this->user_entity_name_acronym = Entity::StatgetAcronymAttribute($this->user_entity_name);
-
-        $this->recipientsByAction = $memo->destinataires
-            ->groupBy(function ($destinataire) {
-                return $destinataire->pivot->action;
-            })
-            ->toArray();
-
-        $this->isOpen = true; 
+        $entity = Entity::find($memo->user->entity_id);
+        $this->user_entity_name = $entity->name ?? 'Entité';
+        $this->user_service = $memo->user->service;
     }
 
-    public function closeModal()
-    {
-        $this->isOpen = false;
-        $this->reset(['object','concern', 'content', 'recipientsByAction']);
+    public function closeModal() 
+    { 
+        $this->isOpen = false; 
     }
 
+    
     
     public function render()
     {
      
-      // 2. Requête filtrée par l'année sélectionnée
-       $references = References::query()
-        ->where('nature', 'Memo Entrant')
-        ->where('user_id', Auth::id())
-        ->whereYear('created_at', $this->selectedYear) // <--- C'est ici que la magie opère
-        ->orderBy('id', 'asc') 
-        ->get();
+       // 2. MODIFICATION DE LA REQUÊTE
+        $query = BlocEnregistrements::with('memo')
+            ->where('nature_memo', 'Memo Entrant')
+            ->where('user_id', Auth::id())
+            ->whereYear('created_at', $this->selectedYear);
+
+        // Application du filtre de recherche si $search n'est pas vide
+        if (!empty($this->search)) {
+            $query->where(function($q) {
+                // Recherche dans la référence (table blocs_enregistrements)
+                $q->where('reference', 'like', '%' . $this->search . '%')
+                  // OU recherche dans la table liée memos (objet, concern, content)
+                  ->orWhereHas('memo', function($q2) {
+                      $q2->where('object', 'like', '%' . $this->search . '%')
+                         ->orWhere('concern', 'like', '%' . $this->search . '%')
+                         ->orWhere('content', 'like', '%' . $this->search . '%');
+                  });
+            });
+        }
+
+        $references = $query->orderBy('created_at', 'desc')->get();
         
         return view('livewire.memos.blockint-memos', [
         'references' => $references

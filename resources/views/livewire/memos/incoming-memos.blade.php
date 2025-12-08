@@ -168,7 +168,6 @@
 
                                         @if(auth()->user()->poste == "Secretaire")
 
-                                             <!-- VOIR -->
                                             <button wire:click="viewMemo({{ $memo->id }})" class="text-gray-400 hover:text-blue-600 transition-colors" title="Aperçu">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                             </button>
@@ -192,7 +191,14 @@
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                             </button>
 
+                                            @if(auth()->user()->poste != "Sous-Directeur" && auth()->user()->poste != "Directeur")
 
+                                                 <!-- ENVOYER / ASSIGNER -->
+                                                        <button wire:click="assignMemo({{ $memo->id }})" class="text-gray-400 hover:text-green-600 transition-colors" title="Attribuer & Envoyer">
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                                        </button>
+
+                                            @endif
                                         
                                             <!-- REJETER -->
                                             <button wire:click="askReject({{ $memo->id }})" class="text-gray-400 hover:text-red-600 transition-colors" title="Rejeter / Renvoyer">
@@ -448,7 +454,7 @@
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold align-top">
                                                     <!-- On affiche le nom de l'utilisateur ici ou son entité -->
-                                                    Emetteur : #
+                                                    Emetteur :  {{ $currentMemo->reference ? Str::afterLast($currentMemo->reference, '/') : 'En attente' }}
                                                 </td>
                                                 <td class="border border-black p-1 pl-2">
                                                     <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients3->count() > 0 ? 'bg-orange-500' : '' }}"></span> 

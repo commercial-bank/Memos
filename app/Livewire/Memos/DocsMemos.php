@@ -19,6 +19,18 @@ class DocsMemos extends Component
      // --- RECHERCHE & DATATABLE ---
     public $search = '';
 
+    // --- VARIABLES MODAL ASSIGNATION ---
+    public $memo_type = 'standard'; // 'standard' ou 'projet'
+
+    // Structure des données pour l'affichage : ['original' => User, 'effective' => User, 'is_replaced' => bool]
+    public $managerData = null; 
+
+    // Liste des utilisateurs éligibles pour le mode projet (Excluant Auth et N+1)
+    public $projectUsersList = []; 
+
+    // IDs sélectionnés en mode projet
+    public $selected_project_users = [];
+
     // --- MODALS STATES ---
     public $isOpen = false; 
     public $isOpen3 = false; 
@@ -49,6 +61,8 @@ class DocsMemos extends Component
     public $effectiveReceiver = null; // Celui qui reçoit vraiment (N+1 ou Remplaçant)
     public $isReplaced = false;
     public $usersList = []; // Liste de tous les users pour choix multiple
+
+  
 
 
     
@@ -109,118 +123,154 @@ class DocsMemos extends Component
         $this->isOpen = false; 
     }
 
-    
+   
+
     public function assignMemo($id)
     {
         $this->memo_id = $id;
-        
-        // Reset des champs du formulaire
-        $this->workflow_comment = '';
-        $this->selected_visa = 'Vu'; // Valeur par défaut
-        $this->target_users_ids = [];
-        $this->isReplaced = false;
+        $this->reset(['workflow_comment', 'selected_visa', 'selected_project_users']);
+        $this->memo_type = 'standard'; // Par défaut
 
-        // 1. Récupérer le Manager (N+1) de l'utilisateur connecté
         $currentUser = Auth::user();
-        $managerId = $currentUser->manager_id; 
 
-        if ($managerId) {
-            $this->nPlusOneUser = User::find($managerId);
-            
-            if ($this->nPlusOneUser) {
-                // 2. Vérifier si ce manager est actuellement remplacé
-                // Note : On suppose que les dates sont stockées au format 'Y-m-d' dans la DB
-                $today = Carbon::now()->format('Y-m-d'); 
-
-                $replacement = ReplacesUser::where('user_id', $managerId)
-                    ->where('date_begin_replace', '<=', $today)
-                    ->where('date_end_replace', '>=', $today)
-                    ->first();
-
-                if ($replacement) {
-                    // CAS : Le manager est absent et remplacé
-                    $this->isReplaced = true;
-                    $this->effectiveReceiver = User::find($replacement->user_id_replace);
-                } else {
-                    // CAS : Le manager est présent
-                    $this->effectiveReceiver = $this->nPlusOneUser;
-                }
-            }
+        // 1. GESTION DU N+1 (MANAGER)
+        // On récupère le manager et on vérifie s'il est remplacé
+        if ($currentUser->manager_id) {
+            $manager = User::find($currentUser->manager_id);
+            $this->managerData = $this->resolveUserAvailability($manager);
         } else {
-            // Pas de manager défini dans la table users
-            $this->nPlusOneUser = null;
-            $this->effectiveReceiver = null;
+            $this->managerData = null;
         }
 
-        // 3. Charger la liste des autres utilisateurs (sauf soi-même)
-        // Pour permettre d'envoyer en copie ou à d'autres personnes
-        $this->usersList = User::where('id', '!=', Auth::id())
-                               ->orderBy('last_name')
-                               ->orderBy('first_name')
-                               ->get();
+        // 2. PRÉPARATION LISTE PROJET
+        // Tous les users SAUF : Moi-même ET mon Manager (N+1)
+        $excludeIds = [$currentUser->id];
+        if ($this->managerData) {
+            $excludeIds[] = $this->managerData['original']->id;
+        }
+
+        $this->projectUsersList = User::whereNotIn('id', $excludeIds)
+                                      ->orderBy('last_name')
+                                      ->get()
+                                      ->map(function($user) {
+                                          // On pré-calcule si ces users sont remplacés pour l'affichage
+                                          return $this->resolveUserAvailability($user);
+                                      });
 
         $this->isOpen3 = true;
     }
 
+    private function resolveUserAvailability($user)
+    {
+        // Sécurité : si aucun utilisateur n'est passé (ex: pas de manager), on renvoie null
+        if (!$user) return null;
+
+        // 1. On récupère la date du jour
+        // IMPORTANT : Le format doit être identique à ce qu'il y a dans ta DB (Y-m-d)
+        $today = Carbon::now()->format('Y-m-d'); 
+
+        // 2. La requête vérifie l'intervalle [Debut ..... AUJOURD'HUI ..... Fin]
+        $replacement = ReplacesUser::where('user_id', $user->id) // On cherche si cet user est remplacé
+            
+            // La date de début doit être passée ou être aujourd'hui
+            // (Ex: Si début = 01/12 et on est le 06/12 => "2025-12-01" <= "2025-12-06") -> VRAI
+            ->where('date_begin_replace', '<=', $today)
+            
+            // ET la date de fin doit être dans le futur ou aujourd'hui
+            // (Ex: Si fin = 31/12 et on est le 06/12 => "2025-12-31" >= "2025-12-06") -> VRAI
+            ->where('date_end_replace', '>=', $today)
+            
+            ->first();
+
+        // 3. Traitement du résultat
+        if ($replacement) {
+            // --- CAS : ON EST DANS LA PÉRIODE DE REMPLACEMENT ---
+            
+            // On cherche le user remplaçant
+            $replacingUser = User::find($replacement->user_id_replace);
+
+            // Sécurité supplémentaire : Si le compte du remplaçant a été supprimé entre temps
+            if ($replacingUser) {
+                return [
+                    'original' => $user,           // L'utilisateur de base (Absent)
+                    'effective' => $replacingUser, // Le remplaçant (Présent)
+                    'is_replaced' => true
+                ];
+            }
+        }
+
+        // --- CAS : PAS DE REMPLACEMENT OU HORS PÉRIODE ---
+        return [
+            'original' => $user,
+            'effective' => $user, // L'utilisateur reste lui-même
+            'is_replaced' => false
+        ];
+    }
+
+
     public function sendMemo()
     {
         $this->validate([
-            'selected_visa' => 'required', // Le visa est obligatoire
+            'selected_visa' => 'required',
             'workflow_comment' => 'nullable|string|max:1000',
+            // Si projet, il faut au moins un destinataire
+            'selected_project_users' => 'required_if:memo_type,projet|array',
+        ], [
+            'selected_project_users.required_if' => 'En mode projet, veuillez sélectionner au moins un collaborateur.'
         ]);
 
         $memo = Memo::find($this->memo_id);
         $currentUser = Auth::user();
-
-        // --- 1. Calcul des Destinataires (Current Holders) ---
         $nextHolders = [];
 
-         // A. Ajouter le destinataire hiérarchique
-        if ($this->effectiveReceiver) {
-            // Plus besoin de (string), on garde l'ID tel quel (entier ou string selon la DB)
-            $nextHolders[] = $this->effectiveReceiver->id;
+        // --- SCENARIO A : STANDARD (Envoi au N+1 ou son remplaçant) ---
+        if ($this->memo_type === 'standard') {
+            if ($this->managerData) {
+                // On envoie à l'utilisateur effectif (le remplaçant s'il existe, sinon le manager)
+                $nextHolders[] = $this->managerData['effective']->id;
+            } else {
+                $this->addError('general', "Vous n'avez pas de supérieur hiérarchique défini.");
+                return;
+            }
         }
 
-        /// B. Ajouter les destinataires manuels
-        if (!empty($this->target_users_ids)) {
-            foreach ($this->target_users_ids as $uid) {
-                // On s'assure que $uid est un entier pour la cohérence (optionnel, mais propre)
-                $uidClean = is_numeric($uid) ? (int)$uid : $uid;
-
-                if (!in_array($uidClean, $nextHolders)) {
-                    $nextHolders[] = $uidClean;
+        // --- SCENARIO B : PROJET (Envoi aux collaborateur sélectionnés ou leurs remplaçants) ---
+        if ($this->memo_type === 'projet') {
+            foreach ($this->selected_project_users as $userId) {
+                // On revérifie la disponibilité au moment de l'envoi (sécurité)
+                $targetUser = User::find($userId);
+                $availability = $this->resolveUserAvailability($targetUser);
+                
+                if ($availability['effective']) {
+                    $nextHolders[] = $availability['effective']->id;
                 }
             }
         }
 
-        // Sécurité : Si personne n'est ciblé
         if (empty($nextHolders)) {
-            $this->addError('effectiveReceiver', 'Veuillez sélectionner au moins un destinataire.');
+            $this->addError('general', 'Aucun destinataire valide trouvé.');
             return;
         }
 
-        // --- 2. Mise à jour du Mémo ---
-        
+        // Sauvegarde DB
         $memo->previous_holders = [$currentUser->id];
-        $memo->current_holders = $nextHolders;
-
+        $memo->current_holders = array_unique($nextHolders); // Éviter doublons
         $memo->status = 'envoyer'; 
         $memo->workflow_comment = $this->workflow_comment; 
+        // Optionnel : Sauvegarder le type de mémo si vous avez ajouté la colonne en base
+        // $memo->type = $this->memo_type; 
         
         $memo->save();
 
-        Historiques::firstOrCreate(
-            [
-                // Critères de recherche (Ce qui rend l'action unique)
-                'user_id' => $currentUser->id,
-                'memo_id' => $memo->id,
-                'visa'    => $this->selected_visa,
-                'workflow_comment' => $this->workflow_comment ?? 'R.A.S',
-            ]
-        );
-        // --- 4. Fin ---
+        Historiques::create([
+            'user_id' => $currentUser->id,
+            'memo_id' => $memo->id,
+            'visa'    => $this->selected_visa,
+            'workflow_comment' => $this->workflow_comment ?? 'R.A.S',
+        ]);
+
         $this->closeModalTrois();
-        $this->dispatch('notify', message: "Le mémo a été envoyer avec succès.");
+        $this->dispatch('notify', message: "Le mémo ($this->memo_type) a été envoyé avec succès.");
     }
 
     public function closeModalTrois() { $this->isOpen3 = false; }
@@ -233,7 +283,7 @@ class DocsMemos extends Component
             ->where('user_id', Auth::id())
             
             // UTILISATION DE whereIn POUR PLUSIEURS STATUTS
-            ->whereIn('status', ['envoyer', 'rejeter']) 
+            ->whereIn('status', ['envoyer', 'rejeter','transmit']) 
             
             ->where(function($query) {
                 $query->where('object', 'like', '%'.$this->search.'%')
