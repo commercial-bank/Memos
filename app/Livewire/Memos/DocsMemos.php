@@ -11,7 +11,10 @@ use App\Models\Historiques;
 use App\Models\MemoHistory;
 use App\Models\WrittenMemo;
 use App\Models\ReplacesUser;
+use App\Models\Destinataires;
+use Livewire\Attributes\Rule;
 use Illuminate\Support\Facades\Auth;
+use App\Notifications\MemoActionNotification;
 
 class DocsMemos extends Component
 {
@@ -33,12 +36,24 @@ class DocsMemos extends Component
 
     // --- MODALS STATES ---
     public $isOpen = false; 
+    public $isOpen2 = false; 
     public $isOpen3 = false; 
     public $isOpenHistory = false; 
 
     // --- CHAMPS DU MÉMO (SCHEMA DB) ---
     public $memo_id = null;
     public $memoHistory = [];
+
+    // --- GESTION DES DESTINATAIRES (TABLEAU DYNAMIQUE) ---
+    public $recipients = []; // Contient: ['entity_id', 'entity_name', 'action']
+    public $newRecipientEntity = '';
+    public $newRecipientAction = '';
+    public $allEntities = []; // Liste pour le select
+    public $actionsList = ['Faire le nécessaire', 'Prendre connaissance', 'Prendre position', 'Décider'];
+
+    // --- GESTION DES PIÈCES JOINTES ---
+    public $newAttachments = []; // Fichiers temporaires uploadés (Livewire)
+    public $existingAttachments = []; // Chemins des fichiers déjà en base (JSON)
 
      // --- DATA VIEW (Aperçu) ---
     public $date;
@@ -269,11 +284,160 @@ class DocsMemos extends Component
             'workflow_comment' => $this->workflow_comment ?? 'R.A.S',
         ]);
 
+         // ====================================================================
+        // GESTION DES NOTIFICATIONS (Basée sur current_holders / nextHolders)
+        // ====================================================================
+        
+        // On récupère les modèles User correspondant aux IDs trouvés juste au-dessus
+        $usersToNotify = User::whereIn('id', $nextHolders)->get();
+
+        foreach ($usersToNotify as $user) {
+            // $user : C'est l'utilisateur physique (ex: le Directeur ou son remplaçant)
+            // 'sent' : Le type d'action pour afficher le bon message/icône
+            $user->notify(new MemoActionNotification($memo, 'envoyer', $currentUser));
+        }
+        
+        // ====================================================================
+
         $this->closeModalTrois();
         $this->dispatch('notify', message: "Le mémo ($this->memo_type) a été envoyé avec succès.");
     }
 
     public function closeModalTrois() { $this->isOpen3 = false; }
+
+
+
+
+    public function editMemo($id)
+    {
+        $memo = Memo::with(['user', 'destinataires.entity'])->findOrFail($id);
+        
+        $this->memo_id = $memo->id;
+        $this->object = $memo->object;
+        $this->concern = $memo->concern ?? '';
+        $this->content = $memo->content;
+        
+        // 1. Charger les pièces jointes existantes (JSON)
+        $pj = $memo->pieces_jointes;
+        if (is_string($pj)) { $pj = json_decode($pj, true); }
+        $this->existingAttachments = is_array($pj) ? $pj : [];
+        $this->newAttachments = []; // Reset uploads
+
+        // 2. Charger les destinataires existants dans le tableau local
+        $this->recipients = $memo->destinataires->map(function($dest) {
+            return [
+                'entity_id' => $dest->entity_id,
+                'entity_name' => $dest->entity->name ?? 'Inconnu',
+                'action' => $dest->action
+            ];
+        })->toArray();
+
+        // Data pour l'aperçu si besoin
+        $this->date = $memo->created_at->format('d/m/Y');   
+        $entity = Entity::find($memo->user->entity_id);
+        $this->user_entity_name = $entity->name ?? 'Entité';
+
+        $this->resetValidation();
+        $this->isOpen2 = true;
+    }
+
+    // Ajouter un destinataire dans la liste temporaire
+    public function addRecipient()
+    {
+        $this->validate([
+            'newRecipientEntity' => 'required',
+            'newRecipientAction' => 'required'
+        ]);
+
+        $entity = $this->allEntities->firstWhere('id', $this->newRecipientEntity);
+
+        // Vérifier doublon
+        foreach ($this->recipients as $r) {
+            if ($r['entity_id'] == $this->newRecipientEntity) {
+                $this->addError('newRecipientEntity', 'Ce destinataire est déjà ajouté.');
+                return;
+            }
+        }
+
+        $this->recipients[] = [
+            'entity_id' => $entity->id,
+            'entity_name' => $entity->name, // ou $entity->title selon votre modèle
+            'action' => $this->newRecipientAction
+        ];
+
+        // Reset inputs
+        $this->newRecipientEntity = '';
+        $this->newRecipientAction = '';
+    }
+
+    // Retirer un destinataire de la liste temporaire
+    public function removeRecipient($index)
+    {
+        unset($this->recipients[$index]);
+        $this->recipients = array_values($this->recipients); // Réindexer
+    }
+
+    // Retirer une PJ existante
+    public function removeExistingAttachment($index)
+    {
+        // Optionnel : Supprimer le fichier physiquement si vous voulez
+        // Storage::delete($this->existingAttachments[$index]); 
+        
+        unset($this->existingAttachments[$index]);
+        $this->existingAttachments = array_values($this->existingAttachments);
+    }
+
+    // Retirer une nouvelle PJ (upload en cours)
+    public function removeNewAttachment($index)
+    {
+        array_splice($this->newAttachments, $index, 1);
+    }
+
+    public function save()
+    {
+        $this->validate();
+
+        // 1. Gestion des fichiers
+        $finalAttachments = $this->existingAttachments;
+
+        foreach ($this->newAttachments as $file) {
+            // Stocker dans 'attachments/memos' par exemple
+            $path = $file->store('attachments/memos', 'public');
+            $finalAttachments[] = $path; // On stocke juste le chemin ou un objet
+        }
+
+        // 2. Mise à jour ou Création du Mémo
+        $memo = Memo::updateOrCreate(
+            ['id' => $this->memo_id],
+            [
+                'object' => $this->object,
+                'concern' => $this->concern,
+                'content' => $this->content,
+                'pieces_jointes' => json_encode($finalAttachments), // Cast array to JSON
+                'user_id' => Auth::id(),
+                // 'status' => 'brouillon' // reste brouillon
+            ]
+        );
+
+        // 3. Synchronisation des destinataires (Suppression des anciens -> Création des nouveaux)
+        Destinataires::where('memo_id', $memo->id)->delete();
+
+        foreach ($this->recipients as $recipient) {
+            Destinataires::create([
+                'memo_id' => $memo->id,
+                'entity_id' => $recipient['entity_id'],
+                'action' => $recipient['action']
+            ]);
+        }
+
+        $this->closeModalDeux();
+        $this->dispatch('notify', message: "Mémo modifié avec succès !");
+    }
+
+    public function closeModalDeux() { 
+        $this->isOpen2 = false; 
+        $this->reset(['object', 'concern', 'content', 'recipients', 'newAttachments', 'existingAttachments']); 
+    }
 
     
 
@@ -294,6 +458,7 @@ class DocsMemos extends Component
 
         return view('livewire.memos.docs-memos', [
                 'memos' => $memos,
+                'entities' => $this->allEntities // Passe pour le select du modal
         ]);
     }
 

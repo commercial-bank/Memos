@@ -2,13 +2,17 @@
 
 namespace App\Livewire\Nav;
 
-use Livewire\Component;
-use Illuminate\Support\Facades\Auth;
 use App\Models\Memo;
+use Livewire\Component;
+use App\Models\Historiques;
+use Livewire\Attributes\Rule;
+use Livewire\WithPagination; 
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon; // N'oublie pas d'importer Carbon
 
 class Dashboard extends Component
 {
+     use WithPagination; 
      // Valeur par défaut du menu déroulant
     public $chartPeriod = '7_jours'; 
 
@@ -64,6 +68,29 @@ class Dashboard extends Component
         
         // Envoi de l'événement pour le Toast
         $this->dispatch('notify', message: "Brouillon $action avec succès !");
+    }
+
+    // --- GESTION DES NOTIFICATIONS ---
+
+    public function markNotificationAsRead($notificationId)
+    {
+        $notification = Auth::user()->notifications()->find($notificationId);
+
+        if ($notification) {
+            $notification->markAsRead();
+            
+            // --- CORRECTION : ON REDIRIGE VERS LE MÉMO ---
+            // On vérifie si un lien existe dans la notif avant de rediriger
+            if (!empty($notification->data['link']) && $notification->data['link'] !== '#') {
+                return redirect($notification->data['link']);
+            }
+        }
+    }
+
+    public function markAllNotificationsAsRead()
+    {
+        Auth::user()->unreadNotifications->markAsRead();
+        // On rafraichit juste le composant, pas besoin de message toast ici souvent
     }
 
 
@@ -135,6 +162,14 @@ class Dashboard extends Component
             series: $dataMemo
         );
 
+        // =================================================================
+        // NOUVEAU : RÉCUPÉRATION DES HISTORIQUES (Derniers mouvements)
+        // =================================================================
+         $recentMovements = Historiques::with('memo')
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->paginate(5); // <--- On affiche 5 éléments par page
+
         return view('livewire.nav.dashboard', [
             'toValidateCount_dir' => $toValidateCount,
             'toValidateCount_sd' =>  $toValidateCount2,
@@ -143,6 +178,7 @@ class Dashboard extends Component
             // On passe aussi les données initiales pour le premier chargement
             'chartCategories' => $categories,
             'chartSortants' => $dataMemo,
+            'recentMovements' => $recentMovements 
         ]);
     }
 }

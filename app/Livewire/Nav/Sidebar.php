@@ -1,47 +1,32 @@
 <?php
 
-namespace App\Livewire\nav;
-//use App\Models\User;
+namespace App\Livewire\Nav;
 
-use Illuminate\Support\Facades\Auth; // Import indispensable
-use Illuminate\Support\Facades\Session; // Import indispensable
 use Livewire\Component;
+use Livewire\Attributes\Url; 
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
 
 class Sidebar extends Component
 {
-    //public User $user; // Déclare une propriété publique de type User
-    public $activeTab = 'dashboard'; // Pour garder une trace de l'onglet actif
+    // Important : garde la trace de l'onglet dans l'URL
+    #[Url(as: 'tab')] 
+    public $activeTab = 'dashboard'; 
+
     public $isCollapsed = false; 
-
-    /* Méthode de montage du composant
-    public function mount(User $user)
-    {
-        $this->user = $user;
-    }*/
-
-   
 
     public function selectTab($tab)
     {
-        if($tab == "logout")
-        {
-
+        if($tab == "logout") {
             Auth::guard('web')->logout();
-
             Session::invalidate();
             Session::regenerateToken();
             return redirect()->route('login');
+        }
 
-        }
-        else
-        {
-            $this->activeTab = $tab;
-            // Nouvelle façon d'émettre un événement dans Livewire 3
-            $this->dispatch('tabSelected', tab: $tab); // Notez le 'tab:' pour les arguments nommés
-        }
-        
+        $this->activeTab = $tab;
+        $this->dispatch('tabSelected', tab: $tab); 
     }
-
 
     public function toggleSidebar()
     {

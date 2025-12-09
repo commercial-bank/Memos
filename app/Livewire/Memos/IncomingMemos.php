@@ -15,6 +15,7 @@ use App\Models\ReplacesUser;
 use App\Models\BlocEnregistrements;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;   
+use App\Notifications\MemoActionNotification;
 
 
 
@@ -339,6 +340,23 @@ class IncomingMemos extends Component
             'workflow_comment' => 'MOTIF REJET : ' . $this->reject_comment,
         ]);
 
+         // ====================================================================
+        // GESTION DES NOTIFICATIONS (Basée sur current_holders / nextHolders)
+        // ====================================================================
+        
+        $creator = $memo->user; // Assure-toi que la relation 'user' existe dans ton modèle Memo
+        // Sinon: $creator = User::find($memo->user_id);
+
+        if ($creator) {
+            // 2. On envoie la notification
+            // Paramètres : Le mémo, le type d'action, et l'acteur (Moi)
+            $creator->notify(new MemoActionNotification($memo, 'rejected', $currentUser));
+        }
+
+    
+        
+        // ====================================================================
+
         $this->closeRejectModal();
         $this->dispatch('notify', message: "Le mémo a été rejeté et renvoyé à son créateur.");
     }
@@ -406,6 +424,15 @@ class IncomingMemos extends Component
             'visa'    => 'Signé',
             'workflow_comment' => "Signature numérique " . ($user->poste == 'Directeur' ? "(Finale)" : "(Partielle)") . " : " . $token,
         ]);
+
+         // ====================================================================
+        // GESTION DES NOTIFICATIONS (Basée sur current_holders / nextHolders)
+        // ====================================================================
+        
+     
+            $user->notify(new MemoActionNotification($memo, 'signer', $user->id));
+         
+        // ====================================================================
 
         // 6. Feedback
         $this->dispatch('notify', message: $message);
@@ -493,6 +520,21 @@ class IncomingMemos extends Component
                 'workflow_comment' => "Enregistrement Ref: " . $referenceString,
             ]);
         });
+
+         // ====================================================================
+        // GESTION DES NOTIFICATIONS (Basée sur current_holders / nextHolders)
+        // ====================================================================
+        
+        // On récupère les modèles User correspondant aux IDs trouvés juste au-dessus
+        $usersToNotify = User::whereIn('id', $currentUser)->get();
+
+        foreach ($usersToNotify as $user) {
+            // $user : C'est l'utilisateur physique (ex: le Directeur ou son remplaçant)
+            // 'sent' : Le type d'action pour afficher le bon message/icône
+            $user->notify(new MemoActionNotification($memo, 'transmis', $currentUser));
+        }
+        
+        // ====================================================================
 
         $this->closeTransModal();
         $this->dispatch('notify', message: "Mémo enregistré et transmis avec succès !");

@@ -175,119 +175,139 @@
                             </div>
                         </div>
 
-                        <!-- B. ZONE DE NOTIFICATIONS & ACTIVITÉS (1/3 largeur) -->
-                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-full">
+                        <!-- B. ZONE DE NOTIFICATIONS & ACTIVITÉS -->
+                        <!-- J'ajoute wire:poll.10s pour vérifier les nouvelles notifs toutes les 10 secondes -->
+                        <div wire:poll.10s class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-full">
+                            
                             <!-- Header Notifs -->
                             <div class="p-5 border-b border-slate-100 flex justify-between items-center">
                                 <h3 class="text-lg font-bold text-slate-800">Notifications</h3>
-                                <span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">3 new</span>
+                                
+                                @php
+                                    $unreadCount = auth()->user()->unreadNotifications->count();
+                                @endphp
+
+                                @if($unreadCount > 0)
+                                    <span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                                        {{ $unreadCount }} new
+                                    </span>
+                                @else
+                                    <span class="bg-gray-100 text-gray-500 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+                                @endif
                             </div>
 
-                            <!-- Liste Scrollable -->
+                            <!-- Le reste de la liste (ul/li) reste exactement comme tu l'as écrit -->
                             <div class="flex-1 overflow-y-auto max-h-[350px] p-2">
                                 <ul class="space-y-1">
-                                    <!-- Item 1 -->
-                                    <li class="hover:bg-slate-50 p-3 rounded-lg transition-colors cursor-pointer group">
-                                        <div class="flex items-start gap-3">
-                                            <div class="bg-blue-100 text-blue-600 rounded-full p-2 mt-1 shrink-0">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                    @forelse(auth()->user()->unreadNotifications as $notification)
+                                        <!-- ... Ton code de boucle li ... -->
+                                        <!-- Juste une astuce : ajoute wire:ignore.self si tu as des soucis de clignotement -->
+                                        <li wire:key="{{ $notification->id }}" 
+                                            wire:click="markNotificationAsRead('{{ $notification->id }}')"
+                                            class="hover:bg-slate-50 p-3 rounded-lg transition-colors cursor-pointer group relative">
+                                            
+                                            <div class="flex items-start gap-3">
+                                                <div class="{{ $notification->data['icon_bg'] ?? 'bg-gray-100' }} {{ $notification->data['icon_color'] ?? 'text-gray-600' }} rounded-full p-2 mt-1 shrink-0">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        {!! $notification->data['icon_path'] ?? '' !!}
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium text-slate-800 group-hover:text-blue-600 transition">
+                                                        {{ $notification->data['message'] ?? 'Notification' }}
+                                                    </p>
+                                                    <p class="text-xs text-slate-500 font-semibold">
+                                                        {{ $notification->data['object'] ?? '' }}
+                                                    </p>
+                                                    <p class="text-xs text-slate-400">
+                                                        {{ $notification->data['details'] ?? '' }}
+                                                    </p>
+                                                    <p class="text-[10px] text-slate-400 mt-1">
+                                                        {{ $notification->created_at->diffForHumans() }}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p class="text-sm font-medium text-slate-800 group-hover:text-blue-600 transition">Nouveau mémo reçu</p>
-                                                <p class="text-xs text-slate-500">Service Comptabilité - "Factures proforma"</p>
-                                                <p class="text-[10px] text-slate-400 mt-1">Il y a 10 min</p>
-                                            </div>
-                                        </div>
-                                    </li>
-
-                                    <!-- Item 2 -->
-                                    <li class="hover:bg-slate-50 p-3 rounded-lg transition-colors cursor-pointer group">
-                                        <div class="flex items-start gap-3">
-                                            <div class="bg-yellow-100 text-yellow-600 rounded-full p-2 mt-1 shrink-0">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                            </div>
-                                            <div>
-                                                <p class="text-sm font-medium text-slate-800 group-hover:text-yellow-600 transition">Validation en attente</p>
-                                                <p class="text-xs text-slate-500">Réf: #MEM-2023-089</p>
-                                                <p class="text-[10px] text-slate-400 mt-1">Il y a 2h</p>
-                                            </div>
-                                        </div>
-                                    </li>
-
-                                    <!-- Item 3 -->
-                                    <li class="hover:bg-slate-50 p-3 rounded-lg transition-colors cursor-pointer group">
-                                        <div class="flex items-start gap-3">
-                                            <div class="bg-green-100 text-green-600 rounded-full p-2 mt-1 shrink-0">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                            </div>
-                                            <div>
-                                                <p class="text-sm font-medium text-slate-800 group-hover:text-green-600 transition">Mémo #402 Approuvé</p>
-                                                <p class="text-xs text-slate-500">Par Directeur Général</p>
-                                                <p class="text-[10px] text-slate-400 mt-1">Hier, 16:30</p>
-                                            </div>
-                                        </div>
-                                    </li>
+                                        </li>
+                                    @empty
+                                        <li class="flex flex-col items-center justify-center py-10 text-center">
+                                            <p class="text-slate-400 text-sm">Aucune nouvelle notification.</p>
+                                        </li>
+                                    @endforelse
                                 </ul>
                             </div>
                             
-                            <!-- Footer Notifs -->
+                            <!-- Footer -->
                             <div class="p-3 border-t border-slate-100 text-center">
-                                <button class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline">Voir tout l'historique</button>
+                                @if($unreadCount > 0)
+                                    <button wire:click="markAllNotificationsAsRead" class="text-xs font-semibold text-blue-600 hover:underline">
+                                        Tout marquer comme lu
+                                    </button>
+                                @else
+                                    <span class="text-xs text-gray-400">À jour</span>
+                                @endif
                             </div>
                         </div>
                     </div>
 
-                    <!-- 4. SECTION TABLEAU RÉCENT (Style "Table Financière") -->
-                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <!-- 4. SECTION TABLEAU RÉCENT -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                        
+                        <!-- En-tête -->
                         <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                            <h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Derniers Mouvements</h3>
-                            <button class="text-slate-400 hover:text-slate-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg></button>
+                            <h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Mes Derniers Mouvements</h3>
                         </div>
+                        
+                        <!-- Tableau -->
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-sm whitespace-nowrap">
                                 <thead>
                                     <tr class="text-slate-500 border-b border-slate-100">
-                                        <th class="px-6 py-3 font-medium">Référence</th>
-                                        <th class="px-6 py-3 font-medium">Objet</th>
-                                        <th class="px-6 py-3 font-medium">Statut</th>
+                                        <th class="px-6 py-3 font-medium">Objet du Mémo</th>
+                                        <th class="px-6 py-3 font-medium">Action / Visa</th>
                                         <th class="px-6 py-3 font-medium">Date</th>
-                                        <th class="px-6 py-3 font-medium text-right">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100">
-                                    <!-- Row 1 -->
-                                    <tr class="hover:bg-slate-50 transition-colors group">
-                                        <td class="px-6 py-3 font-mono text-slate-600 font-bold">#REF-2023-001</td>
-                                        <td class="px-6 py-3 text-slate-800 font-medium">Rapport Financier T3</td>
-                                        <td class="px-6 py-3">
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                Envoyé
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-3 text-slate-500">29 Nov 2025</td>
-                                        <td class="px-6 py-3 text-right">
-                                            <button class="text-slate-400 hover:text-blue-600 group-hover:opacity-100 opacity-0 transition-opacity">Voir</button>
-                                        </td>
-                                    </tr>
-                                    <!-- Row 2 -->
-                                    <tr class="hover:bg-slate-50 transition-colors group">
-                                        <td class="px-6 py-3 font-mono text-slate-600 font-bold">#REF-2023-002</td>
-                                        <td class="px-6 py-3 text-slate-800 font-medium">Demande de congés</td>
-                                        <td class="px-6 py-3">
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                Pending
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-3 text-slate-500">30 Nov 2025</td>
-                                        <td class="px-6 py-3 text-right">
-                                            <button class="text-slate-400 hover:text-blue-600 group-hover:opacity-100 opacity-0 transition-opacity">Voir</button>
-                                        </td>
-                                    </tr>
+                                    
+                                    @forelse($recentMovements as $history)
+                                        <tr class="hover:bg-slate-50 transition-colors group">
+                                            <!-- Objet -->
+                                            <td class="px-6 py-3 text-slate-800 font-medium">
+                                                <span class="block truncate max-w-[200px]" title="{{ $history->memo->object ?? 'Mémo supprimé' }}">
+                                                    {{ $history->memo->object ?? 'Mémo supprimé' }}
+                                                </span>
+                                            </td>
+                                            
+                                            <!-- Visa -->
+                                            <td class="px-6 py-3">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                    {{ $history->visa }}
+                                                </span>
+                                            </td>
+                                            
+                                            <!-- Date -->
+                                            <td class="px-6 py-3 text-slate-500 text-xs">
+                                                {{ $history->created_at->translatedFormat('d M Y, H:i') }}
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="px-6 py-8 text-center text-slate-500">
+                                                Aucun mouvement récent.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+
                                 </tbody>
                             </table>
                         </div>
-                    </div>
 
+                        <!-- ZONE DE PAGINATION (C'est ici que ça se passe) -->
+                        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/30">
+                            {{ $recentMovements->links() }}
+                        </div>
+
+                    </div>
                     <!-- Modal (Tailwind CSS Corrigé) -->
                     @if($isOpen)
                         <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">

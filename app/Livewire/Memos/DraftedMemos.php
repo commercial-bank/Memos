@@ -16,6 +16,7 @@ use Livewire\Attributes\Rule;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Notifications\MemoActionNotification;
 
 class DraftedMemos extends Component
 {
@@ -432,6 +433,21 @@ class DraftedMemos extends Component
             'visa'    => $this->selected_visa,
             'workflow_comment' => $this->workflow_comment ?? 'R.A.S',
         ]);
+
+        // ====================================================================
+        // GESTION DES NOTIFICATIONS (Basée sur current_holders / nextHolders)
+        // ====================================================================
+        
+        // On récupère les modèles User correspondant aux IDs trouvés juste au-dessus
+        $usersToNotify = User::whereIn('id', $nextHolders)->get();
+
+        foreach ($usersToNotify as $user) {
+            // $user : C'est l'utilisateur physique (ex: le Directeur ou son remplaçant)
+            // 'sent' : Le type d'action pour afficher le bon message/icône
+            $user->notify(new MemoActionNotification($memo, 'envoyer', $currentUser));
+        }
+        
+        // ====================================================================
 
         $this->closeModalTrois();
         $this->dispatch('notify', message: "Le mémo ($this->memo_type) a été envoyé avec succès.");
