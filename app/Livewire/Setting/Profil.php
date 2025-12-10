@@ -34,27 +34,29 @@ class Profil extends Component
     public $sous_direction_id;
     public $manager_id;
 
+    // Dans App\Livewire\Setting\Profil.php
+
     public function mount()
     {
-        $this->user = Auth::user();
+        // On charge l'utilisateur avec ses relations de remplacement
+        // 'replacements.substitute' = récupérer les infos des gens qui me remplacent
+        // 'replacing.user' = récupérer les infos des gens que je remplace
+        $this->user = Auth::user()->load(['replacements.substitute', 'replacing.user']);
 
-        // 1. Initialisation des listes déroulantes
-        // On récupère toutes les entités/SD/users pour les choix
-        $this->entites = Entity::all(); // Ou votre filtre spécifique
+        // ... Le reste de votre code mount existant (entites, sd, etc.) ...
+        $this->entites = Entity::all();
         $this->sd = SousDirection::all();
         $this->user_all = User::where('id', '!=', $this->user->id)->get();
-
-        // 2. Initialisation des objets liés (pour l'affichage actuel si besoin)
+        
+        // ... initialisation des variables ...
         $this->user_entity = Entity::find($this->user->entity_id);
         $this->user_sd = SousDirection::find($this->user->sous_direction_id);
         $this->user_manager = User::find($this->user->manager_id);
 
-        // 3. Initialisation des champs du formulaire avec les valeurs actuelles
         $this->poste = $this->user->poste;
         $this->departement = $this->user->departement;
         $this->service = $this->user->service;
         
-        // IMPORTANT : Initialiser les IDs pour que les <select> affichent la bonne valeur
         $this->entity_id = $this->user->entity_id;
         $this->sous_direction_id = $this->user->sous_direction_id;
         $this->manager_id = $this->user->manager_id;

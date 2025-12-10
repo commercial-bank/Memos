@@ -15,17 +15,15 @@ class Historiques extends Model
         'user_id',
     ];
 
-    public function memo()
-    {
-        // Un historique appartient à un Mémo
-        return $this->belongsTo(Memo::class);
-    }
-
-    
-
-    // C'est cette fonction que le "with('user')" appelle
+     // Relation inverse : Une ligne d'historique appartient à un User
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    // Relation inverse : Une ligne d'historique appartient à un Memo
+    public function memo()
+    {
+        return $this->belongsTo(Memo::class, 'memo_id');
     }
 }

@@ -430,7 +430,7 @@ class IncomingMemos extends Component
         // ====================================================================
         
      
-            $user->notify(new MemoActionNotification($memo, 'signer', $user->id));
+            //$user->notify(new MemoActionNotification($memo, 'signer', $user->id));
          
         // ====================================================================
 

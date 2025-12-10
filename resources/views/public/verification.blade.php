@@ -3,195 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vérification Document - Système Mémo</title>
+    <title>Vérification Officielle - {{ $memo->numero_ref }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Polices -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Merriweather:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; background: #f0f2f5; }
+        .font-legal { font-family: 'Merriweather', serif; }
+        .paper-texture {
+            background-color: #ffffff;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        .seal-shadow { box-shadow: 0 4px 15px rgba(217, 119, 6, 0.2); }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen py-8 px-4 flex items-center justify-center">
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <!-- CHANGEMENT ICI : max-w-3xl au lieu de max-w-md pour élargir la carte -->
-    <div class="w-full max-w-3xl bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-200">
+    <div class="w-full max-w-3xl paper-texture shadow-2xl rounded-sm border-t-8 border-yellow-600 relative overflow-hidden">
         
-        <!-- EN-TÊTE : Statut du Document -->
-        <div class="bg-green-50 p-8 text-center border-b border-green-100 relative overflow-hidden">
-            <!-- Décoration d'arrière plan -->
-            <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-green-100 rounded-full opacity-50"></div>
-            <div class="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-green-100 rounded-full opacity-50"></div>
+        <!-- EN-TÊTE -->
+        <div class="bg-gray-900 text-white p-8 text-center relative">
+            <!-- Ligne dorée en haut -->
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 via-yellow-300 to-yellow-500"></div>
             
-            <div class="relative z-10">
-                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white shadow-sm mb-4 text-green-600 ring-8 ring-green-100/50">
-                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-                </div>
-                <h1 class="text-2xl md:text-3xl font-bold text-gray-800 uppercase tracking-wide">Document Authentique</h1>
-                <p class="text-sm text-green-700 font-medium mt-2 bg-green-200 inline-block px-4 py-1.5 rounded-full">
-                    Certifié Conforme par le Système Central
-                </p>
+            <!-- Conteneur du Logo -->
+            <div class="inline-block p-3 rounded-full border-2 border-yellow-500/50 mb-3 bg-gray-800 seal-shadow">
+                <!-- Remplacement de la balise <i> par <img> -->
+                <!-- Ajustez h-12 et w-12 selon la taille voulue -->
+                <img src="{{ asset('images/log.jpg') }}" 
+                    alt="Logo Officiel" 
+                    class="h-12 w-12 object-contain">
             </div>
+
+            <h1 class="text-2xl md:text-3xl font-legal font-bold tracking-wide text-gray-100">Certificat d'Authenticité</h1>
+            <p class="text-xs text-gray-400 uppercase tracking-widest mt-2">Système de validation centralisé</p>
         </div>
 
-        <!-- SECTION 1 : Informations Clés (Disposées en grille sur grand écran) -->
-        <div class="p-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                
-                <!-- Colonne Gauche : Objet (Prend 2/3 de l'espace) -->
-                <div class="md:col-span-2">
-                    <p class="text-xs text-gray-400 uppercase tracking-widest font-bold mb-2">Objet du Mémo</p>
-                    <p class="text-gray-900 font-bold text-xl leading-snug border-l-4 border-green-500 pl-4 py-1">
-                        Mise en place de la nouvelle infrastructure serveur pour le département IT et migration des données sensibles.
-                    </p>
-                </div>
+        <!-- CORPS -->
+        <div class="p-8 md:p-12 space-y-10">
 
-                <!-- Colonne Droite : Métadonnées (Prend 1/3 de l'espace) -->
-                <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col justify-center space-y-4">
-                    <div>
-                        <p class="text-[10px] text-gray-400 uppercase font-bold">Référence Unique</p>
-                        <p class="font-mono text-base font-bold text-gray-700">#00892-XT</p>
-                    </div>
-                    <div class="w-full h-px bg-gray-200"></div>
-                    <div>
-                        <p class="text-[10px] text-gray-400 uppercase font-bold">Date de Création</p>
-                        <p class="font-mono text-base font-bold text-gray-700">29/11/2025</p>
-                    </div>
+            <!-- 1. IDENTIFICATION -->
+            <div class="text-center border-b border-gray-200 pb-8">
+                <p class="text-xs font-bold text-gray-400 uppercase mb-2">Objet du document</p>
+                <h2 class="text-xl font-legal text-gray-900 font-bold leading-relaxed">« {{ $memo->object }} »</h2>
+                <div class="mt-4 inline-flex items-center gap-2 bg-gray-100 px-3 py-1 rounded text-xs text-gray-600 font-mono">
+                    <i class="fas fa-barcode"></i> Réf: {{ $memo->reference }}
                 </div>
             </div>
-        </div>
 
-        <!-- SECTION 2 : Signatures Juridiques (Côte à côte sur grand écran) -->
-        <div class="border-t border-gray-100 px-8 py-6 bg-slate-50">
-            <h3 class="text-xs font-bold text-gray-400 uppercase mb-6 flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Signatures Officielles & Validation
-            </h3>
-            
-            <!-- Grille de signatures : 1 colonne sur mobile, 2 sur PC -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                <!-- Signature 1 : Sous-Directeur -->
-                <div class="bg-white p-5 rounded-xl border border-green-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                    <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-green-500"></div>
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 rounded-full bg-green-50 flex items-center justify-center font-bold text-green-700 text-sm border border-green-100">SD</div>
-                            <div>
-                                <p class="text-sm font-bold text-gray-400 uppercase tracking-wider">Sous-Directeur</p>
-                                <p class="text-base font-bold text-gray-800">Marc ATANGANA</p>
-                                <p class="text-[10px] text-gray-400 font-mono mt-1">ID: X7K9-P2M4-VALID</p>
+            <!-- 2. LES SIGNATAIRES -->
+            @if($signatures->count() > 0)
+            <div class="space-y-4">
+                <h3 class="text-sm font-bold text-yellow-700 uppercase tracking-wider border-b border-yellow-100 pb-2 mb-4">
+                    <i class="fas fa-pen-nib mr-2"></i> Décision & Signature
+                </h3>
+                @foreach($signatures as $history)
+                <div class="bg-yellow-50/50 border border-yellow-100 rounded-lg p-5 flex items-start gap-4 transition-all hover:shadow-md">
+                    <div class="flex-shrink-0 h-12 w-12 rounded-full bg-gray-900 text-yellow-500 flex items-center justify-center font-legal font-bold text-lg shadow-sm border-2 border-yellow-500">
+                        {{ substr($history->user->first_name, 0, 1) }}
+                    </div>
+                    <div class="flex-grow">
+                        <p class="text-gray-900 text-lg font-legal">
+                            <span class="font-bold">{{ $history->user->first_name }} {{ $history->user->last_name }}</span>
+                            <span class="text-base text-gray-600 font-normal">a signé en qualité de</span>
+                            <span class="font-bold text-gray-900 underline decoration-yellow-500/50 decoration-2 underline-offset-2">
+                                {{ $history->user->poste ?? 'Fonction non définie' }}
+                            </span>.
+                        </p>
+                        <div class="flex items-center gap-4 mt-2">
+                            <span class="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded uppercase">
+                                <i class="fas fa-check-circle mr-1"></i> Signé électroniquement
+                            </span>
+                            <span class="text-xs text-gray-400 font-mono">{{ $history->created_at->format('d/m/Y à H:i') }}</span>
+                        </div>
+                        @if($history->workflow_comment)
+                            <p class="mt-2 text-sm text-gray-600 italic border-l-2 border-yellow-300 pl-3">"{{ $history->workflow_comment }}"</p>
+                        @endif
+                    </div>
+                </div>
+                @endforeach
+            </div>
+            @endif
+
+            <!-- 3. LES VISAS (SEUL LES VALIDÉS) -->
+            @if($visas->count() > 0)
+            <div class="space-y-4 pt-4">
+                <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 pb-2 mb-4">
+                    <i class="fas fa-eye mr-2"></i> Circuit de Contrôle (Visas)
+                </h3>
+
+                <ul class="relative border-l-2 border-gray-200 ml-3 space-y-8">
+                    @foreach($visas as $history)
+                        @php
+                            // Détermination de la couleur selon l'action (UI Dynamique)
+                            $visaType = strtoupper($history->visa);
+                            if (str_contains($visaType, 'REJET')) {
+                                $badgeColor = 'bg-red-100 text-red-700 border-red-200';
+                                $dotColor = 'bg-red-500';
+                            } elseif (str_contains($visaType, 'ACCORD')) {
+                                $badgeColor = 'bg-green-100 text-green-700 border-green-200';
+                                $dotColor = 'bg-green-500';
+                            } else {
+                                $badgeColor = 'bg-blue-50 text-blue-700 border-blue-200'; // Transmit, Enregistré
+                                $dotColor = 'bg-blue-400';
+                            }
+                        @endphp
+
+                        <li class="ml-8 relative">
+                            <!-- Point sur la timeline -->
+                            <span class="absolute -left-[41px] top-1 h-5 w-5 rounded-full {{ $dotColor }} border-4 border-white shadow-sm"></span>
+                            
+                            <!-- Identité -->
+                            <div class="flex flex-col sm:flex-row sm:items-baseline gap-1">
+                                <p class="text-gray-800 text-base">
+                                    <span class="font-bold font-legal">{{ $history->user->first_name }} {{ $history->user->last_name }}</span>
+                                    <span class="text-gray-500 text-xs uppercase tracking-wide ml-1">({{ $history->user->poste ?? 'N/A' }})</span>
+                                </p>
                             </div>
-                        </div>
-                        <div class="text-center bg-green-50 px-3 py-1 rounded">
-                            <span class="text-xl">✅</span>
-                            <span class="text-[9px] text-green-700 font-bold block mt-1">SIGNÉ</span>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-                        <span class="text-xs text-gray-500 italic">"Vu et validé pour compétence."</span>
-                        <span class="text-[10px] text-gray-400 font-medium">29/11 à 14:30</span>
-                    </div>
-                </div>
 
-                <!-- Signature 2 : Directeur -->
-                <div class="bg-white p-5 rounded-xl border border-green-200 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                    <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-green-500"></div>
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 rounded-full bg-green-50 flex items-center justify-center font-bold text-green-700 text-sm border border-green-100">DIR</div>
-                            <div>
-                                <p class="text-sm font-bold text-gray-400 uppercase tracking-wider">Directeur</p>
-                                <p class="text-base font-bold text-gray-800">Jean DUPONT</p>
-                                <p class="text-[10px] text-gray-400 font-mono mt-1">ID: A1B2-C3D4-CERT</p>
+                            <!-- Action Visa -->
+                            <div class="mt-2 flex items-center gap-3">
+                                <span class="text-gray-600 text-sm italic">a visé :</span>
+                                <span class="inline-block {{ $badgeColor }} text-xs font-bold px-3 py-1 rounded-full border shadow-sm">
+                                    {{ $history->visa }}
+                                </span>
+                                <span class="text-xs text-gray-400 ml-auto font-mono">
+                                    {{ $history->created_at->format('d/m/Y') }}
+                                </span>
                             </div>
-                        </div>
-                        <div class="text-center bg-green-50 px-3 py-1 rounded">
-                            <span class="text-xl">✅</span>
-                            <span class="text-[9px] text-green-700 font-bold block mt-1">APPROUVÉ</span>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-                        <span class="text-xs text-gray-500 italic">"Bon pour accord."</span>
-                        <span class="text-[10px] text-gray-400 font-medium">30/11 à 09:15</span>
-                    </div>
-                </div>
 
+                            <!-- Affichage du Commentaire (Si présent) -->
+                            @if($history->workflow_comment)
+                                <div class="mt-3 bg-gray-50 p-3 rounded-md border border-gray-200 text-sm text-gray-600 relative">
+                                    <!-- Petite flèche CSS -->
+                                    <div class="absolute -top-2 left-4 w-3 h-3 bg-gray-50 border-l border-t border-gray-200 transform rotate-45"></div>
+                                    <p class="italic">" {{ $history->workflow_comment }} "</p>
+                                </div>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
             </div>
+            @endif
+
         </div>
 
-        <!-- SECTION 3 : Historique (Timeline) -->
-        <div class="p-8">
-            <h3 class="text-xs font-bold text-gray-400 uppercase mb-8 flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Traçabilité Complète
-            </h3>
-            
-            <!-- Timeline Container -->
-            <div class="relative border-l-2 border-gray-200 ml-3 space-y-10">
-                
-                <!-- Étape 3 (La plus récente) -->
-                <div class="ml-8 relative group">
-                    <span class="absolute -left-[39px] top-1 h-5 w-5 rounded-full bg-green-500 border-4 border-white shadow transition-transform group-hover:scale-125"></span>
-                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                        <div>
-                            <h4 class="text-base font-bold text-gray-800">Jean DIRECTEUR</h4>
-                            <p class="text-xs text-gray-500 font-medium">Direction Générale</p>
-                        </div>
-                        <span class="text-[11px] text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-mono">30/11/2025 - 09:15</span>
-                    </div>
-                    
-                    <div class="mt-3 inline-flex items-center gap-2 bg-green-50 text-green-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-green-100">
-                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                        Action : Validation Finale
-                    </div>
-                    <p class="text-sm text-gray-600 italic mt-3 bg-gray-50 p-3 rounded-lg border-l-4 border-green-300">
-                        "Validé. Procéder au déploiement immédiat."
-                    </p>
-                </div>
-
-                <!-- Étape 2 -->
-                <div class="ml-8 relative group">
-                    <span class="absolute -left-[39px] top-1 h-5 w-5 rounded-full bg-blue-500 border-4 border-white shadow transition-transform group-hover:scale-125"></span>
-                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                        <div>
-                            <h4 class="text-base font-bold text-gray-800">Paul MANAGER</h4>
-                            <p class="text-xs text-gray-500 font-medium">Service Informatique</p>
-                        </div>
-                        <span class="text-[11px] text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-mono">29/11/2025 - 16:00</span>
-                    </div>
-                    <div class="mt-3 inline-flex items-center gap-2 bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-blue-100">
-                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                        Action : Visa / Avis Favorable
-                    </div>
-                </div>
-
-                <!-- Étape 1 (Début) -->
-                <div class="ml-8 relative group">
-                    <span class="absolute -left-[39px] top-1 h-5 w-5 rounded-full bg-gray-300 border-4 border-white shadow transition-transform group-hover:scale-125"></span>
-                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                        <div>
-                            <h4 class="text-base font-bold text-gray-800">Marc EMPLOYÉ</h4>
-                            <p class="text-xs text-gray-500 font-medium">Développeur</p>
-                        </div>
-                        <span class="text-[11px] text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-mono">29/11/2025 - 10:00</span>
-                    </div>
-                    <div class="mt-3 inline-flex items-center gap-2 bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-200">
-                        <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                        Action : Création du Mémo
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- Pied de page -->
-        <div class="bg-gray-50 py-6 text-center border-t border-gray-200">
-            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-medium">
-                Document généré électroniquement par SecureMemo System • 2025
-            </p>
-            <p class="text-[10px] text-gray-300 mt-1">ID Unique: 892-XT-SECURE-HASH-256</p>
+        <!-- FOOTER -->
+        <div class="bg-gray-50 p-6 text-center border-t border-gray-200">
+            <p class="text-[10px] text-gray-400 uppercase tracking-widest">Document certifié par l'infrastructure sécurisée</p>
+            <p class="text-[9px] text-gray-300 font-mono mt-1">Token ID: {{ substr($memo->qr_code, 0, 20) }}...</p>
         </div>
 
     </div>
-
 </body>
 </html>

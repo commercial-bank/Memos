@@ -4,9 +4,10 @@ namespace App\Livewire\Setting;
 
 use App\Models\User;
 use App\Models\Entity;
-use App\Models\SousDirection;
 use Livewire\Component;
+use App\Models\ReplacesUser;
 use Livewire\WithPagination;
+use App\Models\SousDirection;
 use Illuminate\Validation\Rule;
 
 class Settings extends Component
@@ -23,6 +24,13 @@ class Settings extends Component
     public $itemId = null;
     public $ref;
     public $name;
+
+    // --- VARIABLES REMPLACEMENTS ---
+    public $replace_user_id;        // ID du remplaçant choisi
+    public $replace_actions = [];   // Array pour les checkoxes ['VISER', 'SIGNER']
+    public $date_begin;
+    public $date_end;
+    public $userReplacements = [];  // Liste des remplacements actuels de l'user édité
 
     // --- NAVIGATION & RECHERCHE ---
     
@@ -82,14 +90,68 @@ class Settings extends Component
     public function openEditModal($id)
     {
         $this->resetValidation();
-        // Sélection du modèle selon l'onglet
-        $model = $this->activeTab === 'entities' ? Entity::find($id) : SousDirection::find($id);
         
+        if ($this->activeTab === 'users') {
+            $model = User::with('replacements.substitute')->find($id);
+            // Charger les remplacements existants pour l'affichage
+            $this->userReplacements = $model->replacements; 
+            
+            // Initialiser les champs de l'utilisateur (votre code existant)
+            // ... $this->first_name = $model->first_name ...
+        } else {
+             // ... logique entity/sd existante
+             $model = $this->activeTab === 'entities' ? Entity::find($id) : SousDirection::find($id);
+        }
+
         $this->itemId = $model->id;
-        $this->ref = $model->ref;
-        $this->name = $model->name;
+        // ... reste de votre logique d'assignation
+        
         $this->isEditing = true;
         $this->showModal = true;
+    }
+
+     // --- LOGIQUE DE GESTION DES REMPLACANTS ---
+
+    public function addReplacement()
+    {
+        // Validation spécifique pour l'ajout d'un remplaçant
+        $this->validate([
+            'replace_user_id' => 'required|exists:users,id|different:itemId',
+            'date_begin'      => 'required|date',
+            'date_end'        => 'required|date|after_or_equal:date_begin',
+            'replace_actions' => 'required|array|min:1',
+        ], [
+            'replace_user_id.required' => 'Veuillez sélectionner un remplaçant.',
+            'replace_user_id.different'=> 'L\'utilisateur ne peut pas se remplacer lui-même.',
+            'replace_actions.required' => 'Veuillez choisir au moins une action autorisée.',
+            'date_end.after_or_equal'  => 'La date de fin doit être postérieure à la date de début.'
+        ]);
+
+        // Création
+        ReplacesUser::create([
+            'user_id'            => $this->itemId, // L'utilisateur en cours d'édition
+            'user_id_replace'    => $this->replace_user_id,
+            'action_replace'     => $this->replace_actions, // Casté automatiquement en JSON par le modèle
+            'date_begin_replace' => $this->date_begin,
+            'date_end_replace'   => $this->date_end,
+        ]);
+
+        // Rechargement de la liste et reset du petit formulaire
+        $this->userReplacements = ReplacesUser::where('user_id', $this->itemId)->with('substitute')->get();
+        $this->reset(['replace_user_id', 'date_begin', 'date_end', 'replace_actions']);
+        
+        $this->dispatch('notify', message: 'Remplaçant ajouté avec succès.');
+    }
+
+    public function removeReplacement($replacementId)
+    {
+        $rep = ReplacesUser::find($replacementId);
+        if ($rep && $rep->user_id == $this->itemId) {
+            $rep->delete();
+            // Rechargement de la liste
+            $this->userReplacements = ReplacesUser::where('user_id', $this->itemId)->with('substitute')->get();
+            $this->dispatch('notify', message: 'Remplacement supprimé.');
+        }
     }
 
     public function saveStructure()

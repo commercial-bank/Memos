@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Historiques;
 use App\Models\Destinataires;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
@@ -104,5 +105,13 @@ class Memo extends Model
     {
         return $this->belongsTo(User::class, 'current_holder_id');
     }
+
+     // === C'EST CETTE FONCTION QUI MANQUAIT ===
+    public function historiques()
+    {
+        return $this->hasMany(Historiques::class, 'memo_id');
+    }
+
+ 
     
 }

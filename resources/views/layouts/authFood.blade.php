@@ -1,3 +1,0 @@
-
-    @livewireScript
-</html>

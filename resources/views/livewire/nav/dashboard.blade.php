@@ -1,518 +1,338 @@
-<!-- Dashboard Container -->
-                <div class="space-y-6">
+<div class="space-y-8 pb-10">
 
-                    <!-- 1. HEADER : Bienvenue & Date -->
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h2 class="text-2xl font-bold tracking-tight text-slate-900">
-                                Tableau de Bord
-                            </h2>
-                            <p class="text-sm text-slate-500 mt-1">
-                                Vue d'ensemble de vos activités et flux documentaires.
-                            </p>
-                        </div>
-                        
-                        <div class="mt-4 md:mt-0 flex items-center gap-3">
-                            <!-- Date Widget -->
-                            <div class="hidden md:flex items-center px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-600 shadow-sm">
-                                <svg class="w-4 h-4 mr-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                {{ now()->translatedFormat('d F Y') }}
-                            </div>
-                            
-                            <!-- Bouton Création Rapide -->
-                            <button wire:click="openModal" class="bg-[#daaf2c] hover:bg-[#daaf2c] text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-lg flex items-center">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                Nouveau Mémo
-                            </button>
-                        </div>
-                    </div>
+    <!-- ============================================= -->
+    <!-- 1. STYLES LOCAUX (Pour garantir la charte)    -->
+    <!-- ============================================= -->
+    <style>
+        :root {
+            --gold: #daaf2c;
+            --gold-light: #daaf2c1a; /* 10% opacité */
+            --dark: #000000;
+        }
+        .text-gold { color: var(--gold); }
+        .bg-gold { background-color: var(--gold); }
+        .border-gold { border-color: var(--gold); }
+        .ring-gold:focus { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--gold); }
+        
+        /* Scrollbar fine et invisible pour un look épuré */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 20px; }
+    </style>
 
-                    <!-- 2. KPI CARDS (Inspiration Bancaire) -->
-                    <!-- Grid de 4 cartes avec indicateurs de progression -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        
-                        <!-- Carte 1 : Mémos Sortants -->
-                        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <div class="absolute right-0 top-0 h-full w-1 bg-yellow-500 group-hover:w-2 transition-all"></div>
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Mémos Sortants</p>
-                                    <h3 class="text-3xl font-bold text-slate-900 mt-2">
-                                        {{ $memosSortantsCount }}
-                                    </h3>
-                                </div>
-                                <div class="p-2 bg-yellow-50 rounded-lg text-yellow-600">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                                </div>
-                            </div>
-                        </div>
+    <!-- ============================================= -->
+    <!-- 2. HEADER : TITRE & BOUTON ACTION             -->
+    <!-- ============================================= -->
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+            <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">
+                Tableau de Bord
+            </h2>
+            <p class="text-gray-500 mt-2 font-medium">
+                Vue d'ensemble de vos activités et flux documentaires.
+            </p>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <!-- Date Widget -->
+            <div class="hidden md:flex items-center px-4 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-semibold text-gray-700 shadow-sm">
+                <svg class="w-4 h-4 mr-2 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                {{ now()->translatedFormat('d F Y') }}
+            </div>
+            
+        </div>
+    </div>
 
-
-                        <!-- Carte : Mémos Entrants -->
-                        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <!-- Barre latérale de couleur (orange/rouge pour sortant souvent, ou bleu) -->
-                            <div class="absolute right-0 top-0 h-full w-1 bg-blue-500 group-hover:w-2 transition-all"></div>
-                            
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <!-- J'ai mis à jour le label pour correspondre à la logique 'sortant' -->
-                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Mémos Entrants</p>
-                                    
-                                    <!-- ICI : Affichage de la variable dynamique -->
-                                    <h3 class="text-3xl font-bold text-slate-900 mt-2">
-                                        {{ $memosEntrantsCount }}
-                                    </h3>
-                                </div>
-                                
-                                <div class="p-2 bg-blue-50 rounded-lg text-blue-600">
-                                    <!-- Icône (j'ai gardé la vôtre, mais pour sortant on utilise souvent une flèche vers le haut/droite) -->
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
-                                </div>
-                            </div>
-                        </div>
-
-
-                        <!-- Carte 3 : Courriers -->
-                        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <div class="absolute right-0 top-0 h-full w-1 bg-purple-500 group-hover:w-2 transition-all"></div>
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Courriers</p>
-                                    <h3 class="text-3xl font-bold text-slate-900 mt-2">142</h3>
-                                </div>
-                                <div class="p-2 bg-purple-50 rounded-lg text-purple-600">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                                </div>
-                            </div>
-                            <div class="mt-4 flex items-center text-xs">
-                                <span class="text-slate-500 font-medium">Archive globale</span>
-                            </div>
-                        </div>
-                        
-                        <!-- Carte 4 : Validation Requise (Action) -->
-                        <!-- Vérification si l'utilisateur est Directeur -->
-                        @if(auth()->user()->poste == 'Directeur')
-
-                            <div class="bg-slate-900 rounded-xl p-6 shadow-lg shadow-slate-300 transform hover:-translate-y-1 transition-transform cursor-pointer">
-                                <div class="flex justify-between items-start text-white">
-                                    <div>
-                                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">À Valider (DIR)</p>
-                                        <!-- Correction : ajout du $ devant la variable -->
-                                        <h3 class="text-3xl font-bold mt-2">{{ $toValidateCount_dir }}</h3>
-                                    </div>
-                                    <div class="p-2 bg-slate-800 rounded-lg text-yellow-400">
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    </div>
-                                </div>
-                                <div class="mt-4 border-t border-slate-700 pt-2">
-                                    <p class="text-xs text-slate-300">
-                                        @if($toValidateCount_dir > 0)
-                                            Documents en attente de signature DIR.
-                                        @else
-                                            Aucun mémo à signer.
-                                        @endif
-                                    </p>
-                                </div>
-                            </div>
-
-                        <!-- Vérification si l'utilisateur est Sous-Directeur -->
-                        @elseif(auth()->user()->poste == 'Sous-Directeur')
-
-                            <div class="bg-slate-800 rounded-xl p-6 shadow-lg shadow-slate-300 transform hover:-translate-y-1 transition-transform cursor-pointer">
-                                <div class="flex justify-between items-start text-white">
-                                    <div>
-                                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">À Valider (SD)</p>
-                                        <!-- On affiche la variable spécifique au SD -->
-                                        <h3 class="text-3xl font-bold mt-2">{{ $toValidateCount_sd }}</h3>
-                                    </div>
-                                    <div class="p-2 bg-slate-700 rounded-lg text-indigo-400">
-                                        <!-- J'ai changé un peu l'icône ou la couleur pour différencier -->
-                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                    </div>
-                                </div>
-                                <div class="mt-4 border-t border-slate-600 pt-2">
-                                    <p class="text-xs text-slate-300">
-                                        @if($toValidateCount_sd > 0)
-                                            Documents en attente de signature SD.
-                                        @else
-                                            Aucun mémo à viser.
-                                        @endif
-                                    </p>
-                                </div>
-                            </div>
-
-                        @else
-
-                            <!-- Cas par défaut (Employé lambda) -->
-                            <div class="bg-gray-100 rounded-xl p-6 border border-gray-200">
-                                <p class="text-gray-500 text-sm">Aucune action de signature requise pour votre poste.</p>
-                            </div>
-
-                        @endif
-                        
-                    </div>
-
-                    <!-- 3. MAIN SECTION : Graphe & Notifications -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        
-                        <!-- A. GRAPHE DE SUIVI -->
-                        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                            <div class="flex justify-between items-center mb-6">
-                                <h3 class="text-lg font-bold text-slate-800">Flux de Création</h3>
-                                
-                                <!-- Select avec Livewire pour dynamiser la période -->
-                                <select wire:model.live="chartPeriod" class="bg-slate-50 border-none text-xs rounded-md text-slate-600 py-1 px-3 focus:ring-0 cursor-pointer outline-none shadow-sm">
-                                    <option value="7_jours">7 derniers jours</option>
-                                    <option value="ce_mois">Ce mois</option>
-                                    <!-- <option value="cette_annee">Cette année</option> -->
-                                </select>
-                            </div>
-                            
-                            <!-- Zone du Graphique -->
-                            <!-- On utilise wire:ignore pour qu'Alpine/Livewire ne réinitialise pas le div brutalement -->
-                            <div wire:ignore>
-                                <div id="chart-timeline" class="h-80 w-full"></div>
-                            </div>
-                        </div>
-
-                        <!-- B. ZONE DE NOTIFICATIONS & ACTIVITÉS -->
-                        <!-- J'ajoute wire:poll.10s pour vérifier les nouvelles notifs toutes les 10 secondes -->
-                        <div wire:poll.10s class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-full">
-                            
-                            <!-- Header Notifs -->
-                            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
-                                <h3 class="text-lg font-bold text-slate-800">Notifications</h3>
-                                
-                                @php
-                                    $unreadCount = auth()->user()->unreadNotifications->count();
-                                @endphp
-
-                                @if($unreadCount > 0)
-                                    <span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
-                                        {{ $unreadCount }} new
-                                    </span>
-                                @else
-                                    <span class="bg-gray-100 text-gray-500 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
-                                @endif
-                            </div>
-
-                            <!-- Le reste de la liste (ul/li) reste exactement comme tu l'as écrit -->
-                            <div class="flex-1 overflow-y-auto max-h-[350px] p-2">
-                                <ul class="space-y-1">
-                                    @forelse(auth()->user()->unreadNotifications as $notification)
-                                        <!-- ... Ton code de boucle li ... -->
-                                        <!-- Juste une astuce : ajoute wire:ignore.self si tu as des soucis de clignotement -->
-                                        <li wire:key="{{ $notification->id }}" 
-                                            wire:click="markNotificationAsRead('{{ $notification->id }}')"
-                                            class="hover:bg-slate-50 p-3 rounded-lg transition-colors cursor-pointer group relative">
-                                            
-                                            <div class="flex items-start gap-3">
-                                                <div class="{{ $notification->data['icon_bg'] ?? 'bg-gray-100' }} {{ $notification->data['icon_color'] ?? 'text-gray-600' }} rounded-full p-2 mt-1 shrink-0">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        {!! $notification->data['icon_path'] ?? '' !!}
-                                                    </svg>
-                                                </div>
-                                                <div>
-                                                    <p class="text-sm font-medium text-slate-800 group-hover:text-blue-600 transition">
-                                                        {{ $notification->data['message'] ?? 'Notification' }}
-                                                    </p>
-                                                    <p class="text-xs text-slate-500 font-semibold">
-                                                        {{ $notification->data['object'] ?? '' }}
-                                                    </p>
-                                                    <p class="text-xs text-slate-400">
-                                                        {{ $notification->data['details'] ?? '' }}
-                                                    </p>
-                                                    <p class="text-[10px] text-slate-400 mt-1">
-                                                        {{ $notification->created_at->diffForHumans() }}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </li>
-                                    @empty
-                                        <li class="flex flex-col items-center justify-center py-10 text-center">
-                                            <p class="text-slate-400 text-sm">Aucune nouvelle notification.</p>
-                                        </li>
-                                    @endforelse
-                                </ul>
-                            </div>
-                            
-                            <!-- Footer -->
-                            <div class="p-3 border-t border-slate-100 text-center">
-                                @if($unreadCount > 0)
-                                    <button wire:click="markAllNotificationsAsRead" class="text-xs font-semibold text-blue-600 hover:underline">
-                                        Tout marquer comme lu
-                                    </button>
-                                @else
-                                    <span class="text-xs text-gray-400">À jour</span>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 4. SECTION TABLEAU RÉCENT -->
-                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                        
-                        <!-- En-tête -->
-                        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                            <h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Mes Derniers Mouvements</h3>
-                        </div>
-                        
-                        <!-- Tableau -->
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm whitespace-nowrap">
-                                <thead>
-                                    <tr class="text-slate-500 border-b border-slate-100">
-                                        <th class="px-6 py-3 font-medium">Objet du Mémo</th>
-                                        <th class="px-6 py-3 font-medium">Action / Visa</th>
-                                        <th class="px-6 py-3 font-medium">Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    
-                                    @forelse($recentMovements as $history)
-                                        <tr class="hover:bg-slate-50 transition-colors group">
-                                            <!-- Objet -->
-                                            <td class="px-6 py-3 text-slate-800 font-medium">
-                                                <span class="block truncate max-w-[200px]" title="{{ $history->memo->object ?? 'Mémo supprimé' }}">
-                                                    {{ $history->memo->object ?? 'Mémo supprimé' }}
-                                                </span>
-                                            </td>
-                                            
-                                            <!-- Visa -->
-                                            <td class="px-6 py-3">
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                                    {{ $history->visa }}
-                                                </span>
-                                            </td>
-                                            
-                                            <!-- Date -->
-                                            <td class="px-6 py-3 text-slate-500 text-xs">
-                                                {{ $history->created_at->translatedFormat('d M Y, H:i') }}
-                                            </td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="3" class="px-6 py-8 text-center text-slate-500">
-                                                Aucun mouvement récent.
-                                            </td>
-                                        </tr>
-                                    @endforelse
-
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- ZONE DE PAGINATION (C'est ici que ça se passe) -->
-                        <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/30">
-                            {{ $recentMovements->links() }}
-                        </div>
-
-                    </div>
-                    <!-- Modal (Tailwind CSS Corrigé) -->
-                    @if($isOpen)
-                        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-                            
-                            <!-- L'arrière-plan sombre (Overlay) -->
-                            <!-- On ajoute 'fixed inset-0' pour qu'il prenne tout l'écran -->
-                            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-
-                            <!-- Le conteneur de positionnement -->
-                            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-                                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                                    
-                                    <!-- Le panneau du formulaire (La boite blanche) -->
-                                    <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-200">
-                                        
-                                        <form wire:submit.prevent="save">
-                                            <!-- Corps du modal -->
-                                            <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                                                <h3 class="text-lg font-semibold leading-6 text-gray-900 mb-4" id="modal-title">
-                                                    Nouveau Memo
-                                                </h3>
-                                                
-                                                <!-- Champ Object -->
-                                                <div class="mb-4">
-                                                    <label for="object" class="block text-sm font-medium text-gray-700 mb-1">Object</label>
-                                                    <input type="text" wire:model="object" id="object" class="w-full rounded-md border-yellow-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 py-2 px-3 border text-gray-900">
-                                                    @error('object') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-                                                </div>
-
-                                                <!-- Champ concernet -->
-                                                <div class="mb-4">
-                                                    <label for="object" class="block text-sm font-medium text-gray-700 mb-1">Concerne</label>
-                                                    <input type="text" wire:model="concern" id="concern" class="w-full rounded-md border-yellow-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 py-2 px-3 border text-gray-900">
-                                                    @error('concern') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-                                                </div>
-
-
-                                                <!-- Champ Contenu (Éditeur Riche) -->
-                                                        <div class="mb-4">
-                                                            <label for="content" class="block text-sm font-medium text-gray-700 mb-1">Contenu</label>
-                                                            
-                                                            <div wire:ignore 
-                                                                class="rounded-md shadow-sm"
-                                                                x-data="{
-                                                                    content: @entangle('content'),
-                                                                    initQuill() {
-                                                                        const quill = new Quill(this.$refs.quillEditor, {
-                                                                            theme: 'snow',
-                                                                            placeholder: 'Rédigez votre mémo ici...',
-                                                                            modules: {
-                                                                                toolbar: [
-                                                                                    // GROUPE 1 : Titres et Polices
-                                                                                    [{ 'header': [1, 2, 3, false] }], // H1, H2, H3, Normal
-
-                                                                                    // GROUPE 2 : Formatage de base
-                                                                                    ['bold', 'italic', 'underline', 'strike'], // Gras, Italique, Souligné, Barré
-                                                                                    
-                                                                                    // GROUPE 3 : Couleurs
-                                                                                    [{ 'color': [] }, { 'background': [] }], // Couleur du texte & Surlignage
-
-                                                                                    // GROUPE 4 : Listes et Indentation
-                                                                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }], 
-                                                                                    [{ 'indent': '-1'}, { 'indent': '+1' }], // Diminuer/Augmenter le retrait
-
-                                                                                    // GROUPE 5 : Alignement
-                                                                                    [{ 'align': [] }], 
-
-                                                                                    // GROUPE 6 : Insertion (Lien)
-                                                                                    ['link'], // Outil pour insérer un lien hypertexte
-
-                                                                                    // GROUPE 7 : Nettoyage
-                                                                                    ['clean'] // Effacer le formatage
-                                                                                ]
-                                                                            }
-                                                                        });
-
-                                                                        // Charger le contenu initial s'il existe (édition)
-                                                                        if (this.content) {
-                                                                            quill.root.innerHTML = this.content;
-                                                                        }
-
-                                                                        // Synchroniser Quill vers Livewire quand on tape
-                                                                        quill.on('text-change', () => {
-                                                                            this.content = quill.root.innerHTML;
-                                                                        });
-                                                                    }
-                                                                }"
-                                                                x-init="initQuill()"
-                                                            >
-                                                                <!-- Le conteneur visuel de l'éditeur -->
-                                                                <div class="bg-white border border-gray-300 rounded-md overflow-hidden focus-within:border-yellow-500 focus-within:ring-1 focus-within:ring-yellow-500 transition-all duration-200">
-                                                                    <!-- La zone de saisie Quill -->
-                                                                    <div x-ref="quillEditor" class="min-h-[150px] max-h-[300px] text-gray-800 text-base font-sans"></div>
-                                                                </div>
-                                                            </div>
-
-                                                            @error('content') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-                                                        </div>
-                                            </div>
-                                            
-                                            <!-- Pied du modal (Boutons) -->
-                                            <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                                                <button type="submit" class="inline-flex w-full justify-center rounded-md bg-yellow-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-yellow-500 sm:ml-3 sm:w-auto">
-                                                    Enregistrer
-                                                </button>
-                                                <button type="button" wire:click="closeModal" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
-                                                    Annuler
-                                                </button>
-                                            </div>
-                                        </form>
-
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-   
-
-
+    <!-- ============================================= -->
+    <!-- 3. KPI CARDS (CARTES INDICATEURS)             -->
+    <!-- ============================================= -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <!-- Carte 1 : Mémos Sortants (Style Gold) -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all group relative overflow-hidden">
+            <div class="absolute -right-6 -top-6 w-24 h-24 bg-yellow-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+            <div class="relative flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-gray-400">Sortants</p>
+                    <h3 class="text-4xl font-black text-gray-900 mt-3">{{ $memosSortantsCount }}</h3>
                 </div>
+                <div class="p-3 bg-gold text-black rounded-xl shadow-md">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                </div>
+            </div>
+            <div class="relative mt-4 flex items-center text-xs font-medium text-gold">
+                <span>Émis par vous</span>
+            </div>
+        </div>
 
+        <!-- Carte 2 : Mémos Entrants (Style Noir) -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all group relative overflow-hidden">
+             <div class="absolute -right-6 -top-6 w-24 h-24 bg-gray-50 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+            <div class="relative flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-gray-400">Entrants</p>
+                    <h3 class="text-4xl font-black text-gray-900 mt-3">{{ $memosEntrantsCount }}</h3>
+                </div>
+                <div class="p-3 bg-gray-900 text-white rounded-xl shadow-md">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+                </div>
+            </div>
+            <div class="relative mt-4 flex items-center text-xs font-medium text-gray-500">
+                <span>Reçus ce mois</span>
+            </div>
+        </div>
+
+        <!-- Carte 3 : Archives (Minimaliste) -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all relative overflow-hidden">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-widest text-gray-400">Archives</p>
+                    <h3 class="text-4xl font-black text-gray-900 mt-3">142</h3>
+                </div>
+                <div class="p-3 bg-gray-100 text-gray-600 rounded-xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Carte 4 : Actions / Signatures (Logique conditionnelle) -->
+        @php
+            $isDirector = auth()->user()->poste == 'Directeur';
+            $isSubDirector = auth()->user()->poste == 'Sous-Directeur';
+            // Calcul du nombre selon le poste
+            $count = $isDirector ? $toValidateCount_dir : ($isSubDirector ? $toValidateCount_sd : 0);
+            $hasAction = ($isDirector || $isSubDirector) && $count > 0;
+        @endphp
+
+        @if($isDirector || $isSubDirector)
+            <div class="{{ $hasAction ? 'bg-black text-white' : 'bg-gray-50' }} rounded-2xl p-6 shadow-lg transition-all transform hover:-translate-y-1 cursor-pointer border border-gray-200">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-widest {{ $hasAction ? 'text-gold' : 'text-gray-400' }}">
+                            À Signer
+                        </p>
+                        <h3 class="text-4xl font-black mt-3 {{ $hasAction ? 'text-white' : 'text-gray-400' }}">
+                            {{ $count }}
+                        </h3>
+                    </div>
+                    <div class="p-3 rounded-xl {{ $hasAction ? 'bg-gold text-black' : 'bg-gray-200 text-gray-400' }}">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </div>
+                </div>
+                <div class="mt-4 text-xs font-medium {{ $hasAction ? 'text-gray-300' : 'text-gray-400' }}">
+                    {{ $hasAction ? 'Action requise immédiatement' : 'Tout est à jour' }}
+                </div>
+            </div>
+        @else
+            <!-- Placeholder pour employés standards -->
+            <div class="bg-gray-50 rounded-2xl p-6 border border-dashed border-gray-300 flex flex-col justify-center items-center text-center">
+                 <span class="text-gray-400 mb-2">
+                    <svg class="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                 </span>
+                 <p class="text-sm text-gray-500 font-medium">Aucune tâche en attente</p>
+            </div>
+        @endif
+    </div>
+
+    <!-- ============================================= -->
+    <!-- 4. MAIN GRID (Graphique & Notifications)      -->
+    <!-- ============================================= -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- A. GRAPHIQUE -->
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900">Activité</h3>
+                    <p class="text-sm text-gray-500">Volume des mémos générés</p>
+                </div>
                 
-                <!-- SCRIPT DU GRAPHIQUE -->
-                <script>
-                    document.addEventListener('livewire:initialized', () => {
-                        // 1. Initialisation du graphique avec les données PHP initiales
-                        var options = {
-                            series: [{
-                                name: 'Creer',
-                                data: @json($chartSortants) // Données au chargement de la page
-                            }],
-                            chart: {
-                                height: 320,
-                                type: 'area',
-                                toolbar: { show: false },
-                                zoom: { enabled: false },
-                                animations: {
-                                    enabled: true, // Animation fluide lors du changement
-                                    easing: 'easeinout',
-                                    speed: 800,
-                                }
-                            },
-                            colors: ['#d6da18c4'], // Votre couleur jaune
-                            dataLabels: { enabled: false },
-                            stroke: { curve: 'smooth', width: 2 },
-                            xaxis: {
-                                categories: @json($chartCategories),
-                                axisBorder: { show: false },
-                                axisTicks: { show: false }
-                            },
-                            yaxis: {
-                                show: true,
-                                tickAmount: 3,
-                                labels: {
-                                    formatter: function (val) {
-                                        return val.toFixed(0);
-                                    }
-                                }
-                            },
-                            grid: {
-                                borderColor: '#f1f5f9',
-                                strokeDashArray: 4,
-                            },
-                            fill: {
-                                type: 'gradient',
-                                gradient: {
-                                    shadeIntensity: 1,
-                                    opacityFrom: 0.4,
-                                    opacityTo: 0.05,
-                                    stops: [0, 90, 100]
-                                }
-                            },
-                            tooltip: {
-                                theme: 'light',
-                                y: {
-                                    formatter: function (val) {
-                                        return val + " mémos"
-                                    }
-                                }
-                            }
-                        };
+                <div class="relative">
+                    <select wire:model.live="chartPeriod" class="appearance-none bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-gold focus:border-gold block w-full p-2.5 pr-8 cursor-pointer font-medium outline-none">
+                        <option value="7_jours">7 derniers jours</option>
+                        <option value="ce_mois">Ce mois</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div wire:ignore class="relative">
+                <div id="chart-timeline" class="h-80 w-full"></div>
+            </div>
+        </div>
 
-                        // Création de l'instance
-                        var chart = new ApexCharts(document.querySelector("#chart-timeline"), options);
-                        chart.render();
+        <!-- B. NOTIFICATIONS (Timeline Style) -->
+        <div wire:poll.10s class="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col h-full overflow-hidden">
+            
+            <!-- Définition de la variable pour éviter l'erreur -->
+            @php
+                $unreadCount = auth()->user()->unreadNotifications->count();
+            @endphp
 
-                        // 2. Écouteur de l'événement Livewire pour la mise à jour dynamique
-                        // L'événement récupère les données envoyées par $this->dispatch(...)
-                        Livewire.on('update-chart', (data) => {
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 class="font-bold text-gray-900">Notifications</h3>
+                @if($unreadCount > 0)
+                    <button wire:click="markAllNotificationsAsRead" class="text-[10px] uppercase font-bold tracking-wider text-gold hover:text-yellow-600 transition">
+                        Tout effacer
+                    </button>
+                @else
+                     <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400">À jour</span>
+                @endif
+            </div>
+
+            <div class="flex-1 overflow-y-auto max-h-[400px] p-4 custom-scrollbar">
+                <ul class="relative border-l-2 border-gray-100 ml-3 space-y-6">
+                    @forelse(auth()->user()->unreadNotifications as $notification)
+                        <li wire:key="{{ $notification->id }}" 
+                            wire:click="markNotificationAsRead('{{ $notification->id }}')"
+                            class="mb-2 ml-6 group cursor-pointer">
                             
-                            // data est un tableau ou objet contenant les arguments nommés envoyés par PHP
-                            // Livewire 3 envoie souvent data[0] ou l'objet directement selon la version.
-                            // On s'assure de récupérer les bons champs.
+                            <!-- Point sur la timeline -->
+                            <span class="absolute -left-[9px] mt-1.5 h-4 w-4 rounded-full border-2 border-white bg-gold ring-4 ring-gray-50 group-hover:ring-yellow-100 transition-all"></span>
                             
-                            // Mise à jour de la courbe (Série)
-                            chart.updateSeries([{
-                                data: data.series
-                            }]);
+                            <div class="p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
+                                <p class="text-sm font-bold text-gray-900 leading-snug">
+                                    {{ $notification->data['message'] ?? 'Notification' }}
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    {{ $notification->data['object'] ?? '' }}
+                                </p>
+                                <span class="text-[10px] font-semibold text-gray-400 mt-2 block">
+                                    {{ $notification->created_at->diffForHumans() }}
+                                </span>
+                            </div>
+                        </li>
+                    @empty
+                        <li class="py-12 text-center">
+                            <div class="inline-block p-4 rounded-full bg-gray-50 mb-3">
+                                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                            </div>
+                            <p class="text-sm text-gray-500 font-medium">Rien à signaler pour l'instant.</p>
+                        </li>
+                    @endforelse
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- 5. TABLEAU RÉCENT (CLEAN LIST)                -->
+    <!-- ============================================= -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="px-8 py-6 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-gray-900">Mouvements Récents</h3>
+            <span class="text-xs font-medium text-gray-400 bg-gray-50 px-3 py-1 rounded-full">Historique</span>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="text-xs uppercase tracking-wider text-gray-400 border-b border-gray-50">
+                        <th class="px-8 py-4 font-semibold">Objet</th>
+                        <th class="px-8 py-4 font-semibold">Statut / Visa</th>
+                        <th class="px-8 py-4 font-semibold text-right">Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @forelse($recentMovements as $history)
+                        <tr class="hover:bg-gray-50/80 transition-colors group">
+                            <!-- Objet -->
+                            <td class="px-8 py-4">
+                                <div class="flex items-center">
+                                    <div class="h-8 w-8 rounded-full bg-yellow-50 text-gold flex items-center justify-center mr-3 flex-shrink-0">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    </div>
+                                    <span class="font-medium text-gray-900 truncate max-w-[250px]" title="{{ $history->memo->object ?? '' }}">
+                                        {{ $history->memo->object ?? 'Document supprimé' }}
+                                    </span>
+                                </div>
+                            </td>
                             
-                            // Mise à jour de l'axe X (Dates)
-                            chart.updateOptions({
-                                xaxis: {
-                                    categories: data.categories
-                                }
-                            });
-                        });
-                    });
-                </script>
+                            <!-- Visa -->
+                            <td class="px-8 py-4">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border 
+                                    {{ $history->visa == 'Validé' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-50 text-gray-600 border-gray-200' }}">
+                                    {{ $history->visa }}
+                                </span>
+                            </td>
+                            
+                            <!-- Date -->
+                            <td class="px-8 py-4 text-right text-sm text-gray-500 font-mono">
+                                {{ $history->created_at->format('d/m/Y') }} <span class="text-gray-300">|</span> {{ $history->created_at->format('H:i') }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="3" class="px-8 py-12 text-center text-gray-400">
+                                Aucun historique disponible.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <div class="px-8 py-4 border-t border-gray-50">
+            {{ $recentMovements->links() }}
+        </div>
+    </div>
+
+</div>
+
+<!-- ============================================== -->
+<!-- 7. SCRIPTS (Charts & Logic)                    -->
+<!-- ============================================== -->
+<script>
+    document.addEventListener('livewire:initialized', () => {
+        // Configuration du Graphique
+        var options = {
+            series: [{ name: 'Créations', data: @json($chartSortants) }],
+            chart: {
+                height: 320,
+                type: 'area',
+                fontFamily: 'inherit',
+                toolbar: { show: false },
+                animations: { enabled: true, speed: 800 }
+            },
+            colors: ['#daaf2c'], // COULEUR OR
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.5,
+                    opacityTo: 0.05,
+                    stops: [0, 90, 100]
+                }
+            },
+            dataLabels: { enabled: false },
+            stroke: { curve: 'smooth', width: 3 },
+            xaxis: {
+                categories: @json($chartCategories),
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+                labels: { style: { colors: '#9ca3af', fontSize: '12px' } }
+            },
+            yaxis: {
+                labels: { style: { colors: '#9ca3af', fontSize: '12px' } }
+            },
+            grid: {
+                borderColor: '#f3f4f6',
+                strokeDashArray: 4,
+                yaxis: { lines: { show: true } }
+            },
+            tooltip: {
+                theme: 'light',
+                style: { fontSize: '12px' },
+                marker: { show: true },
+            }
+        };
+
+        // Initialisation
+        var chart = new ApexCharts(document.querySelector("#chart-timeline"), options);
+        chart.render();
+
+        // Écouteur pour mise à jour dynamique (Changement de période)
+        Livewire.on('update-chart', (data) => {
+            chart.updateSeries([{ data: data.series }]);
+            chart.updateOptions({ xaxis: { categories: data.categories } });
+        });
+    });
+</script>

@@ -52,6 +52,20 @@ class User extends Authenticatable implements LdapAuthenticatable
         return $this->hasMany(Memo::class);
     }
 
+    // ...
+    public function replacements()
+    {
+        // Les remplacements que j'ai définis (je suis absent)
+        return $this->hasMany(ReplacesUser::class, 'user_id');
+    }
+
+    public function replacing()
+    {
+        // Les remplacements où je suis le suppléant (je remplace quelqu'un)
+        return $this->hasMany(ReplacesUser::class, 'user_id_replace');
+    }
+    // ...
+
 
 
     public function sentMemos()
@@ -86,6 +100,10 @@ class User extends Authenticatable implements LdapAuthenticatable
     {
         return $this->belongsTo(User::class, 'manager_id');
     }
+
+       
+
+    
 
   
 

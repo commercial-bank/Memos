@@ -200,6 +200,133 @@
                     </div>
                 </div>
 
+                <!-- SECTION 3 : Intérims & Délégations (Lecture Seule) -->
+                <div class="bg-white shadow rounded-lg p-6 mb-6">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4 pb-2 border-b">
+                        <i class="fas fa-exchange-alt text-yellow-500 mr-2"></i> Intérims & Délégations
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        <!-- COLONNE 1 : Qui me remplace ? -->
+                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h4 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
+                                Qui me remplace ?
+                            </h4>
+
+                            @if($user->replacements->count() > 0)
+                                <ul class="divide-y divide-gray-200 bg-white rounded-md border border-gray-200">
+                                    @foreach($user->replacements as $remplacement)
+                                        <li class="p-3">
+                                            <div class="flex items-center justify-between">
+                                                <div class="text-sm font-medium text-gray-900">
+                                                    {{ $remplacement->substitute->first_name ?? 'Inconnu' }} {{ $remplacement->substitute->last_name ?? '' }}
+                                                </div>
+                                                <!-- Badge Statut (Actif ou non selon la date) -->
+                                                @php
+                                                    $now = \Carbon\Carbon::now();
+                                                    $isActive = $now->between($remplacement->date_begin_replace, $remplacement->date_end_replace);
+                                                @endphp
+                                                @if($isActive)
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                        En cours
+                                                    </span>
+                                                @else
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                                        Programmé/Passé
+                                                    </span>
+                                                @endif
+                                            </div>
+                                            
+                                            <div class="mt-2 text-xs text-gray-500">
+                                                <i class="far fa-calendar-alt mr-1"></i>
+                                                Du {{ \Carbon\Carbon::parse($remplacement->date_begin_replace)->format('d/m/Y') }}
+                                                au {{ \Carbon\Carbon::parse($remplacement->date_end_replace)->format('d/m/Y') }}
+                                            </div>
+
+                                            <div class="mt-2">
+                                                <span class="text-xs text-gray-400">Droits :</span>
+                                                @if(is_array($remplacement->action_replace))
+                                                    @foreach($remplacement->action_replace as $action)
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                            {{ $action }}
+                                                        </span>
+                                                    @endforeach
+                                                @else
+                                                    <span class="text-xs">{{ $remplacement->action_replace }}</span>
+                                                @endif
+                                            </div>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <div class="text-center py-4 text-sm text-gray-500 italic">
+                                    Aucun remplaçant prévu actuellement.
+                                </div>
+                            @endif
+                        </div>
+
+                        <!-- COLONNE 2 : Qui je remplace ? -->
+                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h4 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
+                                Qui je remplace ?
+                            </h4>
+
+                            @if($user->replacing->count() > 0)
+                                <ul class="divide-y divide-gray-200 bg-white rounded-md border border-gray-200">
+                                    @foreach($user->replacing as $mission)
+                                        <li class="p-3">
+                                            <div class="flex items-center justify-between">
+                                                <div class="text-sm font-medium text-gray-900">
+                                                    {{ $mission->user->first_name ?? 'Inconnu' }} {{ $mission->user->last_name ?? '' }}
+                                                </div>
+                                                <!-- Badge Statut -->
+                                                @php
+                                                    $now = \Carbon\Carbon::now();
+                                                    $isMissionActive = $now->between($mission->date_begin_replace, $mission->date_end_replace);
+                                                @endphp
+                                                @if($isMissionActive)
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 animate-pulse">
+                                                        Actif
+                                                    </span>
+                                                @else
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                                        Inactif
+                                                    </span>
+                                                @endif
+                                            </div>
+
+                                            <div class="mt-2 text-xs text-gray-500">
+                                                <i class="far fa-calendar-alt mr-1"></i>
+                                                Du {{ \Carbon\Carbon::parse($mission->date_begin_replace)->format('d/m/Y') }}
+                                                au {{ \Carbon\Carbon::parse($mission->date_end_replace)->format('d/m/Y') }}
+                                            </div>
+
+                                            <div class="mt-2">
+                                                <span class="text-xs text-gray-400">Mes droits :</span>
+                                                @if(is_array($mission->action_replace))
+                                                    @foreach($mission->action_replace as $action)
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                            {{ $action }}
+                                                        </span>
+                                                    @endforeach
+                                                @else
+                                                    <span class="text-xs">{{ $mission->action_replace }}</span>
+                                                @endif
+                                            </div>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <div class="text-center py-4 text-sm text-gray-500 italic">
+                                    Aucune mission d'intérim en cours.
+                                </div>
+                            @endif
+                        </div>
+
+                    </div>
+                </div>
+
                 <!-- Boutons d'action -->
                 <div class="flex justify-end gap-4">
                     <!-- Indicateur de chargement -->

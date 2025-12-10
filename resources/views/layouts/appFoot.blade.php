@@ -1,6 +1,0 @@
-   
-
-    
- @livewireScripts
-</body>
-</html>

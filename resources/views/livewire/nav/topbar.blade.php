@@ -1,52 +1,65 @@
-<div class="flex flex-col flex-grow h-screen overflow-hidden"> <!-- 1. LE ROOT ELEMENT OBLIGATOIRE -->
+<div class="flex flex-col flex-grow h-screen overflow-hidden bg-[#f9fafb]"> <!-- Fond très clair pour le contenu -->
+
+    
 
     <!-- ======================= -->
     <!-- NAVBAR (En-tête)        -->
     <!-- ======================= -->
-    <header id="navbar" class="sticky top-0 z-40 w-full flex items-center justify-between h-20 px-4 sm:px-6 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm transition-all duration-300">
+    <header id="navbar" class="sticky top-0 z-40 w-full flex items-center justify-between h-20 px-4 sm:px-6 bg-white/80 backdrop-blur-xl border-b border-gray-100 transition-all duration-300">
         
         <!-- SECTION GAUCHE -->
         <div class="flex items-center gap-4">
-            <button wire:click="$parent.toggleSidebar" class="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-colors md:hidden">
+            <!-- Bouton Mobile -->
+            <button wire:click="$parent.toggleSidebar" class="p-2 rounded-lg text-[#707173] hover:text-[#000000] hover:bg-[#daaf2c]/10 focus:outline-none focus:ring-2 focus:ring-[#daaf2c] transition-colors md:hidden">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
             </button>
 
+            <!-- Titre de la page -->
             <div class="flex flex-col">
-                <span id="navbarTitle" class="text-lg font-bold text-slate-800 tracking-tight leading-none">
+                <span id="navbarTitle" class="text-xl font-bold tracking-tight leading-none" style="color: var(--c-dark);">
                     {{ $navbarTitle ?? 'Dashboard' }}
                 </span>
-                <span class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">Espace de travail</span>
+                <span class="text-[11px] uppercase font-bold tracking-widest mt-1" style="color: var(--c-secondary);">
+                    Espace de travail
+                </span>
             </div>
         </div>
 
         <!-- SECTION DROITE -->
-        <div class="flex items-center gap-2 sm:gap-4">
+        <div class="flex items-center gap-3 sm:gap-6">
             
             <!-- Notification Button -->
-            <button wire:click="selectTab('notifications')" class="relative p-2 text-slate-400 hover:text-slate-600 transition-colors rounded-full hover:bg-slate-50">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            <button wire:click="selectTab('notifications')" class="relative p-2.5 rounded-full text-[#707173] hover:text-[#daaf2c] hover:bg-[#daaf2c]/10 transition-all duration-200 group">
+                <svg class="w-6 h-6 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                </svg>
                 
                 @if(auth()->user()->unreadNotifications->count() > 0)
-                    <span class="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                    <span class="absolute top-2 right-2 flex h-2.5 w-2.5">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-600"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border border-white"></span>
                     </span>
                 @endif
             </button>
 
-            <div class="h-8 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+            <!-- Séparateur vertical -->
+            <div class="h-8 w-px bg-gray-200 hidden sm:block"></div>
 
-            <!-- Avatar -->
+            <!-- Avatar / Profil -->
             <div class="relative group">
-                <button wire:click="selectTab('profile')" class="flex items-center gap-3 p-1 rounded-full hover:bg-slate-50 transition-all border border-transparent hover:border-slate-200">
+                <button wire:click="selectTab('profile')" class="flex items-center gap-3 p-1 pr-3 rounded-full hover:bg-gray-50 transition-all border border-transparent hover:border-gray-200">
                     <div class="relative">
-                        <img src="{{ asset('images/user3.png') }}" alt="Avatar" class="h-9 w-9 rounded-full object-cover border-2 border-white shadow-sm">
-                        <span class="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-white bg-green-500"></span>
+                        <!-- Avatar avec contour fin -->
+                        <img src="{{ asset('images/user3.png') }}" alt="Avatar" class="h-10 w-10 rounded-full object-cover border shadow-sm group-hover:ring-2 group-hover:ring-[#daaf2c] transition-all">
+                        <!-- Statut en ligne -->
+                        <span class="absolute bottom-0 right-0 block h-3 w-3 rounded-full ring-2 ring-white bg-green-500"></span>
                     </div>
-                    <div class="hidden md:flex flex-col items-start text-sm mr-2">
-                        <span class="font-bold text-slate-700 leading-none">{{ auth()->user()->first_name }}</span>
-                        <span class="text-[10px] text-slate-500 font-medium">{{ auth()->user()->poste ?? 'Utilisateur' }}</span>
+                    <div class="hidden md:flex flex-col items-start text-sm">
+                        <span class="font-bold leading-none" style="color: var(--c-dark);">{{ auth()->user()->first_name }}</span>
+                        <span class="text-[10px] font-medium mt-1" style="color: var(--c-secondary);">{{ auth()->user()->poste ?? 'Utilisateur' }}</span>
                     </div>
+                    <!-- Petite flèche vers le bas -->
+                    <svg class="w-4 h-4 text-[#707173] hidden md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
             </div>
         </div>
@@ -55,31 +68,36 @@
     <!-- ======================= -->
     <!-- CONTENU PRINCIPAL       -->
     <!-- ======================= -->
-    <main class="flex-1 overflow-y-auto p-4 bg-[#f8f9fa] custom-scrollbar">
-        
-        @switch($currentContent)
-            @case('dashboard-content')
-                @livewire('nav.dashboard')
-                @break
-            @case('memos-content')
-                @livewire('memos.memos')
-                @break
-            @case('profile-content')
-                @livewire('setting.profil')
-                @break
-            @case('courriers-content')
-                @livewire('courriers.courriers')
-                @break
-            @case('notifications-content')
-                @livewire('notifications.notifications-dropdown')
-                @break
-            @case('settings-content')
-                @livewire('setting.settings')
-                @break
-            @default
-                @livewire('nav.dashboard')
-        @endswitch
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar relative">
+        <!-- Fond décoratif subtil (optionnel) -->
+        <div class="absolute inset-0 pointer-events-none opacity-[0.02]" 
+             style="background-image: radial-gradient(#000000 1px, transparent 1px); background-size: 24px 24px;">
+        </div>
 
+        <div class="relative z-10 max-w-7xl mx-auto">
+            @switch($currentContent)
+                @case('dashboard-content')
+                    @livewire('nav.dashboard')
+                    @break
+                @case('memos-content')
+                    @livewire('memos.memos')
+                    @break
+                @case('profile-content')
+                    @livewire('setting.profil')
+                    @break
+                @case('courriers-content')
+                    @livewire('courriers.courriers')
+                    @break
+                @case('notifications-content')
+                    @livewire('notifications.notifications-dropdown')
+                    @break
+                @case('settings-content')
+                    @livewire('setting.settings')
+                    @break
+                @default
+                    @livewire('nav.dashboard')
+            @endswitch
+        </div>
     </main>
 
     <!-- ======================= -->
@@ -87,25 +105,49 @@
     <!-- ======================= -->
     @auth
         @if(auth()->user()->isInactive())
-            <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/95 backdrop-blur-sm">
-                 <div class="bg-white rounded-2xl p-8 text-center border-t-4 border-red-500 shadow-2xl">
-                     <h2 class="text-2xl font-bold mb-2">Compte Désactivé</h2>
-                     <p class="mb-4 text-slate-600">Veuillez contacter l'administrateur.</p>
+            <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#000000]/80 backdrop-blur-sm p-4">
+                 <div class="bg-white rounded-2xl p-8 text-center max-w-sm w-full shadow-2xl transform scale-100 transition-transform">
+                     <!-- Icone Danger -->
+                     <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
+                        <svg class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                     </div>
+                     
+                     <h2 class="text-2xl font-bold mb-2 text-gray-900">Compte Désactivé</h2>
+                     <p class="mb-6 text-gray-500">Votre accès a été restreint. Veuillez contacter l'administrateur pour plus de détails.</p>
+                     
                      <form method="GET" action="{{ route('login') }}">
                         @csrf
-                        <button class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition">Déconnexion</button>
+                        <button class="w-full py-3 px-4 rounded-xl shadow-lg font-bold text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-200 transition-all">
+                            Déconnexion sécurisée
+                        </button>
                      </form>
                  </div>
             </div>
+
         @elseif(auth()->user()->hasIncompleteProfile() && $currentContent !== 'profile-content')
-             <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm">
-                <div class="bg-white rounded-2xl p-8 text-center border-t-4 border-[#b8962f] shadow-2xl">
-                    <h2 class="text-2xl font-bold mb-2">Profil Incomplet</h2>
-                    <p class="mb-4 text-slate-600">Veuillez compléter vos informations pour continuer.</p>
-                    <button wire:click="forceGoToProfile" class="bg-[#b8962f] text-white px-6 py-2 rounded-lg hover:bg-[#a48425] transition">Compléter mon profil</button>
+             <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#000000]/70 backdrop-blur-sm p-4">
+                <div class="bg-white rounded-2xl p-8 text-center max-w-sm w-full shadow-2xl border-t-8" style="border-color: var(--c-primary);">
+                    
+                    <!-- Icone Info / Attention -->
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-50 mb-6">
+                        <svg class="h-8 w-8" style="color: var(--c-primary);" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+
+                    <h2 class="text-2xl font-extrabold mb-2" style="color: var(--c-dark);">Profil Incomplet</h2>
+                    <p class="mb-6 text-gray-500">Pour garantir le bon fonctionnement de l'application, nous avons besoin de quelques informations supplémentaires.</p>
+                    
+                    <button wire:click="forceGoToProfile" 
+                            class="w-full py-3 px-4 rounded-xl shadow-lg font-bold text-white transform hover:-translate-y-1 transition-all duration-200"
+                            style="background-color: var(--c-primary); color: var(--c-dark);">
+                        Compléter mon profil
+                    </button>
                 </div>
            </div>
         @endif
     @endauth
 
-</div> <!-- FIN DU ROOT ELEMENT OBLIGATOIRE -->
+</div>

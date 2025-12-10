@@ -1,0 +1,18 @@
+:root {
+            --c-primary: #daaf2c;      /* Or */
+            --c-secondary: #707173;    /* Gris */
+            --c-dark: #000000;         /* Noir */
+            --c-white: #ffffff;        /* Blanc (pour le texte sur fond noir) */
+            --c-hover-bg: rgba(112, 113, 115, 0.2); /* Gris transparent pour le survol */
+        }
+        
+        /* Classe utilitaire pour l'élément actif : Fond Or + Texte Noir (Meilleur contraste) */
+        .nav-item-active {
+            background-color: var(--c-primary) !important;
+            color: var(--c-dark) !important;
+            font-weight: 700;
+        }
+
+        .nav-item-active i {
+            color: var(--c-dark) !important;
+        }
