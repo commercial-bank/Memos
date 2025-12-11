@@ -128,7 +128,23 @@ class Memos extends Component
 
     public function save()
     {
-        $this->validate();
+        // On passe les messages personnalisés en deuxième argument
+        $this->validate([
+            'object' => 'required|min:5',
+            'concern' => 'min:3',
+            'content' => 'required',
+            'recipients' => 'required|array|min:1',
+            // ... vos autres règles
+        ], [
+            // MESSAGES PERSONNALISÉS
+            'object.required' => "L'objet du mémo est obligatoire.",
+            'object.min' => "L'objet doit contenir au moins 5 caractères.",
+            'content.required' => "Le corps du document ne peut pas être vide.",
+            'concern.min' => "Le champ concerné est trop court.",
+                // MESSAGES POUR LES DESTINATAIRES
+            'recipients.required' => "La liste de distribution ne peut pas être vide.",
+            'recipients.min' => "Veuillez ajouter au moins un destinataire dans la liste.",
+        ]);
 
         // 1. Traitement des Pièces Jointes
         $finalAttachments = $this->existingAttachments; // On commence avec ceux qui existent déjà (si edit)

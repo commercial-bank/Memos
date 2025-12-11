@@ -94,91 +94,67 @@ class Dashboard extends Component
     }
 
 
+public function render()
+{
+    $userId = Auth::id();
+    
+    // ... Vos compteurs existants ...
+    $toValidateCount = Memo::whereJsonContains('current_holders', $userId)->whereNull('signature_dir')->count();
+    $toValidateCount2 = Memo::whereJsonContains('current_holders', $userId)->whereNull('signature_sd')->count();
+    $totalMemos = Memo::whereJsonContains('current_holders', $userId)->where('workflow_direction', "sortant")->count();
+    $totalMemos2 = Memo::whereJsonContains('current_holders', $userId)->where('workflow_direction', "entrant")->count();  
+    
+    // --- NOUVEAU : COMPTEUR FAVORIS ---
+    // On utilise la relation favorites() définie dans le modèle User
+    $favoritesCount = Auth::user()->favorites()->count();
 
-    public function render()
-    {
-        $userId = Auth::id();
-        
-        // --- PARTIE COMPTEURS (Vos logiques existantes) ---
-        // 1. À valider (je suis holder + pas de signature DIR)
-        $toValidateCount = Memo::whereJsonContains('current_holders', $userId)
-                        ->whereNull('signature_dir')
-                        ->count();
+    // ... (Le reste de votre logique graphique reste inchangée) ...
+    $categories = []; 
+    $dataMemo = []; 
 
-        // 2. À valider (je suis holder + pas de signature SD)
-        $toValidateCount2 = Memo::whereJsonContains('current_holders', $userId)
-                        ->whereNull('signature_sd')
-                        ->count();
-
-        // 3. Total Sortants (je suis holder + direction sortant)
-        $totalMemos = Memo::whereJsonContains('current_holders', $userId)
-                        ->where('workflow_direction', "sortant")
-                        ->count();
-
-        // 4. Total Entrants (je suis holder + direction entrant)
-        $totalMemos2 = Memo::whereJsonContains('current_holders', $userId)
-                        ->where('workflow_direction', "entrant")
-                        ->count();  
-                        
-
-        // --- PARTIE GRAPHIQUE ---
-        $categories = []; 
-        $dataMemo = []; // Correction : on initialise bien $dataMemo
-
-        if ($this->chartPeriod === '7_jours') {
-            // Boucle sur les 7 derniers jours
-            for ($i = 6; $i >= 0; $i--) {
-                $date = Carbon::now()->subDays($i);
-                $categories[] = $date->format('d/m');
-                
-                // Correction ici : $dataMemo et non $dataMemos
-                $dataMemo[] = Memo::where('user_id', $userId)
-                    ->where('workflow_direction', 'sortant')
-                    ->whereDate('created_at', $date)
-                    ->count();
-            }
-        } elseif ($this->chartPeriod === 'ce_mois') {
-            // Boucle du 1er au jour actuel
-            $start = Carbon::now()->startOfMonth();
-            $end = Carbon::now();
-            
-            while ($start <= $end) {
-                $categories[] = $start->format('d');
-                
-                // Variable correcte
-                $dataMemo[] = Memo::where('user_id', $userId)
-                    ->where('workflow_direction', 'sortant')
-                    ->whereDate('created_at', $start)
-                    ->count();
-
-                $start->addDay();
-            }
+    if ($this->chartPeriod === '7_jours') {
+        // ... (votre boucle)
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $categories[] = $date->format('d/m');
+            $dataMemo[] = Memo::where('user_id', $userId)
+                ->where('workflow_direction', 'sortant')
+                ->whereDate('created_at', $date)
+                ->count();
         }
-
-        // --- IMPORTANT : ENVOI DES DONNÉES AU JS ---
-        // On envoie un événement 'update-chart' avec les nouvelles données
-        $this->dispatch('update-chart', 
-            categories: $categories, 
-            series: $dataMemo
-        );
-
-        // =================================================================
-        // NOUVEAU : RÉCUPÉRATION DES HISTORIQUES (Derniers mouvements)
-        // =================================================================
-         $recentMovements = Historiques::with('memo')
-            ->where('user_id', $userId)
-            ->orderBy('created_at', 'desc')
-            ->paginate(5); // <--- On affiche 5 éléments par page
-
-        return view('livewire.nav.dashboard', [
-            'toValidateCount_dir' => $toValidateCount,
-            'toValidateCount_sd' =>  $toValidateCount2,
-            'memosEntrantsCount' =>  $totalMemos2,
-            'memosSortantsCount' =>  $totalMemos,
-            // On passe aussi les données initiales pour le premier chargement
-            'chartCategories' => $categories,
-            'chartSortants' => $dataMemo,
-            'recentMovements' => $recentMovements 
-        ]);
+    } elseif ($this->chartPeriod === 'ce_mois') {
+        // ... (votre boucle)
+        $start = Carbon::now()->startOfMonth();
+        $end = Carbon::now();
+        while ($start <= $end) {
+            $categories[] = $start->format('d');
+            $dataMemo[] = Memo::where('user_id', $userId)
+                ->where('workflow_direction', 'sortant')
+                ->whereDate('created_at', $start)
+                ->count();
+            $start->addDay();
+        }
     }
+
+    $this->dispatch('update-chart', categories: $categories, series: $dataMemo);
+
+    $recentMovements = Historiques::with('memo')
+        ->where('user_id', $userId)
+        ->orderBy('created_at', 'desc')
+        ->paginate(5);
+
+    return view('livewire.nav.dashboard', [
+        'toValidateCount_dir' => $toValidateCount,
+        'toValidateCount_sd' =>  $toValidateCount2,
+        'memosEntrantsCount' =>  $totalMemos2,
+        'memosSortantsCount' =>  $totalMemos,
+        'favoritesCount'     =>  $favoritesCount, // <--- AJOUTEZ CETTE LIGNE
+        'chartCategories'    => $categories,
+        'chartSortants'      => $dataMemo,
+        'recentMovements'    => $recentMovements 
+    ]);
+}
+    
+
+
 }

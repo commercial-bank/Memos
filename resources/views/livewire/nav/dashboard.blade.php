@@ -61,7 +61,7 @@
                 </div>
             </div>
             <div class="relative mt-4 flex items-center text-xs font-medium text-gold">
-                <span>Émis par vous</span>
+                <span>en cours d'expédition</span>
             </div>
         </div>
 
@@ -78,20 +78,28 @@
                 </div>
             </div>
             <div class="relative mt-4 flex items-center text-xs font-medium text-gray-500">
-                <span>Reçus ce mois</span>
+                <span>en cours de cotation</span>
             </div>
         </div>
 
-        <!-- Carte 3 : Archives (Minimaliste) -->
+        <!-- Carte 3 : Favoris (Remplacement de Archives) -->
         <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all relative overflow-hidden">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-xs font-bold uppercase tracking-widest text-gray-400">Archives</p>
-                    <h3 class="text-4xl font-black text-gray-900 mt-3">142</h3>
+                    <p class="text-xs font-bold uppercase tracking-widest text-gray-400">Mes Favoris</p>
+                    <!-- Affichage dynamique du compteur -->
+                    <h3 class="text-4xl font-black text-gray-900 mt-3">{{ $favoritesCount }}</h3>
                 </div>
-                <div class="p-3 bg-gray-100 text-gray-600 rounded-xl">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                
+                <!-- Icône Étoile (Jaune/Or) -->
+                <div class="p-3 bg-yellow-50 text-yellow-600 rounded-xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                    </svg>
                 </div>
+            </div>
+            <div class="relative mt-4 flex items-center text-xs font-medium text-gray-500">
+                <span>documents épinglés</span>
             </div>
         </div>
         

@@ -16,13 +16,17 @@ use App\Models\BlocEnregistrements;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;   
 use App\Notifications\MemoActionNotification;
+use App\Traits\ManageFavorites; 
 
 
 
 class IncomingMemos extends Component
 {
+    use ManageFavorites;
+
     // --- RECHERCHE & DATATABLE ---
     public $search = '';
+    
 
      // --- VARIABLES MODAL ASSIGNATION ---
     public $memo_type = 'standard'; // 'standard' ou 'projet'
@@ -282,6 +286,14 @@ class IncomingMemos extends Component
             'workflow_comment' => $this->workflow_comment ?? 'R.A.S',
         ]);
 
+        $usersToNotify = User::whereIn('id', $nextHolders)->get();
+
+        foreach ($usersToNotify as $user) {
+            // $user : C'est l'utilisateur physique (ex: le Directeur ou son remplaçant)
+            // 'sent' : Le type d'action pour afficher le bon message/icône
+            $user->notify(new MemoActionNotification($memo, 'envoyer', $currentUser));
+        }
+
         $this->closeModalTrois();
         $this->dispatch('notify', message: "Le mémo ($this->memo_type) a été envoyé avec succès.");
     }
@@ -350,7 +362,7 @@ class IncomingMemos extends Component
         if ($creator) {
             // 2. On envoie la notification
             // Paramètres : Le mémo, le type d'action, et l'acteur (Moi)
-            $creator->notify(new MemoActionNotification($memo, 'rejected', $currentUser));
+            $creator->notify(new MemoActionNotification($memo, 'rejeter', $currentUser));
         }
 
     
@@ -512,6 +524,14 @@ class IncomingMemos extends Component
                 'reference' => $referenceString, // On met à jour la ref visible sur le mémo aussi ?
             ]);
 
+            $usersToNotify = User::whereIn('id', $nextHoldersIds)->get();
+
+            foreach ($usersToNotify as $user) {
+                // $user : C'est l'utilisateur physique (ex: le Directeur ou son remplaçant)
+                // 'sent' : Le type d'action pour afficher le bon message/icône
+                $user->notify(new MemoActionNotification($memo, 'envoyer', $currentUser));
+            }
+
             // D. HISTORIQUE
             Historiques::create([
                 'user_id' => $currentUser->id,
@@ -609,24 +629,24 @@ class IncomingMemos extends Component
     }
     
     
-    public function render()
+     public function render()
     {
-        // On récupère l'ID tel quel (c'est un entier par défaut dans Laravel)
         $userId = Auth::id(); 
 
         $memos = Memo::with(['user', 'destinataires.entity'])
             ->where('workflow_direction', 'sortant')
-            
-            // Laravel va chercher l'entier dans le tableau JSON
             ->whereJsonContains('current_holders', $userId)
             
-            // Recherche
+            // 3. OPTIMISATION : On ajoute un attribut booléen 'is_favorited'
+            // Cela vérifie si l'ID de l'utilisateur est dans la table favoris pour ce mémo
+            ->withExists(['favoritedBy as is_favorited' => function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            }])
+            
             ->where(function($query) {
                 $query->where('object', 'like', '%'.$this->search.'%')
                     ->orWhere('concern', 'like', '%'.$this->search.'%');
             })
-            
-            // Tri
             ->orderBy('updated_at', 'desc')
             ->paginate(9);
 

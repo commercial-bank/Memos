@@ -11,12 +11,13 @@ trait ManageFavorites
     {
         $user = Auth::user();
         
-        // La méthode toggle() ajoute si ça n'existe pas, et supprime si ça existe.
-        $changes = $user->favorites()->toggle($memoId);
+        // La méthode toggle() attache si inexistant, détache si existant
+        // Elle retourne un tableau ['attached' => [], 'detached' => []]
+        $result = $user->favorites()->toggle($memoId);
 
-        $status = count($changes['attached']) > 0 ? 'ajouté aux' : 'retiré des';
+        $status = count($result['attached']) > 0 ? 'ajouté aux' : 'retiré des';
         
-        // Notification (adaptez selon votre système de notification)
+        // On notifie l'utilisateur (suppose que vous avez un listener pour 'notify')
         $this->dispatch('notify', message: "Mémo $status favoris.");
     }
 }

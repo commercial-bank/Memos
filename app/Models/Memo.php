@@ -96,6 +96,7 @@ class Memo extends Model
         return \Illuminate\Support\Facades\Auth::user()->favorites()->where('memo_id', $this->id)->exists();
     }
 
+
     
 
     /**

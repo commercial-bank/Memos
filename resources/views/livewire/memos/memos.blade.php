@@ -52,15 +52,15 @@
                 <nav class="-mb-px flex space-x-8 overflow-x-auto custom-scrollbar" aria-label="Tabs">
                     @php
                         $tabs = [
-                            'incoming' => 'Sortants',
-                            'incoming2' => 'Entrants',
+                            'incoming' => 'Mémos Sortants',
+                            'incoming2' => 'Mémos Entrants',
                         ];
                         if(auth()->user()->poste == 'Secretaire') {
-                            $tabs['blockout'] = 'Blocs Sortants';
-                            $tabs['blockint'] = 'Blocs Entrants';
+                            $tabs['blockout'] = 'Blocs Mémos Sortants';
+                            $tabs['blockint'] = 'Blocs Mémos Entrants';
                         } else {
-                            $tabs['drafted'] = 'Brouillons';
-                            $tabs['document'] = 'Envoyés';
+                            $tabs['drafted'] = 'Mes Mémos';
+                            $tabs['document'] = 'Mémos Envoyés';
                             $tabs['favorites'] = 'Favoris';
                         }
                     @endphp

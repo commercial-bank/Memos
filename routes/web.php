@@ -5,7 +5,7 @@ use App\Livewire\Actions\Logout;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\VerificationController;
 
-Route::view('/', 'welcome')->name('memo.store');
+Route::view('/', 'pdf/t')->name('memo.store');
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])

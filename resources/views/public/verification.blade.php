@@ -32,7 +32,7 @@
             <div class="inline-block p-3 rounded-full border-2 border-yellow-500/50 mb-3 bg-gray-800 seal-shadow">
                 <!-- Remplacement de la balise <i> par <img> -->
                 <!-- Ajustez h-12 et w-12 selon la taille voulue -->
-                <img src="{{ asset('images/log.jpg') }}" 
+                <img src="{{ asset('images/log-removebg-preview.png') }}" 
                     alt="Logo Officiel" 
                     class="h-12 w-12 object-contain">
             </div>
@@ -62,7 +62,7 @@
                 @foreach($signatures as $history)
                 <div class="bg-yellow-50/50 border border-yellow-100 rounded-lg p-5 flex items-start gap-4 transition-all hover:shadow-md">
                     <div class="flex-shrink-0 h-12 w-12 rounded-full bg-gray-900 text-yellow-500 flex items-center justify-center font-legal font-bold text-lg shadow-sm border-2 border-yellow-500">
-                        {{ substr($history->user->first_name, 0, 1) }}
+                        {{ substr($history->user->first_name, 0, 1) }} {{ substr($history->user->last_name, 0, 1) }}
                     </div>
                     <div class="flex-grow">
                         <p class="text-gray-900 text-lg font-legal">

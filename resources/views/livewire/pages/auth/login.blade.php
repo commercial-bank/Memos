@@ -36,6 +36,7 @@ new #[Layout('layouts.guest')] class extends Component {
             RateLimiter::hit($this->throttleKey());
             throw ValidationException::withMessages([
                 'user_name' => __('auth.failed'),
+                'user_name' => 'Identifiant ou mot de passe incorrect.', 
             ]);
         }
 
@@ -135,7 +136,7 @@ new #[Layout('layouts.guest')] class extends Component {
                                 name="user_name" 
                                 class="w-full pl-12 pr-6 py-4 border border-gray-200 rounded-full focus:outline-none ring-focus transition-all duration-200 bg-gray-50 text-lg placeholder-gray-400" 
                                 style="color: var(--c-dark);"
-                                placeholder="Identifiant (ex: cbc_digitalis)" 
+                                placeholder="Identifiant (ex: angahami)" 
                                 required 
                                 autofocus
                             >

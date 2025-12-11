@@ -77,7 +77,7 @@ class User extends Authenticatable implements LdapAuthenticatable
 
     public function favorites()
     {
-        return $this->belongsToMany(Memo::class, 'favorites', 'user_id', 'memo_id')->withTimestamps();
+        return $this->belongsToMany(Memo::class, 'favoris', 'user_id', 'memo_id')->withTimestamps();
     }
 
     public function sousDirection() {
@@ -102,11 +102,6 @@ class User extends Authenticatable implements LdapAuthenticatable
     }
 
        
-
-    
-
-  
-
 
     /**
      * Accesseur pour créer l'acronyme de l'entité du user.

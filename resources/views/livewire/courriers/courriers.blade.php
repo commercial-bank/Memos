@@ -38,238 +38,368 @@
             </div>
         </div>
 
-        <!-- 2. BARRE D'ACTION & NAVIGATION -->
-        <div class="bg-white shadow rounded-lg mb-6">
-            <div class="border-b border-gray-200">
-                <nav class="-mb-px flex" aria-label="Tabs">
-                    <!-- Onglet ARRIVÉE -->
+        
+        <div class="min-h-screen bg-slate-50 py-8 font-sans" x-data="{ 
+    activeTab: 'entrant', 
+    subTab: 'factures', 
+    standardZone: 'douala',
+    showWorkflowModal: false
+}">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- 1. HEADER GLOBAL -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Gestion des Flux</h1>
+                <p class="mt-1 text-sm text-slate-500">Plateforme centralisée de traitement du courrier.</p>
+            </div>
+            <!-- Boutons d'action rapide globaux -->
+            <div class="mt-4 md:mt-0 flex space-x-3">
+                <button class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
+                    <i class="fas fa-cog mr-2"></i> Paramètres
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. NAVIGATION PRINCIPALE (Arrivée / Départ) -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 mb-6">
+            <div class="border-b border-slate-100">
+                <nav class="flex -mb-px" aria-label="Tabs">
                     <button 
                         @click="activeTab = 'entrant'"
-                        :class="activeTab === 'entrant' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                        class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-lg flex justify-center items-center transition duration-150"
+                        :class="activeTab === 'entrant' ? 'border-indigo-500 text-indigo-600 bg-indigo-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'"
+                        class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-lg flex justify-center items-center transition-all duration-200 rounded-tl-xl"
                     >
-                        <i class="fas fa-inbox mr-2"></i> Courrier Arrivée
+                        <div class="flex items-center gap-2">
+                            <span class="p-2 rounded-lg" :class="activeTab === 'entrant' ? 'bg-indigo-100' : 'bg-slate-100'"><i class="fas fa-inbox"></i></span>
+                            Courrier Arrivée
+                        </div>
                     </button>
-                    <!-- Onglet DÉPART -->
                     <button 
                         @click="activeTab = 'sortant'"
-                        :class="activeTab === 'sortant' ? 'border-yellow-500 text-yellow-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                        class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-lg flex justify-center items-center transition duration-150"
+                        :class="activeTab === 'sortant' ? 'border-amber-500 text-amber-600 bg-amber-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'"
+                        class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-lg flex justify-center items-center transition-all duration-200 rounded-tr-xl"
                     >
-                        <i class="fas fa-paper-plane mr-2"></i> Courrier Départ
+                         <div class="flex items-center gap-2">
+                            <span class="p-2 rounded-lg" :class="activeTab === 'sortant' ? 'bg-amber-100' : 'bg-slate-100'"><i class="fas fa-paper-plane"></i></span>
+                            Courrier Départ
+                        </div>
                     </button>
                 </nav>
             </div>
 
-            <!-- Barre d'outils (Filtres & Recherche) -->
-            <div class="p-4 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+            <!-- CONTENU SECTION ARRIVÉE -->
+            <div x-show="activeTab === 'entrant'" class="p-6">
                 
-                <!-- Groupe de boutons Nouveau -->
-                <div x-show="activeTab === 'entrant'">
-                    <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        <i class="fas fa-plus mr-2"></i> Enregistrer Arrivée
+                <!-- 2.1 SOUS-NAVIGATION (Factures vs Standards) -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    <!-- Toggle Switch -->
+                    <div class="bg-slate-100 p-1 rounded-lg inline-flex shadow-inner">
+                        <button 
+                            @click="subTab = 'factures'"
+                            :class="subTab === 'factures' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                            class="px-6 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center"
+                        >
+                            <i class="fas fa-file-invoice-dollar mr-2"></i> Factures
+                        </button>
+                        <button 
+                            @click="subTab = 'standard'"
+                            :class="subTab === 'standard' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                            class="px-6 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center"
+                        >
+                            <i class="fas fa-envelope-open-text mr-2"></i> Courriers Standards
+                        </button>
+                    </div>
+
+                    <!-- Actions Contextuelles -->
+                    <button x-show="subTab === 'factures'" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:border-indigo-900 focus:ring ring-indigo-300 disabled:opacity-25 transition ease-in-out duration-150 shadow-lg shadow-indigo-500/30">
+                        <i class="fas fa-plus mr-2"></i> Nouvelle Facture
+                    </button>
+                    <button x-show="subTab === 'standard'" class="inline-flex items-center px-4 py-2 bg-slate-800 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-slate-700 active:bg-slate-900 focus:outline-none focus:border-slate-900 focus:ring ring-slate-300 disabled:opacity-25 transition ease-in-out duration-150 shadow-lg shadow-slate-500/30">
+                        <i class="fas fa-plus mr-2"></i> Nouveau Courrier
                     </button>
                 </div>
-                <div x-show="activeTab === 'sortant'" style="display: none;">
-                    <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
-                        <i class="fas fa-plus mr-2"></i> Créer Départ
-                    </button>
-                </div>
 
-                <!-- Filtres -->
-                <div class="flex space-x-2">
-                    <button @click="filterType = 'all'" :class="filterType === 'all' ? 'bg-gray-200 text-gray-800' : 'bg-white text-gray-500'" class="px-3 py-1 rounded-full text-xs font-medium border">Tout</button>
-                    <button @click="filterType = 'invoice'" :class="filterType === 'invoice' ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-white text-gray-500'" class="px-3 py-1 rounded-full text-xs font-medium border">Factures</button>
-                    <button @click="filterType = 'urgent'" :class="filterType === 'urgent' ? 'bg-red-100 text-red-800 border-red-200' : 'bg-white text-gray-500'" class="px-3 py-1 rounded-full text-xs font-medium border">Urgent</button>
-                </div>
-
-                <!-- Recherche -->
-                <div class="relative rounded-md shadow-sm max-w-xs w-full">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-search text-gray-400"></i>
-                    </div>
-                    <input type="text" class="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2" placeholder="N° Réf, Expéditeur...">
-                </div>
-            </div>
-        </div>
-
-        <!-- 3. CONTENU : LISTE DES COURRIERS (ARRIVÉE) -->
-        <div x-show="activeTab === 'entrant'" class="bg-white shadow overflow-hidden sm:rounded-md">
-            <ul class="divide-y divide-gray-200">
-                
-                <!-- ITEM 1 : Facture (Nouvelle) -->
-                <li>
-                    <div class="block hover:bg-gray-50 cursor-pointer transition duration-150">
-                        <div class="px-4 py-4 sm:px-6">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center truncate">
-                                    <!-- Icone Type -->
-                                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-3">
-                                        <i class="fas fa-file-invoice-dollar"></i>
-                                    </div>
-                                    <p class="text-sm font-medium text-blue-600 truncate">Réf: ARR-2023/1042</p>
-                                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        Nouveau
-                                    </span>
-                                </div>
-                                <div class="ml-2 flex-shrink-0 flex">
-                                    <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-500">
-                                        <i class="far fa-clock mr-1"></i> 25 Nov 2025
-                                    </p>
-                                </div>
+                <!-- 2.2 VUE FACTURES (Le Registre Financier) -->
+                <div x-show="subTab === 'factures'" class="animate-fade-in-up">
+                    
+                    <!-- KPI Factures Rapides -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-100 flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-bold text-indigo-500 uppercase">Total HT (Jour)</p>
+                                <p class="text-xl font-bold text-indigo-900">12 450 000 FCFA</p>
                             </div>
-                            
-                            <div class="mt-2 sm:flex sm:justify-between">
-                                <div class="sm:flex">
-                                    <p class="flex items-center text-sm text-gray-900 font-bold mr-6">
-                                        <i class="fas fa-user-tie text-gray-400 mr-2"></i> ENEO Cameroun
-                                    </p>
-                                    <p class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                                        Facture électricité Octobre - Siège
-                                    </p>
-                                </div>
-                                <!-- Actions Rapides -->
-                                <div class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 gap-2">
-                                    <button class="text-gray-400 hover:text-blue-600" title="Voir"><i class="far fa-eye"></i></button>
-                                    <button class="text-gray-400 hover:text-yellow-600" title="Annoter/Transmettre"><i class="fas fa-share"></i></button>
-                                </div>
+                            <div class="bg-white p-2 rounded-full text-indigo-600"><i class="fas fa-coins"></i></div>
+                        </div>
+                        <div class="bg-orange-50 rounded-lg p-4 border border-orange-100 flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-bold text-orange-500 uppercase">À Traiter</p>
+                                <p class="text-xl font-bold text-orange-900">5 Factures</p>
                             </div>
-
-                            <!-- TIMELINE D'ACHEMINEMENT (Le Concept Clé) -->
-                            <div class="mt-4 pt-3 border-t border-gray-100">
-                                <div class="relative">
-                                    <div class="absolute inset-0 flex items-center" aria-hidden="true">
-                                        <div class="w-full border-t border-gray-300"></div>
-                                    </div>
-                                    <div class="relative flex justify-between">
-                                        <!-- Etape 1 : Enregistré -->
-                                        <div class="bg-white px-1">
-                                            <span class="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center ring-4 ring-white" title="Enregistré au Secrétariat">
-                                                <i class="fas fa-check text-white text-xs"></i>
-                                            </span>
-                                            <span class="absolute -bottom-6 left-0 text-[10px] text-gray-500 font-medium">Secrétariat</span>
-                                        </div>
-                                        <!-- Etape 2 : Transmission DG -->
-                                        <div class="bg-white px-1">
-                                            <span class="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center ring-4 ring-white animate-pulse" title="En cours: Bureau DG">
-                                                <i class="fas fa-user-tie text-white text-xs"></i>
-                                            </span>
-                                            <span class="absolute -bottom-6 left-1/4 text-[10px] text-blue-600 font-bold">Direction</span>
-                                        </div>
-                                        <!-- Etape 3 : Service (Gris = Pas encore) -->
-                                        <div class="bg-white px-1">
-                                            <span class="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center ring-4 ring-white">
-                                                <i class="fas fa-building text-gray-400 text-xs"></i>
-                                            </span>
-                                            <span class="absolute -bottom-6 left-1/2 text-[10px] text-gray-400">Service</span>
-                                        </div>
-                                        <!-- Etape 4 : Clôturé -->
-                                        <div class="bg-white px-1">
-                                            <span class="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center ring-4 ring-white">
-                                                <i class="fas fa-flag-checkered text-gray-400 text-xs"></i>
-                                            </span>
-                                            <span class="absolute -bottom-6 right-0 text-[10px] text-gray-400">Archivé</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="h-4"></div> <!-- Spacer pour les labels timeline -->
-                            </div>
+                            <div class="bg-white p-2 rounded-full text-orange-600"><i class="fas fa-hourglass-half"></i></div>
                         </div>
                     </div>
-                </li>
 
-                <!-- ITEM 2 : Courrier Simple (Traité) -->
-                <li>
-                    <div class="block hover:bg-gray-50 cursor-pointer transition duration-150">
-                        <div class="px-4 py-4 sm:px-6">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center truncate">
-                                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 mr-3">
-                                        <i class="far fa-envelope"></i>
-                                    </div>
-                                    <p class="text-sm font-medium text-gray-900 truncate">Réf: ARR-2023/1040</p>
-                                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                        Archivé
-                                    </span>
-                                </div>
-                                <div class="ml-2 flex-shrink-0 flex">
-                                    <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Traité le 24 Nov
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="mt-2 sm:flex sm:justify-between">
-                                <div class="sm:flex">
-                                    <p class="flex items-center text-sm text-gray-900 font-bold mr-6">
-                                        <i class="fas fa-university text-gray-400 mr-2"></i> Ministère des Finances
-                                    </p>
-                                    <p class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                                        Demande de renseignements fiscaux
-                                    </p>
-                                </div>
-                            </div>
-                            <!-- Timeline Completée -->
-                            <div class="mt-4 pt-3 border-t border-gray-100 opacity-50">
-                                <div class="relative">
-                                    <div class="absolute inset-0 flex items-center" aria-hidden="true">
-                                        <div class="w-full border-t border-green-300"></div>
-                                    </div>
-                                    <div class="relative flex justify-between">
-                                        <div class="bg-white px-1"><span class="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center"><i class="fas fa-check text-white text-xs"></i></span></div>
-                                        <div class="bg-white px-1"><span class="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center"><i class="fas fa-check text-white text-xs"></i></span></div>
-                                        <div class="bg-white px-1"><span class="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center"><i class="fas fa-check text-white text-xs"></i></span></div>
-                                        <div class="bg-white px-1"><span class="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center"><i class="fas fa-check text-white text-xs"></i></span></div>
-                                    </div>
-                                </div>
-                                <div class="h-4"></div>
-                            </div>
-                        </div>
+                    <!-- Tableau Registre Facture -->
+                    <div class="bg-white overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-300">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500 sm:pl-6">Date & N° Ordre</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Expéditeur & Facture</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Montant HT</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Traçabilité / Workflow</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 bg-white">
+                                <!-- Ligne Facture 1 -->
+                                <tr class="hover:bg-indigo-50/30 transition duration-150 group">
+                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
+                                        <div class="font-bold text-gray-900">11 Déc 2025</div>
+                                        <div class="text-gray-500 text-xs">Ordre #042</div>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm">
+                                        <div class="font-medium text-indigo-600">ORANGE Cameroun</div>
+                                        <div class="text-gray-500 text-xs">Ref: FAC-2023-889 | Qté: 1</div>
+                                        <div class="flex items-center gap-1 mt-1">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                                <i class="fas fa-paperclip mr-1 text-gray-400"></i> Scannée
+                                            </span>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                                                Bordereau Oui
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                        <div class="font-mono font-bold text-gray-900">450 000 XAF</div>
+                                    </td>
+                                    <td class="px-3 py-4 text-sm text-gray-500 w-1/3">
+                                        <!-- BARRE DE WORKFLOW VISUELLE -->
+                                        <div class="relative">
+                                            <div class="flex items-center justify-between text-[10px] font-medium text-gray-400 mb-1">
+                                                <span class="text-indigo-600">Arrivée</span>
+                                                <span class="text-indigo-600">Compta.</span>
+                                                <span class="">Validation</span>
+                                                <span class="">Paiement</span>
+                                            </div>
+                                            <div class="overflow-hidden h-2 mb-0 text-xs flex rounded bg-gray-200">
+                                                <div style="width: 50%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500 animate-pulse"></div>
+                                            </div>
+                                            <div class="mt-1 text-xs text-indigo-700 font-semibold flex items-center">
+                                                <i class="fas fa-map-marker-alt mr-1"></i> Actuellement: Service Comptabilité
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                        <div class="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button class="text-gray-400 hover:text-indigo-600 p-1" title="Voir Scan"><i class="far fa-eye fa-lg"></i></button>
+                                            <button class="bg-indigo-600 text-white px-3 py-1 rounded-md text-xs hover:bg-indigo-700 shadow-sm" title="Transmettre">
+                                                Envoyer <i class="fas fa-share ml-1"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Ligne Facture 2 (Terminée) -->
+                                <tr class="hover:bg-gray-50 transition duration-150 group">
+                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
+                                        <div class="font-bold text-gray-900">10 Déc 2025</div>
+                                        <div class="text-gray-500 text-xs">Ordre #041</div>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm">
+                                        <div class="font-medium text-gray-900">CAMAIR-CO</div>
+                                        <div class="text-gray-500 text-xs">Ref: BILLET-001 | Qté: 2</div>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                        <div class="font-mono font-bold text-gray-900">120 000 XAF</div>
+                                    </td>
+                                    <td class="px-3 py-4 text-sm text-gray-500">
+                                        <div class="relative opacity-60">
+                                            <div class="overflow-hidden h-2 mb-0 text-xs flex rounded bg-green-200">
+                                                <div style="width: 100%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500"></div>
+                                            </div>
+                                            <div class="mt-1 text-xs text-green-700 font-semibold flex items-center">
+                                                <i class="fas fa-check-circle mr-1"></i> Payé
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                        <button class="text-gray-400 hover:text-gray-600 p-1"><i class="fas fa-archive"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                </li>
-            </ul>
-            
-            <!-- Pagination -->
-            <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-                <!-- Code de pagination Laravel standard ici -->
-                <p class="text-sm text-gray-700">Affichage de 1 à 10 sur 1240 résultats</p>
-            </div>
-        </div>
+                </div>
 
-        <!-- 4. CONTENU : LISTE DES COURRIERS (DÉPART) -->
-        <div x-show="activeTab === 'sortant'" style="display: none;" class="bg-white shadow overflow-hidden sm:rounded-md">
-            <ul class="divide-y divide-gray-200">
-                <li>
-                    <div class="px-4 py-4 sm:px-6 hover:bg-yellow-50 transition">
-                         <div class="flex items-center justify-between">
-                            <div class="flex items-center truncate">
-                                <div class="flex-shrink-0 h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 mr-3">
-                                    <i class="fas fa-paper-plane"></i>
-                                </div>
-                                <p class="text-sm font-medium text-gray-900">Réf: DEP-2023/502</p>
-                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                    En cours de signature
+                <!-- 2.3 VUE COURRIERS STANDARDS (Le Registre Administratif) -->
+                <div x-show="subTab === 'standard'" class="animate-fade-in-up" style="display: none;">
+                    
+                    <!-- Filtre de Registre (Zone Géographique) -->
+                    <div class="bg-slate-800 rounded-lg p-4 mb-6 text-white shadow-lg">
+                        <div class="flex flex-col md:flex-row md:items-center gap-4">
+                            <div class="flex-shrink-0">
+                                <span class="bg-slate-700 p-2 rounded-lg border border-slate-600">
+                                    <i class="fas fa-globe-africa text-blue-400"></i> Choix du Registre
                                 </span>
                             </div>
-                            <div class="text-sm text-gray-500">Créé aujourd'hui</div>
-                        </div>
-                        <div class="mt-2">
-                             <p class="text-sm text-gray-900 font-bold">Destinataire: Banque Atlantique</p>
-                             <p class="text-sm text-gray-500">Objet: Ordre de virement Salaire Nov.</p>
-                        </div>
-                        <!-- Barre de progression Depart -->
-                        <div class="mt-3 w-full bg-gray-200 rounded-full h-2.5">
-                            <div class="bg-yellow-500 h-2.5 rounded-full" style="width: 45%"></div>
-                        </div>
-                        <div class="flex justify-between text-xs text-gray-400 mt-1">
-                            <span>Rédaction</span>
-                            <span class="text-yellow-600 font-bold">Validation N+1</span>
-                            <span>Signature DG</span>
-                            <span>Expédié</span>
+                            <div class="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <!-- Selecteur Zone -->
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Zone Géographique</label>
+                                    <select x-model="standardZone" class="block w-full rounded-md border-gray-600 bg-slate-700 text-white focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2">
+                                        <option value="douala">Douala (Siège & Agences)</option>
+                                        <option value="regions">Régions (Villes)</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Selecteur Dynamique -->
+                                <div x-show="standardZone === 'douala'">
+                                    <label class="block text-xs text-slate-400 mb-1">Agence / Entité</label>
+                                    <select class="block w-full rounded-md border-gray-600 bg-slate-700 text-white focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2">
+                                        <option>Siège - Direction Générale</option>
+                                        <option>Agence Akwa</option>
+                                        <option>Agence Bonanjo</option>
+                                        <option>Agence Bonamoussadi</option>
+                                    </select>
+                                </div>
+                                <div x-show="standardZone === 'regions'" style="display: none;">
+                                    <label class="block text-xs text-slate-400 mb-1">Ville</label>
+                                    <select class="block w-full rounded-md border-gray-600 bg-slate-700 text-white focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2">
+                                        <option>Yaoundé</option>
+                                        <option>Bafoussam</option>
+                                        <option>Dschang</option>
+                                        <option>Bandjoun</option>
+                                        <option>Garoua</option>
+                                    </select>
+                                </div>
+
+                                <!-- Recherche -->
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Recherche Rapide</label>
+                                    <div class="relative">
+                                        <input type="text" class="block w-full rounded-md border-gray-600 bg-slate-900 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 pl-8" placeholder="Expéditeur, Objet...">
+                                        <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                                            <i class="fas fa-search text-slate-500 text-xs"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </li>
-            </ul>
+
+                    <!-- Tableau Registre Standard -->
+                    <div class="bg-white overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-300">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Date / Ordre</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Intitulé / Nature</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-gray-500 w-1/3">Objet</th>
+                                    <th scope="col" class="px-3 py-3.5 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Preuves</th>
+                                    <th scope="col" class="px-3 py-3.5 text-right text-xs font-bold uppercase tracking-wide text-gray-500">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 bg-white">
+                                <!-- Ligne Standard 1 -->
+                                <tr class="hover:bg-slate-50 transition duration-150">
+                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
+                                        <div class="font-bold text-gray-900">11 Déc</div>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                            #1055
+                                        </span>
+                                    </td>
+                                    <td class="px-3 py-4 text-sm">
+                                        <div class="font-bold text-slate-700">M. TALLA Jean</div>
+                                        <div class="text-xs text-slate-500 mt-1">
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                Particulier Extérieur
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-3 py-4 text-sm text-gray-600">
+                                        <p class="line-clamp-2">Demande de rééchelonnement de crédit immobilier suite incendie.</p>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                        <div class="flex flex-col gap-1">
+                                            <div class="flex items-center text-xs text-green-600" title="Signature présente">
+                                                <i class="fas fa-file-signature mr-1"></i> Décharge OK
+                                            </div>
+                                            <div class="flex items-center text-xs text-gray-400">
+                                                <i class="fas fa-copy mr-1"></i> Bordereau: N/A
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                        <button class="text-indigo-600 hover:text-indigo-900 font-bold bg-indigo-50 px-3 py-1 rounded-md border border-indigo-200">
+                                            Traiter
+                                        </button>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Ligne Standard 2 (Organisme Tutelle) -->
+                                <tr class="hover:bg-red-50/40 transition duration-150 border-l-4 border-red-500">
+                                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
+                                        <div class="font-bold text-gray-900">11 Déc</div>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                            #1056 Urgent
+                                        </span>
+                                    </td>
+                                    <td class="px-3 py-4 text-sm">
+                                        <div class="font-bold text-slate-700">COBAC (Libreville)</div>
+                                        <div class="text-xs text-slate-500 mt-1">
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                                                Organisme Tutelle
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-3 py-4 text-sm text-gray-600">
+                                        <p class="line-clamp-2">Circulaire relative aux nouvelles normes prudentielles 2026.</p>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                        <div class="flex flex-col gap-1">
+                                            <div class="flex items-center text-xs text-green-600">
+                                                <i class="fas fa-check mr-1"></i> Décharge OK
+                                            </div>
+                                            <div class="flex items-center text-xs text-blue-600 cursor-pointer hover:underline">
+                                                <i class="fas fa-paperclip mr-1"></i> Voir PJ (PDF)
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                        <button class="text-indigo-600 hover:text-indigo-900 font-bold bg-indigo-50 px-3 py-1 rounded-md border border-indigo-200">
+                                            Traiter
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div> <!-- Fin Contenu Entrant -->
         </div>
+    </div>
+</div>
+
+<style>
+    /* Petite animation d'entrée */
+    .animate-fade-in-up {
+        animation: fadeInUp 0.3s ease-out;
+    }
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
 
     </div>
 </div>
