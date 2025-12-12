@@ -94,6 +94,18 @@
                 @case('settings-content')
                     @livewire('setting.settings')
                     @break
+                @case('settings-tasks')
+                    @livewire('setting.tasks')
+                    @break  
+                @case('settings-calendar')
+                    @livewire('setting.calendar')
+                    @break  
+                @case('settings-documents')
+                    @livewire('setting.documents')
+                    @break 
+                @case('settings-reports')
+                    @livewire('setting.reports')
+                    @break       
                 @default
                     @livewire('nav.dashboard')
             @endswitch

@@ -38,6 +38,10 @@ class TopBar extends Component
             case 'profile': $this->currentContent = 'profile-content'; break;
             case 'settings': $this->currentContent = 'settings-content'; break;
             case 'notifications': $this->currentContent = 'notifications-content'; break;
+            case 'tasks': $this->currentContent = 'settings-tasks'; break;
+            case 'calendar': $this->currentContent = 'settings-calendar'; break;
+            case 'documents': $this->currentContent = 'settings-documents'; break;
+            case 'reports': $this->currentContent = 'settings-reports'; break;
             default: $this->currentContent = 'dashboard-content';
         }
 
