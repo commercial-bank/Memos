@@ -75,7 +75,7 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="text-xs uppercase text-slate-500 border-b-2 border-slate-800 bg-slate-100 sticky top-0 z-10 shadow-sm">
-                        <th class="px-4 py-3 border-r border-slate-300 w-28 text-center font-bold">Date Sortie</th>
+                        <th class="px-4 py-3 border-r border-slate-300 w-28 text-center font-bold">Date Entrer</th>
                         <th class="px-4 py-3 border-r border-slate-300 w-32 font-bold">N° Reference</th>
                         <th class="px-4 py-3 border-r border-slate-300 w-48 font-bold">Concerne</th>
                         <th class="px-4 py-3 font-bold">Objet</th>

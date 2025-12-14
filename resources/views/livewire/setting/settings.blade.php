@@ -539,7 +539,7 @@
                             </div>
                         @else
                             <!-- CODE EXISTANT GESTION REMPLACEMENT (INCHANGÉ) -->
-                            <div class="space-y-6">
+                            <div class="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                                 <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
                                     <div class="flex">
                                         <div class="flex-shrink-0"><i class="fas fa-info-circle text-blue-400"></i></div>
@@ -573,6 +573,7 @@
                                             <label class="block text-xs font-medium text-gray-500 mb-2">Droits</label>
                                             <div class="flex space-x-4">
                                                 <label class="inline-flex items-center"><input type="checkbox" wire:model="replace_actions" value="VISER" class="rounded text-[#daaf2c] focus:ring-[#daaf2c]"><span class="ml-2 text-sm text-gray-600">Viser</span></label>
+                                                <label class="inline-flex items-center"><input type="checkbox" wire:model="replace_actions" value="REJETER" class="rounded text-[#daaf2c] focus:ring-[#daaf2c]"><span class="ml-2 text-sm text-gray-600">Rejeter</span></label>
                                                 <label class="inline-flex items-center"><input type="checkbox" wire:model="replace_actions" value="SIGNER" class="rounded text-[#daaf2c] focus:ring-[#daaf2c]"><span class="ml-2 text-sm text-gray-600">Signer</span></label>
                                             </div>
                                             @error('replace_actions') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror

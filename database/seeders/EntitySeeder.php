@@ -11,32 +11,33 @@ class EntitySeeder extends Seeder
     /**
      * Run the database seeds.
      */
-    public function run(): void
-    {
-        $entities = [
-            // 1. Celle utilisée par vos utilisateurs (Important pour la cohérence)
-            'Direction Transformation Digital Et systeme information',
-            
-            // 2. Autres Directions classiques pour peupler la liste
-            'Direction Générale',
-            'Direction des Ressources Humaines',
-            'Direction Administrative et Financière',
-            'Direction Commerciale et Marketing',
-            'Direction de la Logistique',
-            'Direction de la Communication',
-            'Direction Juridique',
-        ];
+   
 
-        foreach ($entities as $title) {
-            // Méthode avec Modèle (Recommandé si vous avez le modèle Entity)
-            // Entity::create(['title' => $title]);
+public function run()
+{
+    // Tableau associatif : 'SIGLE' => 'Nom de la direction'
+    $directions = [
+        'DTDSI' => 'Direction Transformation Digital Et systeme information',
+        'DG'    => 'Direction Générale', // J'ai ajouté le sigle DG qui manquait
+        'DRH'   => 'Direction des Ressources Humaines',
+        'DAF'   => 'Direction Administrative et Financière',
+        'DCM'   => 'Direction Commerciale et Marketing',
+        'DL'    => 'Direction de la Logistique',
+        'DCOM'  => 'Direction de la Communication', // J'ai mis DCOM pour éviter la confusion avec DC (Commerciale)
+        'DJ'    => 'Direction Juridique',
+    ];
 
-            // Méthode générique (Fonctionne même sans modèle, juste avec le nom de la table)
-            Entity::create([
-                'title' => $title,
+    foreach ($directions as $ref => $name) {
+        
+        // On utilise firstOrCreate pour éviter les doublons si on lance le seeder 2 fois
+        Entity::firstOrCreate(
+            ['ref' => $ref], // On vérifie si ce SIGLE existe déjà
+            [
+                'name' => $name,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
-        }
+            ]
+        );
     }
+}
 }

@@ -116,52 +116,86 @@ class IncomingMemos extends Component
      public function assignMemo($id)
     {
         $this->memo_id = $id;
+        $memo = Memo::find($id); // On récupère le mémo pour l'analyse
         
-        // Réinitialisation des champs du formulaire
+        // Réinitialisation
         $this->reset(['workflow_comment', 'selected_visa', 'selected_project_users']);
-        $this->memo_type = 'standard'; // On force le mode standard pour l'affichage de la carte unique
+        $this->memo_type = 'standard'; 
 
         $currentUser = Auth::user();
         $targetUser = null;
 
-        // --- LOGIQUE DE DÉTERMINATION DU DESTINATAIRE ---
+        // 1. ANALYSE : SUIS-JE REMPLAÇANT SUR CE MÉMO ?
+        $replacementContext = $this->getReplacementRights($memo);
 
-        if ($currentUser->poste === 'Directeur') {
-            // CAS 1 : C'est un DIRECTEUR
-            // La règle : Envoyer à la "Secretaire" de la même entité
+        // =================================================================
+        // SCÉNARIO A : JE SUIS REMPLAÇANT (J'agis au nom du Titulaire)
+        // =================================================================
+        if ($replacementContext && $replacementContext['is_active']) {
             
-            $targetUser = User::where('entity_id', $currentUser->entity_id)
-                            ->where('poste', 'Secretaire') // Assure-toi que c'est bien écrit comme ça en base
-                            ->first();
-                            
-            // Petit gestion d'erreur si pas de secrétaire trouvée
-            if (!$targetUser) {
-                $this->addError('general', "Aucune secrétaire n'a été trouvée dans votre entité.");
+            $titulaire = $replacementContext['original_user']; // Ex: Le Directeur que je remplace
+
+            // Règle 1 : Si je remplace un DIRECTEUR -> Envoi à la Secrétaire
+            if ($titulaire->poste === 'Directeur') {
+                $targetUser = User::where('entity_id', $titulaire->entity_id)
+                                ->where('poste', 'Secretaire')
+                                ->first();
+                
+                if (!$targetUser) {
+                    $this->addError('general', "Aucune secrétaire trouvée pour le Directeur remplacé.");
+                }
+            } 
+            // Règle 2 : Si je remplace un autre poste -> Envoi au Manager du TITULAIRE
+            else {
+                if ($titulaire->manager_id) {
+                    $targetUser = User::find($titulaire->manager_id);
+                } else {
+                    $this->addError('general', "Le titulaire remplacé n'a pas de manager défini.");
+                }
             }
 
-        } else {
-            // CAS 2 : C'est un EMPLOYÉ LAMBDA ou SOUS-DIRECTEUR
-            // La règle : Envoyer au Manager (N+1) défini dans la table users
+        } 
+        // =================================================================
+        // SCÉNARIO B : JE SUIS LE TITULAIRE (Comportement standard)
+        // =================================================================
+        else {
             
-            if ($currentUser->manager_id) {
-                $targetUser = User::find($currentUser->manager_id);
+            // Règle 1 : Je suis DIRECTEUR -> Envoi à ma Secrétaire
+            if ($currentUser->poste === 'Directeur') {
+                $targetUser = User::where('entity_id', $currentUser->entity_id)
+                                ->where('poste', 'Secretaire')
+                                ->first();
+                
+                if (!$targetUser) {
+                    $this->addError('general', "Aucune secrétaire trouvée dans votre entité.");
+                }
+            } 
+            // Règle 2 : Je suis EMPLOYÉ/SD -> Envoi à MON Manager
+            else {
+                if ($currentUser->manager_id) {
+                    $targetUser = User::find($currentUser->manager_id);
+                }
             }
         }
 
-        // --- GESTION DU REMPLACEMENT (Commun à tous) ---
-        // On utilise ta super fonction qui vérifie les dates et la table replaces_users
+        // =================================================================
+        // RÉSOLUTION DE DISPONIBILITÉ (Le destinataire est-il lui-même remplacé ?)
+        // =================================================================
+        // Exemple : Je remplace le SD, j'envoie au Directeur. 
+        // Mais si le Directeur est aussi absent ? Cette fonction va trouver SON remplaçant.
+        
         if ($targetUser) {
             $this->managerData = $this->resolveUserAvailability($targetUser);
         } else {
             $this->managerData = null;
         }
 
-        // 2. PRÉPARATION LISTE PROJET (Optionnel, inchangé)
+        // Préparation liste projet (inchangé, sauf qu'on exclut le titulaire si remplacement)
         $excludeIds = [$currentUser->id];
-        if ($this->managerData) {
-            $excludeIds[] = $this->managerData['original']->id;
+        if ($replacementContext) {
+            $excludeIds[] = $replacementContext['original_user']->id;
         }
-
+        
         $this->projectUsersList = User::whereNotIn('id', $excludeIds)
                                     ->orderBy('last_name')
                                     ->get()
@@ -225,77 +259,113 @@ class IncomingMemos extends Component
     }
 
 
+    // =========================================================================
+    // 3. ADAPTATION DE L'ACTION : VISER / ENVOYER
+    // =========================================================================
+
     public function sendMemo()
     {
+        // 1. Validation du formulaire
         $this->validate([
             'selected_visa' => 'required',
             'workflow_comment' => 'nullable|string|max:1000',
-            // Si projet, il faut au moins un destinataire
+            // En mode projet, on doit avoir sélectionné des gens
             'selected_project_users' => 'required_if:memo_type,projet|array',
         ], [
             'selected_project_users.required_if' => 'En mode projet, veuillez sélectionner au moins un collaborateur.'
         ]);
 
         $memo = Memo::find($this->memo_id);
-        $currentUser = Auth::user();
+        $user = Auth::user();
+        
+        // 2. Gestion du commentaire "P/O" (Pour Ordre)
+        $replacementContext = $this->getReplacementRights($memo);
+        $finalComment = $this->workflow_comment;
+
+        if ($replacementContext && in_array('viser', $replacementContext['actions_allowed'])) {
+            $titulaire = $replacementContext['original_user'];
+            // On ajoute la mention P/O au commentaire
+            $finalComment = "[P/O " . $titulaire->poste . "] " . $this->workflow_comment;
+        }
+
+        // 3. CALCUL DES DESTINATAIRES (C'est ici que ça manquait)
         $nextHolders = [];
 
-        // --- SCENARIO A : STANDARD (Envoi au N+1 ou son remplaçant) ---
+        // --- SCENARIO A : CIRCUIT STANDARD (Vers le Manager affiché dans le modal) ---
         if ($this->memo_type === 'standard') {
-            if ($this->managerData) {
-                // On envoie à l'utilisateur effectif (le remplaçant s'il existe, sinon le manager)
+            
+            // On vérifie si managerData est bien rempli (calculé lors du assignMemo)
+            if ($this->managerData && isset($this->managerData['effective'])) {
+                // On envoie à l'utilisateur effectif (le manager ou son remplaçant)
                 $nextHolders[] = $this->managerData['effective']->id;
             } else {
-                $this->addError('general', "Vous n'avez pas de supérieur hiérarchique défini.");
+                // Sécurité : Si les données ont été perdues, on tente de recalculer ou on bloque
+                $this->addError('general', "Erreur : Le destinataire n'est pas défini. Veuillez fermer et rouvrir le modal.");
                 return;
             }
         }
 
-        // --- SCENARIO B : PROJET (Envoi aux collaborateur sélectionnés ou leurs remplaçants) ---
+        // --- SCENARIO B : CIRCUIT PROJET (Vers les collaborateurs sélectionnés) ---
         if ($this->memo_type === 'projet') {
             foreach ($this->selected_project_users as $userId) {
-                // On revérifie la disponibilité au moment de l'envoi (sécurité)
                 $targetUser = User::find($userId);
-                $availability = $this->resolveUserAvailability($targetUser);
-                
-                if ($availability['effective']) {
-                    $nextHolders[] = $availability['effective']->id;
+                if ($targetUser) {
+                    // On vérifie la disponibilité de chaque destinataire projet
+                    $availability = $this->resolveUserAvailability($targetUser);
+                    if ($availability && $availability['effective']) {
+                        $nextHolders[] = $availability['effective']->id;
+                    }
                 }
             }
         }
 
+        // 4. Vérification finale
         if (empty($nextHolders)) {
-            $this->addError('general', 'Aucun destinataire valide trouvé.');
+            $this->addError('general', 'Aucun destinataire valide trouvé pour la transmission.');
             return;
         }
 
-        // Sauvegarde DB
-        $memo->previous_holders = [$currentUser->id];
-        $memo->current_holders = array_unique($nextHolders); // Éviter doublons
+        // 5. Mise à jour du Mémo en Base de Données
+        // Important : previous_holders stocke qui a tenu le mémo avant.
+        // Si je suis remplaçant, techniquement c'est moi ($user->id) qui transmet.
+        
+        // On fusionne l'historique existant ou on écrase selon votre logique métier.
+        // Ici, on écrase pour dire "Le mémo vient de MOI".
+        $memo->previous_holders = [$user->id]; 
+        
+        $memo->current_holders = array_unique($nextHolders); // Les nouveaux détenteurs
         $memo->status = 'envoyer'; 
-        $memo->workflow_comment = $this->workflow_comment; 
-        // Optionnel : Sauvegarder le type de mémo si vous avez ajouté la colonne en base
-        // $memo->type = $this->memo_type; 
+        $memo->workflow_direction = 'sortant'; // S'assure que ça reste sortant
+        $memo->workflow_comment = $finalComment; 
         
         $memo->save();
 
+        // 6. Enregistrement dans l'historique (Timeline)
         Historiques::create([
-            'user_id' => $currentUser->id,
+            'user_id' => $user->id,
             'memo_id' => $memo->id,
             'visa'    => $this->selected_visa,
-            'workflow_comment' => $this->workflow_comment ?? 'R.A.S',
+            'workflow_comment' => $finalComment ?? 'R.A.S',
         ]);
 
+        // 7. Envoi des Notifications Laravel
         $usersToNotify = User::whereIn('id', $nextHolders)->get();
 
-        foreach ($usersToNotify as $user) {
-            // $user : C'est l'utilisateur physique (ex: le Directeur ou son remplaçant)
-            // 'sent' : Le type d'action pour afficher le bon message/icône
-            $user->notify(new MemoActionNotification($memo, 'envoyer', $currentUser));
+        foreach ($usersToNotify as $recipient) {
+            // $recipient : C'est la personne qui reçoit (ex: Secrétaire de direction)
+            // 'envoyer' : L'action effectuée
+            // $user : L'acteur (Moi)
+            try {
+                $recipient->notify(new MemoActionNotification($memo, 'envoyer', $user));
+            } catch (\Exception $e) {
+                // On évite de planter tout le processus si l'envoi de mail échoue
+                // Log::error("Erreur notification : " . $e->getMessage());
+            }
         }
 
+        // 8. Fermeture et Feedback
         $this->closeModalTrois();
-        $this->dispatch('notify', message: "Le mémo ($this->memo_type) a été envoyé avec succès.");
+        $this->dispatch('notify', message: "Le mémo a été transmis avec succès.");
     }
 
     public function closeModalTrois() { $this->isOpen3 = false; }
@@ -316,137 +386,151 @@ class IncomingMemos extends Component
         $this->reject_comment = '';
     }
 
+
+
     public function processReject()
-    {
-        // Validation : Le commentaire est obligatoire pour un rejet
-        $this->validate([
-            'reject_comment' => 'required|string|min:5|max:1000',
-        ], [
-            'reject_comment.required' => 'Le motif du rejet est obligatoire.',
-            'reject_comment.min' => 'Veuillez expliquer le motif plus en détail.',
-        ]);
+{
+    // 1. VALIDATION (Indispensable)
+    $this->validate([
+        'reject_comment' => 'required|string|min:5|max:500',
+    ], [
+        'reject_comment.required' => 'Le motif du rejet est obligatoire.',
+        'reject_comment.min' => 'Le motif doit être explicite (min 5 caractères).',
+    ]);
 
-        $memo = Memo::find($this->memo_id);
-        $currentUser = Auth::user();
+    $memo = Memo::findOrFail($this->memo_id);
+    $user = Auth::user();
 
-        // LOGIQUE DE RETOUR À L'INITIATEUR (Createur du mémo)
-        // Selon votre demande : current_holders devient l'ID du créateur (user_id)
-        
-        // 1. Mise à jour des porteurs (Le créateur récupère la main)
-        $memo->current_holders = [0];
-        
-        // 2. L'historique précédent devient MOI (celui qui rejette)
-        $memo->previous_holders = [0];
+    // 2. GESTION DES DROITS (Remplaçant ou Titulaire)
+    $replacementContext = $this->getReplacementRights($memo);
+    $finalReason = $this->reject_comment;
 
-        // 3. Mise à jour statut et commentaire
-        $memo->status = 'rejeter'; // Status demandé
-        $memo->workflow_comment = $this->reject_comment;
-
-        $memo->save();
-
-        // 4. Enregistrement dans l'historique
-        Historiques::firstOrCreate([
-            'user_id' => $currentUser->id,
-            'memo_id' => $memo->id,
-            'visa' => 'rejeter', // Action spécifique
-            'workflow_comment' => 'MOTIF REJET : ' . $this->reject_comment,
-        ]);
-
-         // ====================================================================
-        // GESTION DES NOTIFICATIONS (Basée sur current_holders / nextHolders)
-        // ====================================================================
-        
-        $creator = $memo->user; // Assure-toi que la relation 'user' existe dans ton modèle Memo
-        // Sinon: $creator = User::find($memo->user_id);
-
-        if ($creator) {
-            // 2. On envoie la notification
-            // Paramètres : Le mémo, le type d'action, et l'acteur (Moi)
-            $creator->notify(new MemoActionNotification($memo, 'rejeter', $currentUser));
+    if ($replacementContext) {
+        if (in_array('rejeter', $replacementContext['actions_allowed'])) {
+            $titulaire = $replacementContext['original_user'];
+            $finalReason = "[REJET P/O " . $titulaire->poste . "] " . $this->reject_comment;
+        } else {
+             $this->addError('reject_comment', "Droit insuffisant : Vous ne pouvez pas rejeter ce document en tant que remplaçant.");
+             return;
         }
-
-    
-        
-        // ====================================================================
-
-        $this->closeRejectModal();
-        $this->dispatch('notify', message: "Le mémo a été rejeté et renvoyé à son créateur.");
     }
+
+    // 3. LOGIQUE DE RENVOI (Retour à l'envoyeur)
+    // On récupère qui nous a envoyé le mémo pour lui renvoyer
+    $previousHolders = is_string($memo->previous_holders) ? json_decode($memo->previous_holders, true) : $memo->previous_holders;
+    
+    // Si historique vide, on renvoie au créateur initial
+    $backToUserId = !empty($previousHolders) ? end($previousHolders) : $memo->user_id;
+
+    // Mise à jour du mémo
+    $memo->update([
+        'status' => 'rejeter',               // Statut explicite
+        'workflow_direction' => 'sortant',   // Pour le filtrage visuel
+        'workflow_comment' => $finalReason,
+        'current_holders' => [$backToUserId], // Le mémo quitte votre liste et retourne à l'autre
+        'previous_holders' => [$user->id],    // Vous devenez le précédent détenteur
+    ]);
+
+    // 4. HISTORIQUE
+    Historiques::create([
+        'user_id' => $user->id,
+        'memo_id' => $memo->id,
+        'visa' => 'Rejeté',
+        'workflow_comment' => $finalReason,
+    ]);
+
+    // 5. NOTIFICATION (Optionnel)
+    $receiver = User::find($backToUserId);
+    if ($receiver) {
+        try {
+            $receiver->notify(new MemoActionNotification($memo, 'rejeter', $user));
+        } catch (\Exception $e) {}
+    }
+
+    // 6. FERMETURE ET MESSAGE (C'est ce qui manquait pour l'UX)
+    $this->closeRejectModal();
+    $this->dispatch('notify', message: "Le mémo a été rejeté et renvoyé à l'expéditeur.");
+}
 
     public function closeModal() { $this->isOpen = false; }
 
 
     
 
+    // =========================================================================
+    // 2. ADAPTATION DE L'ACTION : SIGNER
+    // =========================================================================
+
     public function sign($id)
     {
-        // 1. Récupération
         $memo = Memo::findOrFail($id);
         $user = Auth::user();
-
-        // 2. Token de base
-        $randomString = Str::upper(Str::random(10));
-        $timestamp = now()->timestamp;
-        $baseToken = "{$timestamp}-{$randomString}";
-
-        // 3. Logique par poste
-        if ($user->poste === 'Sous-Directeur') {
-            
-            if ($memo->signature_sd) {
-                $this->dispatch('notify', message: "Ce document est déjà signé.");
-                return;
-            }
-
-            $token = 'SD-' . $baseToken;
-            $memo->signature_sd = $token;
-            $message = "Signature Sous-Directeur apposée.";
-
-        } elseif ($user->poste === 'Directeur') {
-            
-            if ($memo->signature_dir) {
-                $this->dispatch('notify', message: "Ce document est déjà signé.");
-                return;
-            }
-
-            // Signature visuelle
-            $token = 'DIR-' . $baseToken;
-            $memo->signature_dir = $token;
-
-            // --- AJOUT : GÉNÉRATION DU QR CODE ---
-            // On crée un UUID unique qui servira pour l'URL de vérification (route('memo.verify', $uuid))
-            $memo->qr_code = (string) Str::uuid();
-
-            // Optionnel : On verrouille le statut final du mémo
-            $memo->status = 'valider'; 
-
-            $message = "Signature Directeur apposée et QR Code généré.";
         
-        } else {
-            $this->dispatch('notify', message: "Action non autorisée pour votre poste.");
-            return;
+        // On récupère le contexte de remplacement
+        $replacementContext = $this->getReplacementRights($memo);
+        
+        // Token de base
+        $randomString = Str::upper(Str::random(10));
+        $tokenBase = now()->timestamp . "-{$randomString}";
+        
+        $message = "";
+        $historyData = "";
+        $posteSignataire = $user->poste; // Par défaut, mon poste
+
+        // --- CAS 1 : JE SUIS REMPLAÇANT ---
+        if ($replacementContext && in_array('signer', $replacementContext['actions_allowed'])) {
+            
+            $titulaire = $replacementContext['original_user'];
+            $posteSignataire = $titulaire->poste; // On signe "en tant que" (virtuellement)
+
+            // Logique selon le poste du TITULAIRE
+            if ($titulaire->poste === 'Sous-Directeur') {
+                if ($memo->signature_sd) { $this->dispatch('notify', message: "Déjà signé."); return; }
+                $memo->signature_sd = 'SD-INT-' . $tokenBase;
+                $message = "Signature Sous-Directeur (P/O) apposée.";
+            } 
+            elseif ($titulaire->poste === 'Directeur') {
+                if ($memo->signature_dir) { $this->dispatch('notify', message: "Déjà signé."); return; }
+                $memo->signature_dir = 'DIR-INT-' . $tokenBase;
+                $memo->qr_code = (string) Str::uuid();
+                $memo->status = 'valider';
+                $message = "Signature Directeur (P/O) apposée.";
+            }
+
+            // Commentaire spécial P/O
+            $historyData = "Signature P/O (Pour Ordre) de M./Mme {$titulaire->last_name} ({$titulaire->poste}) par {$user->first_name} {$user->last_name}";
+
+        } 
+        // --- CAS 2 : JE SUIS LE TITULAIRE (Standard) ---
+        else {
+             // ... Ta logique standard existante ...
+             if ($user->poste === 'Sous-Directeur') {
+                // ...
+                $memo->signature_sd = 'SD-' . $tokenBase;
+                $message = "Signature Sous-Directeur apposée.";
+                $historyData = "Signature Sous-Directeur : " . $memo->signature_sd;
+             } elseif ($user->poste === 'Directeur') {
+                // ...
+                $memo->signature_dir = 'DIR-' . $tokenBase;
+                $memo->qr_code = (string) Str::uuid();
+                $memo->status = 'valider';
+                $message = "Signature Directeur apposée.";
+                $historyData = "Signature Directeur Finale : " . $memo->signature_dir;
+             } else {
+                 $this->dispatch('notify', message: "Vous n'avez pas les droits de signature pour ce document.");
+                 return;
+             }
         }
 
-        // 4. Sauvegarde
         $memo->save();
 
-        // 5. Historique
         Historiques::create([
             'user_id' => $user->id,
             'memo_id' => $memo->id,
             'visa'    => 'Signé',
-            'workflow_comment' => "Signature numérique " . ($user->poste == 'Directeur' ? "(Finale)" : "(Partielle)") . " : " . $token,
+            'workflow_comment' => $historyData, // C'est ici que le texte P/O est sauvegardé pour le QR Code
         ]);
 
-         // ====================================================================
-        // GESTION DES NOTIFICATIONS (Basée sur current_holders / nextHolders)
-        // ====================================================================
-        
-     
-            //$user->notify(new MemoActionNotification($memo, 'signer', $user->id));
-         
-        // ====================================================================
-
-        // 6. Feedback
         $this->dispatch('notify', message: $message);
     }
 
@@ -455,31 +539,29 @@ class IncomingMemos extends Component
 
 
     // 1. OUVRIR LE MODAL ET CALCULER LES DESTINATAIRES
+    // 2. MODIFICATION DE L'OUVERTURE DU MODAL
     public function transMemo($id)
     {
         $this->memo_id = $id;
         $memo = Memo::with('destinataires')->findOrFail($id);
-       
-        
-        // A. Récupérer les ID des entités destinataires
+    
+        // ... (Logique de recherche des destinataires inchangée) ...
         $targetEntityIds = $memo->destinataires->pluck('entity_id')->toArray();
-         
-
-        // B. Trouver les secrétaires de ces entités
         $rawSecretaries = User::whereIn('entity_id', $targetEntityIds)
-                              ->where('poste', 'Secretaire') 
-                              ->get();
+                            ->where('poste', 'Secretaire') 
+                            ->get();
 
-        
-        // C. Gérer les remplacements (User -> Remplaçant)
         $this->transRecipients = $rawSecretaries->map(function($user) {
             return $this->resolveUserAvailability($user);
         });
 
         if ($this->transRecipients->isEmpty()) {
-            $this->addError('general', "Aucune secrétaire trouvée dans les entités destinataires.");
-            return; // On n'ouvre pas le modal si personne à qui envoyer
+            $this->dispatch('notify', message: "Erreur : Aucune secrétaire trouvée...");
+            return; 
         }
+
+        // --- NOUVEAU : On pré-génère la référence ICI et on la stocke dans la variable publique ---
+        $this->generatedReference = $this->generateSmartReference($memo);
 
         $this->isOpenTrans = true;
     }
@@ -492,140 +574,312 @@ class IncomingMemos extends Component
 
     // 2. EXÉCUTION DE LA TRANSMISSION
     public function confirmTrans()
-    {
-        $memo = Memo::findOrFail($this->memo_id);
-        $currentUser = Auth::user();
+{
+    // 1. Validation
+    $this->validate([
+        'generatedReference' => 'required|string|max:50'
+    ]);
 
-        // On utilise une transaction DB pour s'assurer que tout s'enregistre ou rien
-        DB::transaction(function () use ($memo, $currentUser) {
-            
-            // A. GÉNÉRATION DE LA RÉFÉRENCE
-            $referenceString = $this->generateSmartReference($memo);
-            
-            // B. CRÉATION DANS BLOCS_ENREGISTREMENTS
-            BlocEnregistrements::create([
-                'nature_memo' => 'Memo Sortant', // Ou dynamique selon besoin
-                'date_enreg' => now()->format('d/m/Y'),
-                'reference' => $referenceString,
-                'memo_id' => $memo->id,
-                'user_id' => $currentUser->id,
-            ]);
+    $memo = Memo::findOrFail($this->memo_id);
+    $currentUser = Auth::user();
 
-            // C. MISE À JOUR DU MÉMO
-            // Récupérer les ID des "Users Effectifs" (les secrétaires ou leurs remplaçants)
-            $nextHoldersIds = $this->transRecipients->pluck('effective.id')->unique()->toArray();
+    // --- CORRECTION ICI ---
+    // On calcule les IDs AVANT la transaction pour que la variable existe partout
+    $nextHoldersIds = $this->transRecipients->pluck('effective.id')->unique()->toArray();
+    // ----------------------
 
-            $memo->update([
-                'workflow_direction' => 'entrant',
-                'workflow_comment' => "Enregistré et transmis aux destinataires",
-                'current_holders' => $nextHoldersIds,
-                'previous_holders' => [$currentUser->id],
-                'status' => 'transmit',
-                'reference' => $referenceString, // On met à jour la ref visible sur le mémo aussi ?
-            ]);
-
-            $usersToNotify = User::whereIn('id', $nextHoldersIds)->get();
-
-            foreach ($usersToNotify as $user) {
-                // $user : C'est l'utilisateur physique (ex: le Directeur ou son remplaçant)
-                // 'sent' : Le type d'action pour afficher le bon message/icône
-                $user->notify(new MemoActionNotification($memo, 'envoyer', $currentUser));
-            }
-
-            // D. HISTORIQUE
-            Historiques::create([
-                'user_id' => $currentUser->id,
-                'memo_id' => $memo->id,
-                'visa' => 'Enregistré',
-                'workflow_comment' => "Enregistrement Ref: " . $referenceString,
-            ]);
-        });
-
-         // ====================================================================
-        // GESTION DES NOTIFICATIONS (Basée sur current_holders / nextHolders)
-        // ====================================================================
+    // 2. Transaction Base de Données
+    // On passe $nextHoldersIds à la fonction via 'use'
+    DB::transaction(function () use ($memo, $currentUser, $nextHoldersIds) {
         
-        // On récupère les modèles User correspondant aux IDs trouvés juste au-dessus
-        $usersToNotify = User::whereIn('id', $currentUser)->get();
-
-        foreach ($usersToNotify as $user) {
-            // $user : C'est l'utilisateur physique (ex: le Directeur ou son remplaçant)
-            // 'sent' : Le type d'action pour afficher le bon message/icône
-            $user->notify(new MemoActionNotification($memo, 'transmis', $currentUser));
-        }
+        $finalReference = $this->generatedReference;
         
-        // ====================================================================
+        // A. Enregistrement dans le chrono
+        BlocEnregistrements::create([
+            'nature_memo' => 'Memo Sortant',
+            'date_enreg' => now()->format('d/m/Y'),
+            'reference' => $finalReference,
+            'memo_id' => $memo->id,
+            'user_id' => $currentUser->id,
+        ]);
 
-        $this->closeTransModal();
-        $this->dispatch('notify', message: "Mémo enregistré et transmis avec succès !");
+        // B. Mise à jour du mémo
+        $memo->update([
+            'workflow_direction' => 'entrant', 
+            'workflow_comment' => "Enregistré sous n° " . $finalReference,
+            'current_holders' => $nextHoldersIds, // On utilise la variable calculée plus haut
+            'previous_holders' => [$currentUser->id], 
+            'status' => 'transmit',
+            'reference' => $finalReference,
+        ]);
+
+        // C. Historique
+        Historiques::create([
+            'user_id' => $currentUser->id,
+            'memo_id' => $memo->id,
+            'visa' => 'Enregistré & Transmis',
+            'workflow_comment' => "Réf: " . $finalReference,
+        ]);
+    });
+
+    // ====================================================================
+    // 3. GESTION DES NOTIFICATIONS
+    // ====================================================================
+
+    // --- GROUPE A : LES DESTINATAIRES ---
+    // La variable $nextHoldersIds est maintenant reconnue ici !
+    $destinataires = User::whereIn('id', $nextHoldersIds)->get();
+
+    foreach ($destinataires as $dest) {
+        try {
+            $dest->notify(new MemoActionNotification($memo, 'envoyer', $currentUser));
+        } catch (\Exception $e) {}
     }
+
+    // --- GROUPE B : LE N+1 (Information) ---
+    if ($currentUser->manager_id) {
+        $manager = User::find($currentUser->manager_id);
+        
+        // Vérification disponibilité manager
+        $managerDispo = $this->resolveUserAvailability($manager);
+
+        if ($managerDispo && $managerDispo['effective']) {
+            $effectiveManager = $managerDispo['effective'];
+            
+            try {
+                $effectiveManager->notify(new MemoActionNotification($memo, 'transmis', $currentUser));
+            } catch (\Exception $e) {}
+        }
+    }
+
+    // ====================================================================
+
+    $this->closeTransModal();
+    $this->dispatch('notify', message: "Mémo enregistré (Réf: {$this->generatedReference}) et transmis !");
+}
+            
 
 
     // 3. LOGIQUE INTELLIGENTE DE GÉNÉRATION DE RÉFÉRENCE
     private function generateSmartReference($memo)
     {
-        // 1. Compteur + 1
-        $count = BlocEnregistrements::count() + 1 ;
+        // A. Récupérer l'année en cours
+        $currentYear = now()->year;
         
-        // 2. Données de base du créateur du mémo
+        // B. Récupérer l'entité de la secrétaire connectée (Celle qui enregistre)
+        $currentUser = Auth::user();
+        $entityId = $currentUser->entity_id;
+
+        // C. Compter les enregistrements DE CETTE ENTITÉ pour CETTE ANNÉE
+        // On regarde dans la table blocs_enregistrements, en filtrant par les utilisateurs de la même entité
+        $count = BlocEnregistrements::whereYear('created_at', $currentYear)
+            ->whereHas('user', function($query) use ($entityId) {
+                $query->where('entity_id', $entityId);
+            })
+            ->count() + 1; // On ajoute 1 pour le prochain numéro
+        
+        // 2. Données de base du créateur du mémo (Pour les sigles)
         $creator = User::with(['entity', 'sousDirection'])->find($memo->user_id);
         
         // Préparation des segments
         $refEntity = $creator->entity->ref ?? 'ENT';
-        $refSD = $creator->sousDirection->ref ?? 'SD'; // Assure-toi d'avoir la relation dans User
+        $refSD = $creator->sousDirection->ref ?? 'SD'; 
         $refDept = $this->abbreviate($creator->departement);
         $refService = $this->abbreviate($creator->service);
         $userInitials = Str::upper(substr($creator->first_name, 0, 1) . substr($creator->last_name, 0, 1));
 
-        // 3. Vérification des Visas dans l'historique
-        // On récupère tous les visas "Vu & Accord" pour ce mémo
+        // Récupération des validations pour la logique hiérarchique
         $validations = Historiques::where('memo_id', $memo->id)
-                                  ->where('visa', 'Vu & Accord')
-                                  ->pluck('user_id')
-                                  ->toArray();
+                                ->where('visa', 'Vu & Accord')
+                                ->pluck('user_id')
+                                ->toArray();
 
-        // SCÉNARIO 1 : Le créateur a validé lui-même (Vu & Accord)
+        // Construction de la référence (Format N°/Entity...)
+        // Note: J'utilise sprintf avec %04d pour avoir "0001", "0012", etc.
+        
+        $baseRef = "";
+
+        // SCÉNARIO 1 : Le créateur a validé lui-même
         if (in_array($creator->id, $validations)) {
-            // Format : N°/Entity/SD/Dept/Service/Initiales
-            return sprintf("%04dM/%s/%s/%s/%s/%s", $count , $refEntity, $refSD, $refDept, $refService, $userInitials);
+            $baseRef = sprintf("%04dM/%s/%s/%s/%s/%s", $count , $refEntity, $refSD, $refDept, $refService, $userInitials);
+        }
+        else {
+            // ... (Votre logique de remontée hiérarchique existante) ...
+            $n1 = $creator->manager_id ? User::find($creator->manager_id) : null;
+            $n2 = $n1 && $n1->manager_id ? User::find($n1->manager_id) : null;
+
+            if ($n1 && in_array($n1->id, $validations) && Str::contains($n1->poste, 'Service')) {
+                $baseRef = sprintf("%04d/%s/%s/%s/%s", $count, $refEntity, $refSD, $refDept, $refService);
+            }
+            elseif ($n2 && in_array($n2->id, $validations) && Str::contains($n2->poste, 'Département')) {
+                $baseRef = sprintf("%04d/%s/%s/%s", $count, $refEntity, $refSD, $refDept);
+            }
+            else {
+                // Par défaut
+                $baseRef = sprintf("%04d/%s/%s", $count, $refEntity, $refSD);
+            }
         }
 
-        // Pour les étapes suivantes, on remonte la hiérarchie du créateur
-        // Note: Cela suppose que la hiérarchie est bien définie via manager_id
-        
-        $n1 = $creator->manager_id ? User::find($creator->manager_id) : null;
-        
-        // SCÉNARIO 2 : Le N+1 (Chef Service ?) a validé
-        // On vérifie si N1 existe, s'il a validé, et si son poste contient "Service"
-        if ($n1 && in_array($n1->id, $validations) && Str::contains($n1->poste, 'Service')) {
-             // Format : N°/Entity/SD/Dept/Service
-             return sprintf("%04d/%s/%s/%s/%s", $count, $refEntity, $refSD, $refDept, $refService);
-        }
-
-        // On cherche le N+2 (Chef Département ?)
-        $n2 = $n1 && $n1->manager_id ? User::find($n1->manager_id) : null;
-
-        // SCÉNARIO 3 : Le N+2 (Chef Dept) a validé
-        if ($n2 && in_array($n2->id, $validations) && Str::contains($n2->poste, 'Département')) {
-             // Format : N°/Entity/SD/Dept
-             return sprintf("%04d/%s/%s/%s", $count, $refEntity, $refSD, $refDept);
-        }
-
-        // SCÉNARIO 4 (Par défaut ou Sous-Directeur) : 
-        // Si personne "en bas" n'a validé complètement, on garde la ref haute
-        // Format : N°/Entity/SD
-        return sprintf("%04d/%s/%s", $count, $refEntity, $refSD);
+        return $baseRef;
     }
 
-    // Helper pour abréger (Ex: "Ressources Humaines" -> "RH")
+
+   
+
     private function abbreviate($string)
     {
         if (empty($string)) return '';
+
+        // 1. Nettoyage préalable
+        // Convertir en ASCII pour supprimer les accents (ex: "Département" -> "Departement")
+        $cleanString = Str::ascii($string);
         
-        // Prend les premières lettres de chaque mot majuscule
-        // Ex simple: juste les 3 premières lettres en majuscule
-        // Tu peux faire une logique plus complexe avec des Regex
-        return Str::upper(substr($string, 0, 3)); 
+        // Supprimer les points (ex: "D.R.H" devient "DRH") pour considérer ça comme un seul mot
+        $cleanString = str_replace('.', '', $cleanString);
+
+        // Remplacer les apostrophes et tirets par des espaces
+        $cleanString = str_replace(["'", "’", "-"], ' ', $cleanString);
+        
+        // Tout mettre en minuscule
+        $cleanString = Str::lower($cleanString);
+
+        // 2. Découpage en mots
+        $words = preg_split('/\s+/', $cleanString, -1, PREG_SPLIT_NO_EMPTY);
+        
+        // --- NOUVELLE LOGIQUE : SI UN SEUL MOT ---
+        if (count($words) === 1) {
+            $uniqueWord = $words[0];
+
+            // Cas spécifique : Si le mot unique est "departement", on renvoie DP
+            if ($uniqueWord === 'departement') {
+                return 'DP';
+            }
+
+            // Sinon, on considère que c'est déjà un sigle ou un nom propre (ex: "ECONOMAT", "DPTDSI")
+            // On retourne le mot complet en majuscule
+            return Str::upper($uniqueWord);
+        }
+
+        // 3. LOGIQUE CLASSIQUE (SI PLUSIEURS MOTS)
+        $ignoredWords = [
+            'le', 'la', 'les', 'l', 'un', 'une', 'des', 'du', 'de', 'd',
+            'et', 'ou', 'mais', 'donc', 'or', 'ni', 'car',
+            'a', 'au', 'aux', 'en', 'par', 'pour', 'sur', 'dans', 'vers', 'avec', 'sans', 'sous', 'chez'
+        ];
+
+        $acronym = '';
+
+        foreach ($words as $word) {
+            // Ignorer les mots vides
+            if (in_array($word, $ignoredWords)) {
+                continue;
+            }
+
+            // RÈGLE SPÉCIFIQUE : Departement devient DP
+            if ($word === 'departement') {
+                $acronym .= 'DP';
+            }
+            // RÈGLE GÉNÉRALE : Première lettre
+            else {
+                $acronym .= substr($word, 0, 1);
+            }
+        }
+
+        return Str::upper($acronym);
+    }
+
+    // =========================================================================
+    // 1. CŒUR DU SYSTÈME : VÉRIFICATION DES DROITS DE REMPLACEMENT
+    // =========================================================================
+
+    /**
+     * Cette fonction détermine si l'utilisateur courant agit en tant que remplaçant pour ce mémo précis.
+     * Elle retourne un tableau avec les infos et les droits, ou null.
+     */
+    
+    public function getReplacementRights($memo)
+    {
+        $user = Auth::user();
+        $today = Carbon::now()->format('Y-m-d');
+
+        // 1. Récupérer le "Précédent Détenteur"
+        $previousHolders = is_array($memo->previous_holders) ? $memo->previous_holders : json_decode($memo->previous_holders, true);
+        
+        if (empty($previousHolders)) {
+            return null; 
+        }
+
+        $lastSenderId = end($previousHolders);
+        $lastSender = User::find($lastSenderId);
+
+        if (!$lastSender) return null;
+
+        // 2. Chercher les remplacements actifs
+        $replacements = ReplacesUser::where('user_id_replace', $user->id)
+            ->where('date_begin_replace', '<=', $today)
+            ->where('date_end_replace', '>=', $today)
+            ->get();
+
+        foreach ($replacements as $replacement) {
+            $replacedUser = User::find($replacement->user_id);
+
+            if (!$replacedUser) continue;
+
+            $isTarget = false;
+
+            // Vérification : Le manager de l'expéditeur est celui que je remplace
+            if ($lastSender->manager_id == $replacedUser->id) {
+                $isTarget = true;
+            }
+
+            if ($isTarget) {
+                
+                // --- CORRECTION DE L'ERREUR ICI ---
+                $rawActions = $replacement->action_replace;
+                $actions = [];
+
+                if (is_array($rawActions)) {
+                    // Cas 1 : C'est déjà un tableau (grâce au cast Model)
+                    // On s'assure juste que tout est en minuscule
+                    $actions = array_map('strtolower', $rawActions);
+                } elseif (is_string($rawActions)) {
+                    // Cas 2 : C'est une string "viser,signer"
+                    $actions = explode(',', str_replace(' ', '', strtolower($rawActions)));
+                }
+                // ----------------------------------
+
+                return [
+                    'is_active' => true,
+                    'original_user' => $replacedUser,
+                    'actions_allowed' => $actions,
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    public function toggleFavorite($memoId)
+    {
+        $userId = Auth::id();
+        
+        // On vérifie si le favori existe déjà
+        $existingFavorite = \App\Models\Favoris::where('user_id', $userId)
+                                            ->where('memo_id', $memoId)
+                                            ->first();
+
+        if ($existingFavorite) {
+            // S'il existe, on le supprime (retrait des favoris)
+            $existingFavorite->delete();
+            $this->dispatch('notify', message: "Retiré des favoris.");
+        } else {
+            // S'il n'existe pas, on le crée
+            \App\Models\Favoris::create([
+                'user_id' => $userId,
+                'memo_id' => $memoId
+            ]);
+            $this->dispatch('notify', message: "Ajouté aux favoris !");
+        }
     }
     
     
@@ -635,6 +889,7 @@ class IncomingMemos extends Component
 
         $memos = Memo::with(['user', 'destinataires.entity'])
             ->where('workflow_direction', 'sortant')
+            ->whereNotIn('status', ['transmit', 'rejet', 'rejeter']) 
             ->whereJsonContains('current_holders', $userId)
             
             // 3. OPTIMISATION : On ajoute un attribut booléen 'is_favorited'

@@ -35,15 +35,20 @@
                     <p class="mt-1 text-sm font-medium" style="color: var(--c-grey);">Gérez, suivez et archivez vos communications internes.</p>
                 </div>
                 <div class="mt-4 md:mt-0">
-                    <!-- Bouton Nouveau Mémo : Fond Or, Texte Noir (Charte) -->
-                    <button wire:click="createMemo"
-                        class="group inline-flex items-center justify-center px-6 py-3 text-base font-bold text-black transition-all duration-200 rounded-full shadow-lg transform hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#daaf2c]"
-                        style="background-color: var(--c-gold);">
-                        <svg class="w-5 h-5 mr-2 -ml-1 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        Nouveau Mémo
-                    </button>
+                  <!-- On vérifie que le poste N'EST PAS dans la liste des exclus -->
+                    @if(!in_array(auth()->user()->poste, ['Secretaire', 'Directeur', 'Sous-Directeur']))
+                        
+                        <!-- Bouton Nouveau Mémo -->
+                        <button wire:click="createMemo"
+                            class="group inline-flex items-center justify-center px-6 py-3 text-base font-bold text-black transition-all duration-200 rounded-full shadow-lg transform hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#daaf2c]"
+                            style="background-color: var(--c-gold);">
+                            <svg class="w-5 h-5 mr-2 -ml-1 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Nouveau Mémo
+                        </button>
+
+                    @endif
                 </div>
             </div>
 

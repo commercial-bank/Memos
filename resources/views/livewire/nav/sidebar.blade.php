@@ -194,15 +194,17 @@
                 </li>
 
                 <!-- Settings -->
-                <li>
-                    <a href="#" wire:click.prevent="selectTab('settings')" 
-                       class="flex items-center rounded-xl py-3 transition-all duration-200 ease-in-out sidebar-link {{ $isCollapsed ? 'justify-center px-0' : 'px-4' }} {{ $activeTab == 'settings' ? 'sidebar-bg-active sidebar-text-active shadow-md' : 'sidebar-text-inactive' }}">
-                       
-                        <i class="fas fa-cog text-lg w-5 text-center flex-shrink-0 {{ $isCollapsed ? 'mr-0' : 'mr-4' }}"></i>
-                           
-                        <span class="nav-text transition-opacity duration-300 ease-in-out whitespace-nowrap overflow-hidden {{ $isCollapsed ? 'opacity-0 w-0' : 'opacity-100' }}">Settings</span>
-                    </a>
-                </li>
+                @if(auth()->user()->is_admin) 
+                    <li>
+                        <a href="#" wire:click.prevent="selectTab('settings')" 
+                        class="flex items-center rounded-xl py-3 transition-all duration-200 ease-in-out sidebar-link {{ $isCollapsed ? 'justify-center px-0' : 'px-4' }} {{ $activeTab == 'settings' ? 'sidebar-bg-active sidebar-text-active shadow-md' : 'sidebar-text-inactive' }}">
+                        
+                            <i class="fas fa-cog text-lg w-5 text-center flex-shrink-0 {{ $isCollapsed ? 'mr-0' : 'mr-4' }}"></i>
+                            
+                            <span class="nav-text transition-opacity duration-300 ease-in-out whitespace-nowrap overflow-hidden {{ $isCollapsed ? 'opacity-0 w-0' : 'opacity-100' }}">Settings</span>
+                        </a>
+                    </li>
+                @endif    
                 
                 <!-- Logout -->
                 <li>

@@ -66,14 +66,18 @@ class Profil extends Component
     {
         // 1. Validation des données
         $validatedData = $this->validate([
-            'poste' => ['nullable', 'string', 'max:255'],
+            'poste' => ['required','string', 'max:255'],
             'departement' => ['nullable', 'string', 'max:255', new ProperDepartmentCase()],
             'service' =>  ['nullable', 'string', 'max:255', new ProperDepartmentCase()],
             // Validation des clés étrangères
-            'entity_id' => ['nullable', 'exists:entities,id'], // Assurez-vous que la table s'appelle 'entities'
+            'entity_id' => ['required','exists:entities,id'], // Assurez-vous que la table s'appelle 'entities'
             'sous_direction_id' => ['nullable', 'exists:sous_direction,id'],
             'manager_id' => ['nullable', 'exists:users,id'],
-        ]);
+        ],[
+        // Messages d'erreur personnalisés pour une meilleure expérience utilisateur
+        'poste.required'             => 'Le champ Poste est obligatoire.',
+        'entity_id.required'         => 'Veuillez sélectionner une Entité.',
+    ]);
 
         // 2. Logique pour récupérer le sigle de l'entité (si nécessaire dans votre DB)
         // Si vous stockez le nom ou le sigle en dur dans la table users :

@@ -426,7 +426,7 @@
                                         @endif
                                         
                                         <!-- Numéro de version du formulaire -->
-                                        <div class="text-[10px] text-gray-500 italic">FOR-ME-07-V1</div>
+                                        <div class="text-[10px] text-gray-500 italic">{{ $ref_number }}</div>
                                     </div>
 
                                 </div> 
@@ -439,258 +439,242 @@
         </div>
     @endif
 
-    @if($isOpen2)
-       <!-- Modal Édition (Grand Format) -->
-       <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <!-- Backdrop -->
-            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" wire:click="closeModalDeux"></div>
+   @if($isOpen2)
+    <!-- Modal Édition (Positionné sous la Navbar) -->
+    <!-- z-[100] garantit qu'il est AU-DESSUS de tout le reste de l'interface -->
+    <div class="relative z-[100]" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        
+        <!-- Backdrop (Fond sombre) -->
+        <div 
+            class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm transition-opacity" 
+            wire:click="closeModalDeux">
+        </div>
+
+        <!-- Conteneur de positionnement -->
+        <!-- Changements ici : 
+             1. 'items-start' au lieu de 'items-center' (pour coller en haut)
+             2. 'pt-24' (Padding Top) pour descendre la fenêtre sous la barre de titre 
+             3. 'pb-10' pour laisser une marge en bas -->
+        <div class="fixed inset-0 z-[100] w-screen h-screen overflow-hidden flex items-start justify-center px-4 sm:px-8 pt-24 pb-10">
             
-            <!-- Conteneur Scrollable -->
-            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-                <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <!-- Le Modal -->
+            <!-- max-h-full permet d'utiliser l'espace défini par les paddings du conteneur parent -->
+            <div class="relative flex flex-col w-full max-w-6xl h-full max-h-full bg-white rounded-xl shadow-2xl ring-1 ring-black/5 overflow-hidden border border-gray-200">
+                
+                <!-- 1. HEADER (Toujours visible) -->
+                <div class="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white z-20">
+                    <div class="flex items-center gap-4">
+                        <span class="flex items-center justify-center w-10 h-10 bg-yellow-100 text-yellow-700 rounded-lg shadow-sm border border-yellow-200">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </span>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800 leading-tight">Modifier le Brouillon</h3>
+                            <p class="text-xs text-gray-500 font-medium">Mode édition</p>
+                        </div>
+                    </div>
                     
-                    <!-- Le Modal Lui-même -->
-                    <div class="relative transform overflow-hidden rounded-xl bg-gray-50 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-5xl border border-gray-200">
+                    <div class="flex items-center gap-3">
+                        <button type="button" wire:click="closeModalDeux" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none transition-colors">
+                            Annuler
+                        </button>
                         
-                        <!-- Header / Toolbar du modal -->
-                        <div class="bg-white border-b border-gray-200 px-4 py-4 sm:px-6 flex justify-between items-center sticky top-0 z-20 shadow-sm">
-                            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                <span class="bg-yellow-100 text-yellow-700 p-2 rounded-lg">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                </span>
-                                Modifier le Brouillon
-                            </h3>
-                            
-                            <div class="flex items-center space-x-3">
-                                <button type="button" wire:click="closeModalDeux" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                                    Annuler
-                                </button>
-                                
-                                <button type="button" wire:click="save" wire:loading.attr="disabled" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-bold rounded-lg text-white bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 shadow-sm disabled:opacity-50">
-                                    <svg wire:loading.remove wire:target="save" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-                                    <svg wire:loading wire:target="save" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                    Enregistrer
-                                </button>
+                        <button type="button" wire:click="save" wire:loading.attr="disabled" class="inline-flex items-center px-5 py-2 border border-transparent text-sm font-bold rounded-lg text-white bg-[#daaf2c] hover:bg-yellow-600 shadow-md focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:opacity-50 transition-all">
+                            <span wire:loading.remove class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                                Enregistrer
+                            </span>
+                            <span wire:loading class="flex items-center gap-2">
+                                <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                ...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. BODY (Scrollable) -->
+                <div class="flex-1 overflow-y-auto bg-gray-50/50 custom-scrollbar p-6">
+                    
+                    <!-- Contenu centré -->
+                    <div class="max-w-5xl mx-auto space-y-6 bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+                        
+                        <!-- A. Méta-données -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="relative group">
+                                <label for="concern" class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Pour (Concerne)</label>
+                                <input type="text" wire:model="concern" id="concern" 
+                                    class="block w-full border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm py-2.5 transition-colors" 
+                                    placeholder="Ex: Direction Générale...">
+                                @error('concern') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div class="relative group">
+                                <label for="object" class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Objet</label>
+                                <input type="text" wire:model="object" id="object" 
+                                    class="block w-full border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm py-2.5 font-semibold transition-colors" 
+                                    placeholder="Sujet principal...">
+                                @error('object') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                             </div>
                         </div>
 
-                        <!-- Corps du formulaire (Similaire au design fourni) -->
-                        <div class="p-6 sm:p-8 space-y-8 bg-white min-h-[500px]">
-                            
-                            <!-- 1. Méta-données (Concern & Objet) -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div class="relative group">
-                                    <label for="concern" class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Pour (Concerne)</label>
-                                    <input type="text" wire:model="concern" id="concern" 
-                                        class="block w-full border-0 border-b-2 border-gray-200 bg-transparent py-2 px-0 text-gray-900 placeholder-gray-300 focus:border-yellow-500 focus:ring-0 sm:text-lg transition-colors" 
-                                        placeholder="Ex: Direction Générale...">
-                                    @error('concern') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                                </div>
+                        <!-- B. Gestion des Destinataires -->
+                        <div class="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                Destinataires
+                            </h3>
 
-                                <div class="relative group">
-                                    <label for="object" class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Objet</label>
-                                    <input type="text" wire:model="object" id="object" 
-                                        class="block w-full border-0 border-b-2 border-gray-200 bg-transparent py-2 px-0 text-gray-900 font-semibold placeholder-gray-300 focus:border-yellow-500 focus:ring-0 sm:text-lg transition-colors" 
-                                        placeholder="Sujet principal...">
-                                    @error('object') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            <div class="flex gap-2 mb-4">
+                                <div class="flex-1">
+                                    <select wire:model="newRecipientEntity" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 text-sm">
+                                        <option value="">Entité...</option>
+                                        @foreach($entities as $entity)
+                                            <option value="{{ $entity->id }}">{{ $entity->title ?? $entity->name }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
+                                <div class="w-32">
+                                    <select wire:model="newRecipientAction" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 text-sm">
+                                        <option value="">Action...</option>
+                                        @foreach($actionsList as $act)
+                                            <option value="{{ $act }}">{{ $act }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <button wire:click="addRecipient" type="button" class="inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gray-800 hover:bg-gray-900 transition-colors">
+                                    Ajouter
+                                </button>
                             </div>
 
-                            <!-- 2. Gestion des Destinataires -->
-                            <div class="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                                <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4 flex items-center">
-                                    <svg class="w-4 h-4 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                                    Destinataires
-                                </h3>
-
-                                <div class="flex flex-col md:flex-row gap-3 mb-4">
-                                    <div class="flex-1">
-                                        <select wire:model="newRecipientEntity" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 text-sm py-2">
-                                            <option value="">-- Sélectionner --</option>
-                                            @foreach($entities as $entity)
-                                                <option value="{{ $entity->id }}">{{ $entity->title ?? $entity->name }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('newRecipientEntity') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div class="flex-1">
-                                        <select wire:model="newRecipientAction" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 text-sm py-2">
-                                            <option value="">-- Action --</option>
-                                            @foreach($actionsList as $act)
-                                                <option value="{{ $act }}">{{ $act }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('newRecipientAction') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                                    </div>
-                                    <button wire:click="addRecipient" type="button" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-800 hover:bg-gray-900">
-                                        Ajouter
-                                    </button>
-                                </div>
-
-                                <!-- Tableau Destinataires -->
-                                @if(count($recipients) > 0)
-                                    <div class="bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden">
-                                        <table class="min-w-full divide-y divide-gray-200">
-                                            <thead class="bg-gray-50">
+                            @if(count($recipients) > 0)
+                                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <tbody class="divide-y divide-gray-200 bg-white">
+                                            @foreach($recipients as $index => $recipient)
                                                 <tr>
-                                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Entité</th>
-                                                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Action</th>
-                                                    <th class="px-4 py-2"></th>
+                                                    <td class="px-4 py-2 text-sm font-medium text-gray-900">{{ $recipient['entity_name'] }}</td>
+                                                    <td class="px-4 py-2 text-sm">
+                                                        <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                                            {{ $recipient['action'] }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="px-4 py-2 text-right">
+                                                        <button wire:click="removeRecipient({{ $index }})" class="text-gray-400 hover:text-red-500">
+                                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                        </button>
+                                                    </td>
                                                 </tr>
-                                            </thead>
-                                            <tbody class="divide-y divide-gray-200">
-                                                @foreach($recipients as $index => $recipient)
-                                                    <tr>
-                                                        <td class="px-4 py-2 text-sm font-medium text-gray-900">{{ $recipient['entity_name'] }}</td>
-                                                        <td class="px-4 py-2 text-sm">
-                                                            <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                                                                {{ $recipient['action'] }}
-                                                            </span>
-                                                        </td>
-                                                        <td class="px-4 py-2 text-right">
-                                                            <button wire:click="removeRecipient({{ $index }})" class="text-red-500 hover:text-red-700">
-                                                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @else
-                                    <p class="text-sm text-gray-400 italic text-center py-2">Aucun destinataire.</p>
-                                @endif
-                            </div>
-
-                            <!-- 3. Éditeur Quill -->
-                            <div class="pt-2">
-                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Contenu</label>
-                                <div wire:ignore 
-                                     class="flex flex-col bg-white rounded-lg border border-gray-300 shadow-sm"
-                                     x-data="{
-                                        content: @entangle('content'),
-                                        quill: null,
-                                        initQuill() {
-                                            if(this.quill) return;
-                                            this.quill = new Quill(this.$refs.quillEditor, {
-                                                theme: 'snow',
-                                                placeholder: 'Rédigez votre mémo...',
-                                                modules: {
-                                                    toolbar: [
-                                                        [{ 'header': [1, 2, 3, false] }],
-                                                        ['bold', 'italic', 'underline', 'strike'],
-                                                        [{ 'color': [] }, { 'background': [] }],
-                                                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                                                        [{ 'align': [] }],
-                                                        ['clean']
-                                                    ]
-                                                }
-                                            });
-                                            // Set initial content
-                                            if (this.content) { this.quill.root.innerHTML = this.content; }
-                                            
-                                            // Sync changes
-                                            this.quill.on('text-change', () => {
-                                                this.content = this.quill.root.innerHTML;
-                                            });
-                                        }
-                                     }"
-                                     x-init="setTimeout(() => initQuill(), 50)"
-                                >
-                                    <div x-ref="quillEditor" class="h-64 sm:h-80 font-serif text-base"></div>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
                                 </div>
-                                @error('content') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                            </div>
+                            @endif
+                        </div>
 
-                            <!-- 4. Pièces Jointes -->
-                            <div class="pt-4 border-t border-gray-100">
-                                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Pièces Jointes</label>
-                                
-                                <div class="space-y-4">
-                                    <!-- Zone d'upload -->
-                                    <div class="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-gray-50 relative">
-                                        <div class="space-y-1 text-center">
-                                            <svg class="mx-auto h-10 w-10 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                            </svg>
-                                            <div class="flex text-sm text-gray-600 justify-center">
-                                                <label for="file-upload-edit" class="relative cursor-pointer bg-white rounded-md font-medium text-yellow-600 hover:text-yellow-500">
-                                                    <span>Téléverser</span>
-                                                    <input id="file-upload-edit" wire:model="newAttachments" type="file" class="sr-only" multiple>
-                                                </label>
-                                                <p class="pl-1">ou glisser-déposer</p>
-                                            </div>
-                                        </div>
-                                        <!-- Loading -->
-                                        <div wire:loading wire:target="newAttachments" class="absolute inset-0 bg-white/80 flex items-center justify-center">
-                                            <span class="text-yellow-600 font-bold flex items-center gap-2">
-                                                <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                                Upload...
-                                            </span>
+                        <!-- C. Éditeur Quill -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Contenu</label>
+                            <div wire:ignore 
+                                    class="flex flex-col bg-white rounded-lg border border-gray-300 shadow-sm transition-all focus-within:ring-1 focus-within:ring-yellow-500"
+                                    x-data="{
+                                    content: @entangle('content'),
+                                    quill: null,
+                                    initQuill() {
+                                        if(this.quill) return;
+                                        this.quill = new Quill(this.$refs.quillEditor, {
+                                            theme: 'snow',
+                                            placeholder: 'Saisissez le corps du mémorandum ici...',
+                                            modules: {
+                                                toolbar: [
+                                                    [{ 'header': [1, 2, 3, false] }],
+                                                    ['bold', 'italic', 'underline', 'strike'],
+                                                    [{ 'color': [] }, { 'background': [] }],
+                                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                                    [{ 'align': [] }],
+                                                    ['clean']
+                                                ]
+                                            }
+                                        });
+                                        if (this.content) { this.quill.root.innerHTML = this.content; }
+                                        this.quill.on('text-change', () => {
+                                            this.content = this.quill.root.innerHTML;
+                                        });
+                                    }
+                                    }"
+                                    x-init="setTimeout(() => initQuill(), 50)"
+                            >
+                                <div x-ref="quillEditor" class="min-h-[400px] font-serif text-base text-gray-800"></div>
+                            </div>
+                            @error('content') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- D. Pièces Jointes -->
+                        <div class="pt-4 border-t border-gray-200">
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Pièces Jointes</label>
+                            
+                            <div class="space-y-4">
+                                <div class="group flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:bg-yellow-50/30 hover:border-yellow-400 transition-all relative cursor-pointer">
+                                    <div class="space-y-1 text-center">
+                                        <svg class="mx-auto h-10 w-10 text-gray-400 group-hover:text-yellow-500 transition-colors" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                        <div class="flex text-sm text-gray-600 justify-center">
+                                            <label class="relative cursor-pointer font-bold text-yellow-600 hover:text-yellow-500">
+                                                <span>Cliquez pour téléverser</span>
+                                                <input wire:model="newAttachments" type="file" class="sr-only" multiple>
+                                            </label>
                                         </div>
                                     </div>
-                                    @error('newAttachments.*') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                    <div wire:loading wire:target="newAttachments" class="absolute inset-0 bg-white/90 flex items-center justify-center rounded-lg">
+                                        <span class="text-yellow-600 font-bold flex items-center gap-2">
+                                            <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                            Traitement...
+                                        </span>
+                                    </div>
+                                </div>
 
-                                    <!-- Liste combinée (Existants + Nouveaux) -->
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <!-- Liste des fichiers -->
+                                @if(count($existingAttachments) > 0 || count($newAttachments) > 0)
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                         <!-- Existants -->
                                         @foreach($existingAttachments as $idx => $fileData)
                                             @php
-                                                // Logique défensive pour récupérer le nom du fichier
-                                                // Si $fileData est un tableau, on cherche la clé 'path', 'url' ou on prend le premier élément
-                                                if (is_array($fileData)) {
-                                                    $filePath = $fileData['path'] ?? $fileData['url'] ?? reset($fileData) ?? '';
-                                                } else {
-                                                    // Sinon c'est une simple chaîne de caractères
-                                                    $filePath = $fileData;
-                                                }
-                                                
-                                                // On extrait le nom pour l'affichage
-                                                $fileName = $filePath ? basename($filePath) : 'Fichier inconnu';
+                                                $filePath = is_array($fileData) ? ($fileData['path'] ?? reset($fileData) ?? '') : $fileData;
+                                                $fileName = $filePath ? basename($filePath) : 'Fichier';
                                             @endphp
-
-                                            <div class="flex items-center p-2 bg-gray-50 border border-gray-200 rounded-lg">
-                                                <div class="bg-blue-100 p-1.5 rounded text-blue-600 mr-3">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-                                                    </svg>
+                                            <div class="flex items-center p-2 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                                <div class="bg-blue-50 p-2 rounded text-blue-600 mr-2 shrink-0">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
                                                 </div>
                                                 <div class="flex-1 min-w-0">
-                                                    <!-- Utilisation de la variable calculée $fileName -->
-                                                    <p class="text-xs font-medium truncate" title="{{ $fileName }}">
-                                                        {{ Str::limit($fileName, 25) }}
-                                                    </p>
-                                                    <p class="text-[10px] text-gray-500">Existant</p>
+                                                    <p class="text-xs font-bold text-gray-700 truncate">{{ Str::limit($fileName, 20) }}</p>
+                                                    <p class="text-[10px] text-gray-400">Existant</p>
                                                 </div>
-                                                <button wire:click="removeExistingAttachment({{ $idx }})" type="button" class="text-gray-400 hover:text-red-500">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                    </svg>
-                                                </button>
+                                                <button wire:click="removeExistingAttachment({{ $idx }})" class="text-gray-300 hover:text-red-500 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                                             </div>
                                         @endforeach
 
                                         <!-- Nouveaux -->
                                         @foreach($newAttachments as $idx => $file)
-                                            <div class="flex items-center p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                                <div class="bg-yellow-100 p-1.5 rounded text-yellow-600 mr-3"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></div>
+                                            <div class="flex items-center p-2 bg-yellow-50 border border-yellow-200 rounded-lg shadow-sm">
+                                                <div class="bg-yellow-100 p-2 rounded text-yellow-600 mr-2 shrink-0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></div>
                                                 <div class="flex-1 min-w-0">
-                                                    <p class="text-xs font-medium truncate">{{ $file->getClientOriginalName() }}</p>
-                                                    <p class="text-[10px] text-gray-500">Nouveau</p>
+                                                    <p class="text-xs font-bold text-gray-900 truncate">{{ $file->getClientOriginalName() }}</p>
+                                                    <p class="text-[10px] text-yellow-600">Nouveau</p>
                                                 </div>
-                                                <button wire:click="removeNewAttachment({{ $idx }})" class="text-gray-400 hover:text-red-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                                                <button wire:click="removeNewAttachment({{ $idx }})" class="text-gray-400 hover:text-red-500 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                                             </div>
                                         @endforeach
                                     </div>
-                                </div>
+                                @endif
                             </div>
-
                         </div>
+
                     </div>
                 </div>
             </div>
-       </div>
-    @endif
+        </div>
+    </div>
+@endif
     
     @if($isOpen3)
        <!-- Modal Envoi & Workflow -->

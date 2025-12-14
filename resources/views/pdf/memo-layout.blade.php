@@ -6,17 +6,16 @@
     <style>
         /* --- CONFIGURATION GLOBALE PDF --- */
         @page {
-            /* 
-               Marge du haut à 150px pour sécuriser le logo sur les pages 2, 3, etc.
-            */
             margin: 150px 20mm 110px 20mm; 
             size: A4 portrait;
         }
 
         body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
+            /* Police principale : Calibri (comme le mémo original) */
+            font-family: 'Calibri', 'Carlito', 'Arial', sans-serif;
+            font-size: 11pt; /* Taille standard Word */
             color: #000;
+            line-height: 1.15; /* Interligne standard Word */
             margin: 0; padding: 0;
         }
 
@@ -62,36 +61,37 @@
         }
         .qr-placeholder { width: 50px; height: 50px; margin: 0 auto; display: block; }
         .qr-placeholder-empty { width: 50px; height: 50px; border: 1px dashed #ccc; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 10px; }
-        .ref-text { font-size: 8px; color: #666; font-style: italic; margin-top: 2px; }
+        .ref-text { font-size: 8px; color: #666; font-style: italic; margin-top: 2px; font-family: Arial, sans-serif; }
 
         /* --- 4. BLOC TITRE PAGE 1 --- */
         .page-one-header {
             text-align: center;
             margin-bottom: 25px;
-            
-            /* --- CORRECTION ICI --- */
-            /* On remonte ce bloc vers le haut pour coller au logo */
-            /* Ajustez -30px à -40px ou -50px si vous voulez encore plus proche */
             margin-top: -30px; 
         }
 
         .direction { 
-            font-size: 9px; 
+            /* Police du logo/titre : Style Géométrique */
+            font-family: 'Century Gothic', 'AvantGarde', 'Tw Cen MT', sans-serif;
+            font-size: 10px; 
             font-weight: bold; 
             text-transform: uppercase; 
-            margin-bottom: 20px; /* Espace entre DIRECTION et MÉMORANDUM */
+            margin-bottom: 15px;
+            letter-spacing: 0.5px;
         }
         
         .main-title { 
-            font-family: 'Times New Roman', serif; 
-            font-size: 22px; 
-            font-weight: 900; 
+            /* Police Mémorandum : Style Calibri Italique Gras */
+            font-family: 'Calibri', 'Carlito', sans-serif;
+            font-size: 18pt; 
+            font-weight: bold; 
             text-transform: uppercase; 
             font-style: italic; 
+            margin-top: 5px;
         }
 
         /* --- TABLEAUX --- */
-        .header-row-table { width: 100%; border-collapse: collapse; font-weight: bold; font-size: 13px; margin-bottom: 2px; table-layout: fixed; }
+        .header-row-table { width: 100%; border-collapse: collapse; font-weight: bold; font-size: 11pt; margin-bottom: 2px; table-layout: fixed; }
         .header-row-table td { padding: 0 0 5px 0; border: none; vertical-align: bottom; }
         
         .w-35 { width: 35%; }
@@ -99,23 +99,37 @@
         .text-center { text-align: center; }
         .pl-8 { padding-left: 32px; }
 
-        table.dist-table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
-        table.dist-table td { border: 2px solid #000; padding: 5px 8px; vertical-align: middle; background-color: transparent; }
+        table.dist-table { width: 100%; border-collapse: collapse; font-size: 10pt; table-layout: fixed; }
+        table.dist-table td { border: 1px solid #000; padding: 4px 8px; vertical-align: middle; background-color: transparent; }
         
         .col-label { width: 30%; font-weight: bold; }
         .col-check { width: 25%; }
-        .col-dest { width: 45%; background-color: #f2f2f2; text-align: center; font-weight: bold; }
+        .col-dest { width: 45%; font-weight: bold; text-align: center; } 
+        /* Note: Sur le screenshot, la colonne destinataire n'a pas de fond gris, j'ai retiré le background-color */
         
-        .checkbox { display: inline-block; width: 10px; height: 10px; border: 2px solid #000; margin-right: 5px; position: relative; top: 2px; }
+        .checkbox { display: inline-block; width: 10px; height: 10px; border: 1px solid #000; margin-right: 5px; position: relative; top: 1px; }
         .checkbox.checked { background-color: #000; }
 
         /* --- CONTENU --- */
         .meta-box { margin: 20px 0; }
-        .meta-row { margin-bottom: 8px; font-size: 12px; }
+        .meta-row { margin-bottom: 8px; font-size: 11pt; }
+        
+        /* Soulignement gras pour Objet et Concerne */
         .meta-label { font-weight: bold; text-decoration: underline; margin-right: 5px; }
-        .meta-value { font-weight: bold; text-transform: uppercase; }
+        .meta-value { font-weight: bold; }
 
-        .content-body { text-align: justify; font-size: 12px; line-height: 1.5; margin-top: 20px; }
+        .content-body { 
+            text-align: justify; 
+            font-size: 11pt; 
+            line-height: 1.15; /* Interligne simple Word */
+            margin-top: 20px; 
+            /* Police sans serif propre */
+            font-family: 'Calibri', 'Carlito', sans-serif;
+        }
+        
+        /* Gestion des paragraphes pour imiter Word */
+        .content-body p { margin-bottom: 10pt; }
+
         main { display: block; }
     </style>
 </head>
@@ -142,10 +156,9 @@
 
     <main>
         
-        <!-- Bloc Titre Page 1 (Remonté vers le logo grâce au margin-top négatif) -->
         <div class="page-one-header">
             <div class="direction">
-                {{ $memo->user->entity->name ?? 'DIRECTION TRANSFORMATION DIGITALE ET SYSTÈME D\'INFORMATION' }}
+                {{ $memo->user->entity->name }}
             </div>
             <div class="main-title">Mémorandum</div>
         </div>
@@ -184,7 +197,7 @@
                 </td>
             </tr>
             <tr>
-                <td class="col-label">Emetteur : {{ $memo->user->first_name }} {{ $memo->user->last_name }}</td>
+                <td class="col-label">Emetteur : {{ $memo->user->entity->ref ?? 'SDGR' }}</td> <!-- Correction : Souvent l'émetteur est le sigle du service/direction, pas le nom de la personne -->
                 <td class="col-check">
                     <span class="checkbox {{ isset($recipientsByAction['Prendre position']) ? 'checked' : '' }}"></span> 
                     Prendre position
@@ -196,7 +209,7 @@
                 </td>
             </tr>
             <tr>
-                <td class="col-label">Service : {{ $memo->user->service ?? '' }}</td>
+                <td class="col-label">Service : {{ $memo->user->service ?? 'DGR' }}</td>
                 <td class="col-check">
                     <span class="checkbox {{ isset($recipientsByAction['Décider']) ? 'checked' : '' }}"></span> 
                     Décider

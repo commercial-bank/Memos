@@ -142,9 +142,6 @@ class User extends Authenticatable implements LdapAuthenticatable
         $requiredFields = [
             'poste',
             'entity_id',
-            'sous_direction_id',
-            'departement',
-            'service',
         ];
 
         foreach ($requiredFields as $field) {

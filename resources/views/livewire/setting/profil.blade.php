@@ -38,13 +38,15 @@
 
                 <div class="text-left space-y-3">
                     <div>
-                        <p class="text-xs text-gray-400 uppercase">Membre depuis</p>
-                        <!-- Formatage de la date avec Carbon -->
+                        <p class="text-xs text-gray-400 uppercase">Connecté depuis</p>
                         <p class="text-sm font-medium text-gray-700">
-                            <i class="far fa-calendar-alt mr-2"></i> {{ $user->created_at ? $user->created_at->format('d M Y') : 'N/A' }}
+                            <!-- Changement de l'icône pour une horloge -->
+                            <i class="fas fa-clock mr-2 text-[#daaf2c]"></i> 
+                            
+                            <!-- Affiche "il y a 2 heures", "il y a 1 jour", etc. -->
+                            {{ $user->updated_at ? $user->updated_at->diffForHumans() : 'Jamais' }}
                         </p>
-                    </div>
-                  
+                    </div> 
                 </div>
             </div>
         </div>
@@ -101,10 +103,13 @@
                         
                         <!-- POSTE (SELECT) -->
                         <div class="sm:col-span-6">
-                            <label for="poste" class="block text-sm font-medium text-gray-700">Poste / Fonction</label>
+                            <label for="poste" class="block text-sm font-medium text-gray-700">
+                                Poste / Fonction <span class="text-red-600 font-bold ml-0.5" title="Champ obligatoire">*</span>
+                            </label>
+                            
                             <!-- wire:model relie ce champ à la variable $poste du composant -->
                             <select id="poste" wire:model="poste" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
-                                <option value="">Sélectionner un poste...</option>
+                                <option value="">-- Sélectionner --</option>
                                 <option value="Stagiaire Professionnel">Stagiaire Professionnel</option>
                                 <option value="Employer">Employer</option>
                                 <option value="Chef-Service">Chef-Service</option>
@@ -122,14 +127,16 @@
 
                         <!-- ENTITE -->
                         <div class="sm:col-span-3">
-                            <label for="entity" class="block text-sm font-medium text-gray-700">Entité</label>
+                            <label for="entity" class="block text-sm font-medium text-gray-700">
+                                Entité <span class="text-red-600 font-bold ml-0.5" title="Champ obligatoire">*</span>
+                            </label>
 
                             <select id="entity" wire:model="entity_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
                                 
                                 @if($user_entity)
                                     <option value="{{ $user_entity->id }}">{{ $user_entity->name }}</option>
                                 @else
-                                    <option value="">Sélectionner votre entité</option>
+                                    <option value="">-- Sélectionner --</option>
                                 @endif
 
                                 @foreach($entites as $entite)
@@ -143,14 +150,16 @@
 
                         <!-- Sous Direction -->
                         <div class="sm:col-span-3">
-                            <label for="sous_direction" class="block text-sm font-medium text-gray-700">Sous Direction</label>
+                            <label for="sous_direction" class="block text-sm font-medium text-gray-700">
+                                Sous Direction 
+                            </label>
 
                             <select id="sous_direction" wire:model="sous_direction_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
                                 
                                 @if($user_sd)
                                     <option value="{{ $user_sd->id }}">{{ $user_sd->name }}</option>
                                 @else
-                                    <option value="">Sélectionner votre Sous Direction</option>
+                                    <option value="">-- Sélectionner --</option>
                                 @endif
 
                                 @foreach($sd as $value)
@@ -164,34 +173,36 @@
 
                         <!-- SERVICE -->
                         <div class="sm:col-span-3">
-                            <label for="departement" class="block text-sm font-medium text-gray-700">Département</label>
+                            <label for="departement" class="block text-sm font-medium text-gray-700">
+                                Département 
+                            </label>
                             <input type="text" id="departement" wire:model="departement" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
                             @error('departement') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- SERVICE -->
                         <div class="sm:col-span-3">
-                            <label for="service" class="block text-sm font-medium text-gray-700">Service</label>
+                            <label for="service" class="block text-sm font-medium text-gray-700">
+                                Service 
+                            </label>
                             <input type="text" id="service" wire:model="service" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
                             @error('service') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
 
                         <!-- N+1 -->
                         <div class="sm:col-span-3">
-                            <label for="manager" class="block text-sm font-medium text-gray-700">Manager(N1)</label>
+                            <label for="manager" class="block text-sm font-medium text-gray-700">
+                                Manager (N+1) 
+                            </label>
 
                             <select id="manager" wire:model="manager_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">
-                                <option value="null">Selectionner Un Manager</option>
-                                @if($user_manager)
-                                    <option value="{{ $user_manager->id }}">{{ $user_manager->first_name }} {{ $user_manager->last_name }}</option>
-                                @else
-                                    <option value="">Sélectionner votre Manager </option>
-                                @endif
+                                <!-- Valeur vide pour forcer le choix (déclenche 'required' si laissé tel quel) -->
+                                <option>-- Sélectionner --</option> 
+                            
 
                                 @foreach($user_all as $value)
                                     <option value="{{ $value->id }}">{{ $value->first_name }} {{ $value->last_name }}</option>
                                 @endforeach
-                               
                             </select>
 
                             @error('manager_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror

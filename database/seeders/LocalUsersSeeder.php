@@ -30,6 +30,24 @@ class LocalUsersSeeder extends Seeder
 
         // --- DÉBUT DE LA CRÉATION DES USERS (Le même code que précédemment) ---
 
+         // Administrateur
+        $dtdsiDirecteur = User::create([
+            'first_name'  => 'Admin',
+            'last_name'   => 'Admin',
+            'user_name'   => 'admin',
+            'email'       => 'admin@local.test',
+            'password'    => $password,
+            'poste'       => 'Employer',
+            'entity_id' => null,
+            'sous_direction_id' => null,
+            'departement' => null,
+            'service'     => "Production et Developement",
+            'is_admin'    => true,
+            'is_active'   => true,
+            'manager_id'  => null,
+            'domain'      => null,
+        ]);
+
         // 1. LE DIRECTEUR (Top niveau - j5)
         $dtdsiDirecteur = User::create([
             'first_name'  => 'Marc Arthur',
@@ -40,12 +58,12 @@ class LocalUsersSeeder extends Seeder
             'poste'       => 'Employer',
             'entity_id' => 1,
             'sous_direction_id' => 5,
-            'departement' => "Departement Transformation Digital et Systeme d'Information",
-            'service'     => "Production et Developement",
+            'departement' => null,
+            'service'     => null,
             'is_admin'    => false,
             'is_active'   => true,
-            'manager_id'  => 2,
-            'domain'      => 'local',
+            'manager_id'  => null,
+            'domain'      => null,
         ]);
 
         // 1. LE DIRECTEUR (Top niveau - j5)
@@ -56,10 +74,10 @@ class LocalUsersSeeder extends Seeder
             'email'       => '11@local.test',
             'password'    => $password,
             'poste'       => 'Employer',
-            'entity_id' => 1,
-            'sous_direction_id' => 2,
-            'departement' => "Departement Transformation Digital et Systeme d'Information",
-            'service'     => "Production et Developement",
+            'entity_id' => null,
+            'sous_direction_id' => null,
+            'departement' => null,
+            'service'     => null,
             'is_admin'    => false,
             'is_active'   => true,
             'manager_id'  => null,
@@ -74,14 +92,14 @@ class LocalUsersSeeder extends Seeder
             'email'       => '2@local.test',
             'password'    => $password,
             'poste'       => 'Chef-Service',
-            'entity_id' => 1,
-            'sous_direction_id' => 5,
-            'departement' => "Departement Transformation Digital et Systeme d'Information",
-            'service'     => "Production et Developement",
+            'entity_id' => null,
+            'sous_direction_id' => null,
+            'departement' => null,
+            'service'     => null,
             'is_admin'    => false,
             'is_active'   => true,
-            'manager_id'  => 3,
-            'domain'      => 'local',
+            'manager_id'  => null,
+            'domain'      => null,
         ]);
 
         // 1. LE DIRECTEUR (Top niveau - j5)
@@ -92,14 +110,14 @@ class LocalUsersSeeder extends Seeder
             'email'       => '3@local.test',
             'password'    => $password,
             'poste'       => 'Chef-Departement',
-            'entity_id' => 1,
-            'sous_direction_id' => 5,
-            'departement' => "Departement Transformation Digital et Systeme d'Information",
-            'service'     => "Production et Developement",
+            'entity_id' => null,
+            'sous_direction_id' => null,
+            'departement' => null,
+            'service'     => null,
             'is_admin'    => false,
             'is_active'   => true,
-            'manager_id'  => 4,
-            'domain'      => 'local',
+            'manager_id'  => null,
+            'domain'      => null,
         ]);
 
         // 1. LE DIRECTEUR (Top niveau - j5)
@@ -110,13 +128,13 @@ class LocalUsersSeeder extends Seeder
             'email'       => '4@local.test',
             'password'    => $password,
             'poste'       => 'Sous-Directeur',
-            'entity_id' => 1,
-            'sous_direction_id' => 5,
-            'departement' => "Departement Transformation Digital et Systeme d'Information",
-            'service'     => "Production et Developement",
+            'entity_id' => null,
+            'sous_direction_id' => null,
+            'departement' => null,
+            'service'     => null,
             'is_admin'    => false,
             'is_active'   => true,
-            'manager_id'  => 5,
+            'manager_id'  => null,
             'domain'      => 'local',
         ]);
 
@@ -128,14 +146,14 @@ class LocalUsersSeeder extends Seeder
             'email'       => '5@local.test',
             'password'    => $password,
             'poste'       => 'Directeur',
-            'entity_id' => 1,
-            'sous_direction_id' => 5,
-            'departement' => "Departement Transformation Digital et Systeme d'Information",
-            'service'     => "Production et Developement",
+            'entity_id' => null,
+            'sous_direction_id' => null,
+            'departement' => null,
+            'service'     => null,
             'is_admin'    => false,
             'is_active'   => true,
-            'manager_id'  => 6,
-            'domain'      => 'local',
+            'manager_id'  => null,
+            'domain'      => null,
         ]);
 
         // 1. LE DIRECTEUR (Top niveau - j5)
@@ -146,14 +164,14 @@ class LocalUsersSeeder extends Seeder
             'email'       => '6@local.test',
             'password'    => $password,
             'poste'       => 'Secretaire',
-            'entity_id' => 1,
-            'sous_direction_id' => 5,
-            'departement' => "Departement Transformation Digital et Systeme d'Information",
-            'service'     => "Production et Developement",
+            'entity_id' => null,
+            'sous_direction_id' => null,
+            'departement' => null,
+            'service'     => null,
             'is_admin'    => false,
             'is_active'   => true,
             'manager_id'  => null,
-            'domain'      => 'local',
+            'domain'      => null,
         ]);
 
          // 1. LE DIRECTEUR (Top niveau - j5)
@@ -164,14 +182,14 @@ class LocalUsersSeeder extends Seeder
             'email'       => '10@local.test',
             'password'    => $password,
             'poste'       => 'Secretaire',
-            'entity_id' => 2,
-            'sous_direction_id' => 2,
-            'departement' => "Departement Transformation Digital et Systeme d'Information",
-            'service'     => "Production et Developement",
+            'entity_id' => null,
+            'sous_direction_id' => null,
+            'departement' => null,
+            'service'     => null,
             'is_admin'    => false,
             'is_active'   => true,
             'manager_id'  => null,
-            'domain'      => 'local',
+            'domain'      => null,
         ]);
 
          // 1. LE DIRECTEUR (Top niveau - j5)
@@ -182,14 +200,14 @@ class LocalUsersSeeder extends Seeder
             'email'       => '12@local.test',
             'password'    => $password,
             'poste'       => 'Secretaire',
-            'entity_id' => 3,
-            'sous_direction_id' => 2,
-            'departement' => "Departement Transformation Digital et Systeme d'Information",
-            'service'     => "Production et Developement",
+            'entity_id' => null,
+            'sous_direction_id' => null,
+            'departement' => null,
+            'service'     => null,
             'is_admin'    => false,
             'is_active'   => true,
             'manager_id'  => null,
-            'domain'      => 'local',
+            'domain'      => null,
         ]);
 
           // 1. LE DIRECTEUR (Top niveau - j5)
@@ -200,14 +218,14 @@ class LocalUsersSeeder extends Seeder
             'email'       => '15@local.test',
             'password'    => $password,
             'poste'       => 'Directeur',
-            'entity_id' => 3,
-            'sous_direction_id' => 2,
-            'departement' => "Departement Transformation Digital et Systeme d'Information",
-            'service'     => "Production et Developement",
+            'entity_id' => null,
+            'sous_direction_id' => null,
+            'departement' => null,
+            'service'     => null,
             'is_admin'    => false,
             'is_active'   => true,
             'manager_id'  => null,
-            'domain'      => 'local',
+            'domain'      => null,
         ]);
 
         // 1. LE DIRECTEUR (Top niveau - j5)
@@ -218,14 +236,14 @@ class LocalUsersSeeder extends Seeder
             'email'       => '16@local.test',
             'password'    => $password,
             'poste'       => 'Sous-Directeur',
-            'entity_id' => 3,
-            'sous_direction_id' => 2,
-            'departement' => "Departement Transformation Digital et Systeme d'Information",
+            'entity_id' => null,
+            'sous_direction_id' => null,
+            'departement' => null,
             'service'     => "Production et Developement",
             'is_admin'    => false,
             'is_active'   => true,
             'manager_id'  => null,
-            'domain'      => 'local',
+            'domain'      => null,
         ]);
 
         // 1. LE DIRECTEUR (Top niveau - j5)
@@ -236,15 +254,17 @@ class LocalUsersSeeder extends Seeder
             'email'       => '17@local.test',
             'password'    => $password,
             'poste'       => 'Sous-Directeur',
-            'entity_id' => 3,
-            'sous_direction_id' => 2,
-            'departement' => "Departement Transformation Digital et Systeme d'Information",
-            'service'     => "Production et Developement",
+            'entity_id' => null,
+            'sous_direction_id' => null,
+            'departement' => null,
+            'service'     => null,
             'is_admin'    => false,
             'is_active'   => true,
             'manager_id'  => null,
-            'domain'      => 'local',
+            'domain'      => null,
         ]);
+
+
 
         
     }

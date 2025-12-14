@@ -12,9 +12,10 @@ use App\Models\Historiques;
 use App\Models\MemoHistory;
 use Illuminate\Support\Str;
 use App\Models\ReplacesUser;
-use Illuminate\Support\Facades\Auth;
-use App\Models\BlocEnregistrements; 
 use Illuminate\Support\Facades\DB; 
+use App\Models\BlocEnregistrements; 
+use Illuminate\Support\Facades\Auth;
+use App\Notifications\MemoActionNotification;
 
 class Incoming2Memos extends Component
 {
@@ -292,58 +293,82 @@ class Incoming2Memos extends Component
         }
 
         $senderId = Auth::id();
+        $senderUser = Auth::user(); 
 
-        // 2. Gestion de la colonne 'current_holders' (JSON)
-        // On récupère les détenteurs actuels
+        // 2. Mise à jour des détenteurs (current_holders)
         $holders = $memo->current_holders;
         
-        // Si c'est null ou pas un tableau, on initialise
+        // Normalisation du JSON
         if (is_null($holders)) {
             $holders = [];
         } elseif (is_string($holders)) {
-            // Au cas où le cast 'array' n'est pas fait dans le modèle
             $holders = json_decode($holders, true) ?? [];
         }
 
-        // A. Retirer l'utilisateur courant (l'expéditeur) de la liste des détenteurs
-        // (Note: array_values pour réindexer proprement le tableau JSON)
+        // A. On retire l'expéditeur actuel de la liste (car il transmet le dossier)
         $holders = array_values(array_diff($holders, [$senderId]));
 
-        // B. Ajouter les nouveaux destinataires s'ils n'y sont pas déjà
+        // B. On ajoute les nouveaux destinataires
         foreach ($this->selectedRecipients as $recipientId) {
-            // On s'assure que c'est un entier
             $rId = (int) $recipientId;
             if (!in_array($rId, $holders)) {
                 $holders[] = $rId;
             }
         }
 
-        // C. Sauvegarde des nouveaux détenteurs
+        // C. Sauvegarde
         $memo->current_holders = $holders;
-        
-        // Optionnel : Mettre à jour le statut si nécessaire
-        // $memo->status = 'transmis'; 
-        
         $memo->save();
 
-        // 3. Enregistrement de l'historique (Traçabilité)
-        foreach ($this->selectedRecipients as $recipientId) {
-            
+        // 3. Historique & Notification
+        // On récupère les objets User correspondant aux IDs sélectionnés (les nouveaux détenteurs)
+        $nextHolders = User::whereIn('id', $this->selectedRecipients)->get();
 
-             Historiques::create([
-            'user_id' => $senderId,
-            'memo_id' => $memo->id,
-            'visa'    => 'cote',
-            'workflow_comment' => $this->comment
-        ]);
+        foreach ($nextHolders as $recipient) {
             
-            // Si vous utilisez aussi la table 'destinataires' (relation hasMany), 
-            // il faudrait peut-être ajouter une entrée ici, dépendamment de votre architecture.
+            // A. Création de l'historique pour chaque destinataire
+            Historiques::create([
+                'user_id' => $senderId,
+                'memo_id' => $memo->id,
+                'visa'    => 'Coté / Transmis', 
+                'workflow_comment' => $this->comment . " (Pour: " . $recipient->first_name . " " . $recipient->last_name . ")"
+            ]);
+
+            // B. Envoi de la notification "Cotation"
+            try {
+                // On notifie le destinataire qui est maintenant détenteur du mémo
+                $recipient->notify(new MemoActionNotification($memo, 'cotation', $senderUser));
+            } catch (\Exception $e) {
+                // Log::error("Erreur notif cotation : " . $e->getMessage());
+            }
         }
 
         // 4. Feedback et Fermeture
-        $this->dispatch('notify', message: "Mémo transmis avec succès.");
+        $this->dispatch('notify', message: "Mémo coté et transmis avec succès.");
         $this->closeTransModal();
+    }
+
+    public function toggleFavorite($memoId)
+    {
+        $userId = Auth::id();
+        
+        // On vérifie si le favori existe déjà
+        $existingFavorite = \App\Models\Favoris::where('user_id', $userId)
+                                            ->where('memo_id', $memoId)
+                                            ->first();
+
+        if ($existingFavorite) {
+            // S'il existe, on le supprime (retrait des favoris)
+            $existingFavorite->delete();
+            $this->dispatch('notify', message: "Retiré des favoris.");
+        } else {
+            // S'il n'existe pas, on le crée
+            \App\Models\Favoris::create([
+                'user_id' => $userId,
+                'memo_id' => $memoId
+            ]);
+            $this->dispatch('notify', message: "Ajouté aux favoris !");
+        }
     }
 
     public function render()

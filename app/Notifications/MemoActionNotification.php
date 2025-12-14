@@ -48,11 +48,19 @@ class MemoActionNotification extends Notification
                 break;
 
             case 'transmis':
-                $message = "Mémo enregistré";
+                $message = "Mémo enregistré et transmit aux destinataires";
                 $iconBg = 'bg-green-100';
                 $iconColor = 'text-green-600';
                 // Icone "Check"
                 $iconPath = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>';
+                break;
+            
+            case 'cotation':
+                $message = "Nouvelle cotation / Instruction";
+                $iconBg = 'bg-purple-100';
+                $iconColor = 'text-purple-600';
+                // Icone "Crayon/Édition" pour symboliser l'annotation
+                $iconPath = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>';
                 break;
                 
             default:
@@ -66,7 +74,7 @@ class MemoActionNotification extends Notification
             'memo_id' => $this->memo->id,
             'object' => $this->memo->object,
             'message' => $message,
-            'details' => "De: " . $this->actor->first_name . " " . $this->actor->last_name,
+            'details' => "De ou Par: " . $this->actor->first_name . " " . $this->actor->last_name,
             'icon_bg' => $iconBg,
             'icon_color' => $iconColor,
             'icon_path' => $iconPath,

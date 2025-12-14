@@ -95,6 +95,7 @@ class DraftedMemos extends Component
     public $user_first_name;
     public $user_last_name;
     public $user_entity_name;
+    public $ref_number;
     public $selections = []; // Pour modal assignation simple
 
     public function mount()
@@ -258,6 +259,7 @@ class DraftedMemos extends Component
         $entity = Entity::find($memo->user->entity_id);
         $this->user_entity_name = $entity->name ?? 'Entité';
         $this->user_service = $memo->user->service;
+        $this->ref_number = $memo->numero_ref;
     }
 
     public function deleteMemo($id) { $this->memo_id = $id; $this->isOpen4 = true; }
