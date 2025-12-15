@@ -14,9 +14,11 @@ use Illuminate\Support\Str;
 use App\Models\ReplacesUser;
 use App\Models\BlocEnregistrements;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;   
+use Illuminate\Support\Facades\DB;  
+use Barryvdh\DomPDF\Facade\Pdf; 
 use App\Notifications\MemoActionNotification;
 use App\Traits\ManageFavorites; 
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 
 
@@ -880,6 +882,46 @@ class IncomingMemos extends Component
             ]);
             $this->dispatch('notify', message: "Ajouté aux favoris !");
         }
+    }
+
+    // =================================================================
+    // NOUVELLE FONCTION : GÉNÉRATION PDF
+    // =================================================================
+    public function downloadMemoPDF()
+    {
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
+        
+        // Groupement des destinataires
+        $recipientsByAction = $memo->destinataires->groupBy('action');
+
+        // 1. Image Logo en Base64
+        $pathLogo = public_path('images/logo.jpg');
+        $logoBase64 = file_exists($pathLogo) 
+            ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($pathLogo)) 
+            : null;
+
+        // 2. QR Code en Base64
+        $qrCodeBase64 = null;
+        if ($memo->qr_code) {
+            $qrImage = QrCode::format('svg')->size(100)->generate(route('memo.verify', $memo->qr_code));
+            $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($qrImage);
+        }
+
+        // 3. Génération du PDF
+        $pdf = Pdf::loadView('pdf.memo-layout', [
+            'memo' => $memo,
+            'recipientsByAction' => $recipientsByAction,
+            'logo' => $logoBase64,
+            'qrCode' => $qrCodeBase64,
+            'date' => $memo->created_at->format('d/m/Y'),
+        ]);
+
+        // Configuration A4 Portrait
+        $pdf->setPaper('a4', 'portrait');
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, 'Memo_' . $memo->id . '.pdf');
     }
     
     

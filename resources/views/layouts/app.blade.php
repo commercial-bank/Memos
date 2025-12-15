@@ -51,6 +51,25 @@
         }
         .ql-formats { margin-right: 24px !important; border-right: 1px solid #e5e7eb; padding-right: 12px; }
         .ql-formats:last-child { border-right: none; }
+
+
+
+        /* Personnalisation de la scrollbar pour la classe .custom-scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #D4AF37; /* Couleur or rappelant le cadre */
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #b5952f;
+        }
+        
     </style>
 
     <!-- 4. Vite Resources (CSS & JS Application) -->
@@ -132,6 +151,112 @@
             
             html2pdf().set(opt).from(clone).save();
         }
+    </script>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+    Alpine.data('memoPagination', () => ({
+        init() {
+            // On attend que le modal soit affiché pour calculer les hauteurs
+            this.$nextTick(() => {
+                this.paginate();
+            });
+        },
+        paginate() {
+            const container = this.$refs.pagesContainer;
+            const sourceContent = this.$refs.rawContent.innerHTML;
+            
+            // 1. On nettoie le conteneur et on crée la première page
+            container.innerHTML = '';
+            let currentPage = this.createPage(1);
+            container.appendChild(currentPage);
+
+            // 2. On prépare un div temporaire pour parser le HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = sourceContent;
+            
+            // 3. Cible où on écrit le texte (zone de contenu de la page actuelle)
+            let currentContentArea = currentPage.querySelector('.content-target');
+            let contentNodes = Array.from(tempDiv.childNodes);
+
+            // 4. Boucle sur chaque élément (paragraphe, image, table...)
+            contentNodes.forEach((node) => {
+                // On ajoute l'élément pour tester
+                currentContentArea.appendChild(node);
+
+                // Vérification : Est-ce que ça déborde ?
+                // On compare la hauteur du contenu avec la hauteur max disponible dans la zone
+                if (this.checkOverflow(currentContentArea)) {
+                    // SI ÇA DÉBORDE :
+                    
+                    // a. On retire l'élément qui a fait déborder
+                    currentContentArea.removeChild(node);
+                    
+                    // b. On crée une nouvelle page (Page 2, 3...)
+                    const pageIndex = container.children.length + 1;
+                    const newPage = this.createPage(pageIndex);
+                    container.appendChild(newPage);
+                    
+                    // c. On change de cible
+                    currentPage = newPage;
+                    currentContentArea = currentPage.querySelector('.content-target');
+                    
+                    // d. On remet l'élément dans la nouvelle page
+                    currentContentArea.appendChild(node);
+                }
+            });
+        },
+        createPage(index) {
+            // On clone le modèle
+            const template = document.getElementById('page-template').content.cloneNode(true);
+            const pageDiv = template.querySelector('.page-a4');
+            
+            // Si ce n'est pas la page 1 (donc Page 2, 3...)
+            if (index > 1) {
+                
+                // 1. On masque le tableau des destinataires
+                const recipientTable = pageDiv.querySelector('.recipient-section');
+                if(recipientTable) recipientTable.style.display = 'none';
+
+                // 2. On masque l'Objet et le Concerne (NOUVEAU)
+                const objectSection = pageDiv.querySelector('.object-section');
+                if(objectSection) objectSection.style.display = 'none';
+                
+                // 3. On réduit un peu l'en-tête (Logo/Memorandum) pour gagner de la place
+                const header = pageDiv.querySelector('.header-section');
+                if(header) {
+                    header.classList.add('scale-75', 'origin-top', 'mb-2'); 
+                    header.classList.remove('mb-6'); // Réduit la marge du bas
+                }
+            }
+
+            // Mise à jour du numéro de page dans le footer
+            const refText = pageDiv.querySelector('.ref-text');
+            if(refText) refText.innerText += ` - Page ${index}`;
+
+            return pageDiv;
+        },
+        checkOverflow(element) {
+            // Vérifie si le contenu dépasse la hauteur du parent (moins le padding/footer)
+            // On utilise une hauteur fixe max pour la zone de texte (environ 297mm - header - footer)
+            // Ici on se base sur le débordement scrollHeight vs clientHeight
+            // Mais comme le parent est flex-grow, il faut vérifier par rapport à la page globale
+            
+            const page = element.closest('.gold-frame');
+            const footer = page.querySelector('.footer-section');
+            
+            // Position du bas du dernier élément ajouté
+            const lastChild = element.lastElementChild;
+            if(!lastChild) return false;
+            
+            const lastChildRect = lastChild.getBoundingClientRect();
+            const footerRect = footer.getBoundingClientRect();
+
+            // Si le bas de l'élément touche ou dépasse le haut du footer (avec une marge de sécu de 10px)
+            return lastChildRect.bottom > (footerRect.top - 10);
+        }
+    }));
+});
     </script>
 </body>
 </html>

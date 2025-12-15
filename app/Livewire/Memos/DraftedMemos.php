@@ -397,7 +397,7 @@ class DraftedMemos extends Component
         // 2. QR Code en Base64
         $qrCodeBase64 = null;
         if ($memo->qr_code) {
-            $qrImage = QrCode::format('png')->size(100)->generate(route('memo.verify', $memo->qr_code));
+            $qrImage = QrCode::format('svg')->size(100)->generate(route('memo.verify', $memo->qr_code));
             $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($qrImage);
         }
 

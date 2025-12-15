@@ -120,11 +120,11 @@
 
         .content-body { 
             text-align: justify; 
-            font-size: 11pt; 
-            line-height: 1.15; /* Interligne simple Word */
+            font-size: 12pt; /* Taille passée à 12 */
+            line-height: 1.15; 
             margin-top: 20px; 
-            /* Police sans serif propre */
-            font-family: 'Calibri', 'Carlito', sans-serif;
+            /* Police Times New Roman avec repli sur serif standard */
+            font-family: 'Times New Roman', Times, serif;
         }
         
         /* Gestion des paragraphes pour imiter Word */
@@ -145,20 +145,27 @@
         @endif
     </header>
 
-    <footer>
-        @if(isset($qrCode) && $qrCode)
-            <img src="{{ $qrCode }}" class="qr-placeholder" alt="QR">
-        @else
-            <div class="qr-placeholder-empty">QR</div>
-        @endif
-        <div class="ref-text">FOR-ME-07-V1 | Généré le {{ now()->format('d/m/Y') }}</div>
+   <footer>
+        <div class="qr-placeholder">
+            @if(isset($memo->qr_code))
+                {{-- On force le SVG, on l'encode en base64 et on l'affiche comme une image --}}
+                <img src="data:image/svg+xml;base64,{{ base64_encode(QrCode::format('svg')->size(50)->generate(route('memo.verify', $memo->qr_code))) }}" 
+                    width="50" 
+                    height="50" 
+                    alt="QR Code">
+            @else
+                <div class="qr-placeholder-empty">QR</div>
+            @endif
+        </div>
+
+        <div class="ref-text">{{ $memo->numero_ref  }} | Généré le {{ now()->format('d/m/Y') }}</div>
     </footer>
 
     <main>
         
         <div class="page-one-header">
             <div class="direction">
-                {{ $memo->user->entity->name }}
+                {{ $memo->user->entity->name  }}
             </div>
             <div class="main-title">Mémorandum</div>
         </div>
@@ -173,7 +180,7 @@
 
         <table class="dist-table">
             <tr>
-                <td class="col-label">Date : {{ $date ?? now()->format('d/m/Y') }}</td>
+                <td class="col-label">Date : {{ $memo->created_at->format('Y') }}</td>
                 <td class="col-check">
                     <span class="checkbox {{ isset($recipientsByAction['Faire le nécessaire']) ? 'checked' : '' }}"></span> 
                     Faire le nécessaire
@@ -197,7 +204,7 @@
                 </td>
             </tr>
             <tr>
-                <td class="col-label">Emetteur : {{ $memo->user->entity->ref ?? 'SDGR' }}</td> <!-- Correction : Souvent l'émetteur est le sigle du service/direction, pas le nom de la personne -->
+                <td class="col-label">Emetteur : {{ $memo->reference ? Str::afterLast($currentMemo->reference, '/') : 'En attente' }}</td> <!-- Correction : Souvent l'émetteur est le sigle du service/direction, pas le nom de la personne -->
                 <td class="col-check">
                     <span class="checkbox {{ isset($recipientsByAction['Prendre position']) ? 'checked' : '' }}"></span> 
                     Prendre position
