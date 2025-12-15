@@ -355,7 +355,7 @@
                                         </div>
 
                                         <!-- Le texte de référence reste en text-[10px] (plus petit) -->
-                                        <div class="ref-text text-[10px] text-gray-500 italic">{{ $ref_number }}</div>
+                                        <div class="ref-text text-[10px] text-gray-500 italic">{{ $currentMemo->numero_ref }}</div>
                                     </div>
 
                                 </div> 

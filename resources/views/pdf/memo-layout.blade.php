@@ -204,7 +204,7 @@
                 </td>
             </tr>
             <tr>
-                <td class="col-label">Emetteur : {{ $memo->reference ? Str::afterLast($currentMemo->reference, '/') : 'En attente' }}</td> <!-- Correction : Souvent l'émetteur est le sigle du service/direction, pas le nom de la personne -->
+                <td class="col-label">Emetteur : {{ $memo->reference ? Str::afterLast($memo->reference, '/') : 'En attente' }}</td> <!-- Correction : Souvent l'émetteur est le sigle du service/direction, pas le nom de la personne -->
                 <td class="col-check">
                     <span class="checkbox {{ isset($recipientsByAction['Prendre position']) ? 'checked' : '' }}"></span> 
                     Prendre position
