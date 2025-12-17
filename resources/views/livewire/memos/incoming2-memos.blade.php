@@ -163,50 +163,101 @@
 
                                 <!-- 4. ACTIONS (Boutons Icones) -->
                                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                    <div class="flex items-center justify-center space-x-3">
+    <div class="flex items-center justify-center space-x-3">
 
-                                        
+        <!-- 1. APERÇU (Pour tout le monde) -->
+        <button wire:click="viewMemo({{ $memo->id }})" 
+                class="text-gray-400 hover:text-blue-600 transition-colors" 
+                title="Aperçu">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+        </button>
 
-                                            <button wire:click="viewMemo({{ $memo->id }})" class="text-gray-400 hover:text-blue-600 transition-colors" title="Aperçu">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                            </button>
+        <!-- 2. FAVORIS (Pour tout le monde) -->
+        <button wire:click="toggleFavorite({{ $memo->id }})" 
+                class="transition-colors duration-200 {{ $memo->is_favorited ? 'text-yellow-400 hover:text-yellow-500' : 'text-gray-300 hover:text-yellow-400' }}" 
+                title="{{ $memo->is_favorited ? 'Retirer des favoris' : 'Ajouter aux favoris' }}">
+            @if($memo->is_favorited)
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+            @else
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
+            @endif
+        </button>
 
-                                            <!-- FAVORIS -->
-                                            <button 
-                                                wire:click="toggleFavorite({{ $memo->id }})" 
-                                                class="transition-colors duration-200 {{ $memo->is_favorited ? 'text-yellow-400 hover:text-yellow-500' : 'text-gray-300 hover:text-yellow-400' }}" 
-                                                title="{{ $memo->is_favorited ? 'Retirer des favoris' : 'Ajouter aux favoris' }}">
-                                                
-                                                <!-- L'icône change selon l'état -->
-                                                @if($memo->is_favorited)
-                                                    <!-- Étoile PLEINE (Solid) -->
-                                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                                    </svg>
-                                                @else
-                                                    <!-- Étoile VIDE (Outline) -->
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
-                                                    </svg>
-                                                @endif
-                                            </button>
+        @php
+            $userPoste = Str::lower(Auth::user()->poste);
+            $isSecretaire = Str::contains($userPoste, 'secretaire');
+            $isManager = !$isSecretaire; // Tout ce qui n'est pas secrétaire est considéré manager ici (Dir, Sous-Dir, Chef...)
+        @endphp
 
-                                            <!-- ENREGISTRER ET TRANSMETTRE -->
-                                            <button wire:click="transMemo({{ $memo->id }})" 
-                                                    wire:loading.attr="disabled"
-                                                    class="text-gray-400 hover:text-indigo-600 transition-colors" 
-                                                    title="Enregistrer et transmettre">
-                                                
-                                                <!-- Icône Avion / Transmission -->
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                                                </svg>
-                                            </button>
+        <!-- 3. BOUTON ENREGISTRER / TRANSMETTRE (CRUCIAL POUR L'ASSISTANTE) -->
+        <!-- Ce bouton est visible PAR TOUT LE MONDE. -->
+        <!-- Pour l'assistante : Il ouvre l'enregistrement PUIS la transmission -->
+        <!-- Pour le directeur : Il ouvre directement la transmission -->
+        <button wire:click="transMemo({{ $memo->id }})" 
+                wire:loading.attr="disabled"
+                class="text-gray-400 hover:text-indigo-600 transition-colors" 
+                title="{{ $isSecretaire ? 'Enregistrer et Transmettre' : 'Transmettre' }}">
+            
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+            </svg>
+        </button>
 
+        <!-- ============================================================== -->
+        <!-- 4. ZONE RÉSERVÉE AUX MANAGERS (Directeurs, Chefs, etc.)        -->
+        <!-- Les secrétaires ne voient PAS ce qui suit                      -->
+        <!-- ============================================================== -->
+        @if($isManager)
 
-                                           
-                                    </div>
-                                </td>
+            <div class="h-4 w-px bg-gray-300 mx-1"></div>
+
+            <!-- A. RÉPONDRE -->
+            <button wire:click="replyMemo({{ $memo->id }})"
+                    class="text-gray-400 hover:text-purple-600 transition-colors"
+                    title="Répondre à ce mémo">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+            </button>
+
+            @php
+                // Vérification pour l'action "DÉCIDER"
+                $myDestinataire = $memo->destinataires->where('entity_id', Auth::user()->entity_id)->first();
+                $myAction = $myDestinataire->action ?? '';
+                $isDeciderEntity = Str::contains($myAction, 'Décider');
+                $decisionDejaPrise = $myDestinataire && $myDestinataire->processing_status === 'decision_prise';
+            @endphp
+
+            @if($isDeciderEntity)
+                <!-- B. CAS SPECIAL : DÉCIDER (Accord/Refus) -->
+                @if(!$decisionDejaPrise)
+                    <button wire:click="submitDecision({{ $memo->id }}, 'accord')"
+                            wire:confirm="Confirmez-vous votre ACCORD ?"
+                            class="text-gray-400 hover:text-green-600 transition-colors"
+                            title="Donner Accord">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </button>
+
+                    <button wire:click="submitDecision({{ $memo->id }}, 'refus')"
+                            wire:confirm="Confirmez-vous le REFUS ?"
+                            class="text-gray-400 hover:text-red-600 transition-colors"
+                            title="Refuser">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                @else
+                    <span class="text-xs font-bold text-blue-600 border border-blue-600 px-1 rounded cursor-default">Fait</span>
+                @endif
+            @else
+                <!-- C. CAS STANDARD : TERMINER (Modal Vert) -->
+                <button wire:click="openCloseModal({{ $memo->id }})"
+                        class="text-gray-400 hover:text-green-600 transition-colors"
+                        title="Terminer le traitement">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </button>
+            @endif
+
+        @endif <!-- Fin isManager -->
+
+    </div>
+</td>
                             </tr>
                         @empty
                             <tr>
@@ -231,7 +282,7 @@
 
     </div>
 
-      @if($isOpen)
+     @if($isOpen)
         <!-- Modal Aperçu -->
         <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             
@@ -264,70 +315,65 @@
                 };
             @endphp
 
-            <!-- Conteneur Scrollable avec Alpine Data -->
-            <div class="fixed inset-0 z-10 w-screen overflow-y-auto pt-20 pb-10" x-data="memoPagination">
+            <!-- Conteneur Scrollable -->
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto pt-20 pb-10">
                 <div class="flex min-h-full items-start justify-center p-4 text-center sm:p-0">
                     
                     <div class="relative flex flex-col items-center font-sans w-full max-w-[210mm]">
 
                         <!-- BOUTON TÉLÉCHARGER -->
-                        <button 
-                            wire:click="downloadMemoPDF" 
-                            wire:loading.attr="disabled"
-                            type="button" 
-                            class="mb-4 pointer-events-auto bg-red-600 text-white hover:bg-red-700 px-6 py-2.5 rounded-full shadow-lg font-bold flex items-center gap-3 border border-red-500 transition-transform transform hover:scale-105 disabled:opacity-50">
-                            <span>Télécharger PDF</span>
-                        </button>
+                        <!-- Note: Assurez-vous d'avoir la fonction JS prepareAndDownloadPDF() ou remplacez par une action Livewire -->
+                        <!-- BOUTON TÉLÉCHARGER -->
+                    <button 
+                        onclick="downloadMemoPDF()" 
+                        type="button" 
+                        class="mb-4 pointer-events-auto bg-red-600 text-white hover:bg-red-700 px-6 py-2.5 rounded-full shadow-lg font-bold flex items-center gap-3 border border-red-500 transition-transform transform hover:scale-105">
+                        
+                        <!-- Icone Download -->
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        <span>Télécharger PDF</span>
+                    </button>
 
-                        <!-- 1. SOURCE DE CONTENU CACHÉE (Raw Content) -->
-                        <div x-ref="rawContent" class="hidden">
-                            {!! $content !!}
-                        </div>
+                        <!-- ID GLOBAL POUR HTML2PDF -->
+                        <div id="export-container">
 
-                        <!-- 2. CONTENEUR DES PAGES GÉNÉRÉES -->
-                        <div id="export-container" x-ref="pagesContainer" class="flex flex-col gap-8">
-                            <!-- Les pages vont être injectées ici par le JS -->
-                        </div>
-
-                        <!-- 3. TEMPLATE DE LA PAGE (Modèle utilisé par le JS) -->
-                        <template id="page-template">
-                            <!-- PAGE A4 -->
-                            <div class="page-a4 bg-white w-[210mm] h-[297mm] shadow-2xl p-[10mm] text-black 
-                                        font-['Times_New_Roman',_Times,_serif] text-base leading-snug 
-                                        relative text-left mx-auto overflow-hidden">
+                            <!-- PAGE 1 -->
+                            <div id="page-1" class="page-a4 bg-white w-[210mm] h-[297mm] shadow-2xl p-[10mm] text-black text-[13px] leading-snug relative text-left mx-auto mb-8">
                                 
                                 <!-- CADRE DORÉ -->
                                 <div class="gold-frame border-[3px] border-[#D4AF37] rounded-tr-[60px] rounded-bl-[60px] p-8 h-full flex flex-col relative">
 
-                                    <!-- EN-TÊTE -->
-                                    <div class="header-section flex flex-col items-center justify-center mb-4 text-center shrink-0">
+                                    <!-- EN-TÊTE LOGO + MEMORANDUM -->
+                                    <div class="header-section flex flex-col items-center justify-center mb-6 text-center">
                                         <div class="mb-2">
                                             <div class="w-17 h-16 flex items-center justify-center mx-auto mb-1">
+                                                <!-- Assurez-vous que l'image existe dans public/images/logo.jpg -->
                                                 <img src="{{ asset('images/logo.jpg') }}" alt="logo" class="w-full h-full object-contain">
                                             </div>
                                         </div>
-                                        <!-- Le texte de l'entité reste text-xs (12px, plus petit que 12pt) -->
+                                        <!-- Nom de l'entité de l'utilisateur connecté -->
                                         <h2 class="font-bold text-xs uppercase text-gray-800">{{ $user_entity_name }}</h2>
-                                        <!-- Le titre "Memorandum" reste en Arial 2xl -->
-                                        <h1 class="font-['Arial'] font-extrabold text-2xl uppercase mt-2 italic inline-block">Memorandum</h1>
+                                        <h1 class="font-['Arial'] font-extrabold text-2xl uppercase mt-2 italic inline-block">
+                                            Memorandum
+                                        </h1>
                                     </div>
 
-                                    <!-- TABLEAU DESTINATAIRES (Classe 'recipient-section' ajoutée pour le masquage page 2) -->
-                                    <div class="recipient-section mb-6 text-sm w-full shrink-0">
+                                    <!-- TABLEAU DESTINATAIRES -->
+                                    <div id="recipient-table" class="mb-6 text-sm w-full">
                                         
                                         <!-- LIGNE D'ALIGNEMENT -->
-                                        <!-- Le texte ici reste text-[13px] et font-['Arial'] -->
                                         <div class="flex w-full text-[13px] font-bold font-['Arial'] pb-1 text-black">
                                             <div class="w-[35%]"></div>
                                             <div class="w-[30%] text-center">Prière de :</div>
                                             <div class="w-[35%] pl-8">Destinataires :</div>
                                         </div>
                                         
-                                        <!-- TABLEAU COMPLET PHP -->
-                                        <!-- Le tableau lui-même reste en text-[13px] et font-['Arial'] -->
+                                        <!-- TABLEAU COMPLET -->
                                         <table class="w-full border-collapse border border-black text-[13px] font-['Arial'] text-black">
                                             
-                                            <!-- LIGNES DU TABLEAU -->
+                                            <!-- LIGNE 1 : Faire le nécessaire -->
                                             @php $recipients1 = $recipientsByAction['Faire le nécessaire'] ?? collect([]); @endphp
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold w-[35%] align-top">
@@ -342,10 +388,11 @@
                                                 </td>
                                             </tr>
 
+                                            <!-- LIGNE 2 : Prendre connaissance -->
                                             @php $recipients2 = $recipientsByAction['Prendre connaissance'] ?? collect([]); @endphp
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold align-top">
-                                                    N° : {{ $currentMemo->reference ?? 'En attente' }}
+                                                    N°: {{ $currentMemo->reference ?? 'En attente' }}
                                                 </td>
                                                 <td class="border border-black p-1 pl-2">
                                                     <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients2->count() > 0 ? 'bg-blue-600' : '' }}"></span> 
@@ -356,10 +403,12 @@
                                                 </td>
                                             </tr>
 
+                                            <!-- LIGNE 3 : Prendre position (Optionnel si vous l'utilisez) -->
                                             @php $recipients3 = $recipientsByAction['Prendre position'] ?? collect([]); @endphp
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold align-top">
-                                                    Emetteur : #
+                                                    <!-- On affiche le nom de l'utilisateur ici ou son entité -->
+                                                    Emetteur :  {{ $currentMemo->reference ? Str::afterLast($currentMemo->reference, '/') : 'En attente' }}
                                                 </td>
                                                 <td class="border border-black p-1 pl-2">
                                                     <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients3->count() > 0 ? 'bg-orange-500' : '' }}"></span> 
@@ -370,6 +419,7 @@
                                                 </td>
                                             </tr>
 
+                                            <!-- LIGNE 4 : Décider (ou autre action) -->
                                             @php $recipients4 = $recipientsByAction['Décider'] ?? collect([]); @endphp
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold align-top">
@@ -386,10 +436,9 @@
                                         </table>
                                     </div>
 
-                                    <!-- OBJET & CONCERNE (Classe 'object-section' ajoutée pour le masquage page 2) -->
-                                    <div class="object-section mb-4 shrink-0">
+                                    <!-- OBJET & CONCERNE -->
+                                    <div class="mb-4">
                                         <div class="mb-6">
-                                            <!-- Le texte ici hérite Times New Roman, mais la taille reste 15px pour l'objet -->
                                             <p class="mb-1">
                                                 <span class="font-bold text-[15px] underline">Objet :</span> 
                                                 <span class="uppercase font-bold"> {{ $object }} </span>
@@ -403,35 +452,30 @@
                                         </div>
                                     </div>
 
-                                    <!-- ZONE DE CONTENU CIBLE -->
-                                    <!-- Cette div hérite désormais la police Times New Roman et la taille 12pt (text-base) du parent .page-a4 -->
-                                    <div class="content-target flex-grow min-h-0 px-2 overflow-hidden mb-4 text-justify space-y-3 
-                                                text-gray-900 break-words w-full">
-                                        <!-- VIDE PAR DÉFAUT -->
+                                    <!-- CORPS DU TEXTE -->
+                                    <div id="content-area" class="flex-grow px-2">
+                                        <div class="text-justify space-y-3 text-[14px] leading-relaxed font-serif text-gray-900">
+                                            {!! $content !!}
+                                        </div>
                                     </div>
 
-                                    <!-- PIED DE PAGE -->
-                                    <div class="footer-section mt-auto shrink-0 w-full flex flex-col items-center justify-center pt-2">
+                                    <!-- PIED DE PAGE AVEC QR CODE -->
+                                    <div class="absolute bottom-4 left-0 w-full flex flex-col items-center justify-center">
+                                        @if($currentMemo && $currentMemo->qr_code)
+                                            <div class="bg-white p-0.5 border border-gray-200 inline-block mb-2">
+                                                <!-- Génération du QR Code -->
+                                                {{ QrCode::size(50)->generate(route('memo.verify', $currentMemo->qr_code)) }}
+                                            </div>
+                                        @endif
                                         
-                                        <!-- QR Code Section (Classe 'qr-section' pour le masquage page 2) -->
-                                        <div class="qr-section">
-                                            @if($currentMemo && $currentMemo->qr_code)
-                                                <div class="bg-white p-0.5 border border-gray-200 inline-block mb-1">
-                                                    {{-- QR Code en SVG Base64 --}}
-                                                    <img src="data:image/svg+xml;base64,{{ base64_encode(QrCode::format('svg')->size(50)->generate(route('memo.verify', $currentMemo->qr_code))) }}" 
-                                                        width="50" height="50" alt="QR">
-                                                </div>
-                                            @endif
-                                        </div>
-
-                                        <!-- Le texte de référence reste en text-[10px] (plus petit) -->
-                                        <div class="ref-text text-[10px] text-gray-500 italic">{{ $currentMemo->numero_ref }}</div>
+                                        <!-- Numéro de version du formulaire -->
+                                        <div class="text-[10px] text-gray-500 italic">FOR-ME-07-V1</div>
                                     </div>
 
                                 </div> 
                             </div>
-                        </template>
 
+                        </div>
                     </div>
                 </div>
             </div>
@@ -620,6 +664,87 @@
                         <!-- Bouton Annuler -->
                         <button type="button" 
                                 wire:click="closeTransModal" 
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            Annuler
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- ============================================== -->
+    <!-- MODAL 3 : CONFIRMATION DE CLÔTURE          -->
+    <!-- ============================================== -->
+    @if($isCloseModalOpen)
+        <div class="fixed inset-0 z-[130] overflow-y-auto" aria-labelledby="modal-close-title" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                
+                <!-- Overlay -->
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+                     wire:click="cancelCloseModal"></div>
+
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+                <!-- Contenu du Modal -->
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md w-full">
+                    
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            
+                            <!-- Icone Check Vert -->
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-close-title">
+                                    Clôturer le dossier
+                                </h3>
+                                
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-500">
+                                        Êtes-vous sûr de vouloir terminer le traitement de ce mémo ?<br>
+                                    </p>
+
+                                    <!-- Champ commentaire optionnel -->
+                                    <div class="mt-4">
+                                        <label for="close-comment" class="block text-sm font-medium text-gray-700">Observation finale (Optionnel)</label>
+                                        <textarea 
+                                            wire:model="closingComment" 
+                                            id="close-comment" 
+                                            rows="2" 
+                                            class="mt-1 shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                            placeholder="Ex: Dossier traité, Vu et classé..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer du Modal -->
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        
+                        <!-- Bouton Confirmer -->
+                        <button type="button" 
+                                wire:click="confirmCloseMemo" 
+                                wire:loading.attr="disabled"
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm">
+                            
+                            <span wire:loading.remove wire:target="confirmCloseMemo">
+                                Confirmer et Terminer
+                            </span>
+                            <span wire:loading wire:target="confirmCloseMemo">
+                                Traitement...
+                            </span>
+                        </button>
+                        
+                        <!-- Bouton Annuler -->
+                        <button type="button" 
+                                wire:click="cancelCloseModal" 
                                 class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                             Annuler
                         </button>

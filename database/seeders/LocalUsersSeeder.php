@@ -126,7 +126,7 @@ $users = [
     [
         
         'first_name' => 'directeur',
-        'last_name' => 'monsieur wa', // Nom coupé dans l'image, ajustez si nécessaire
+        'last_name' => 'monsieur wafo', // Nom coupé dans l'image, ajustez si nécessaire
         'user_name' => 'j5',
         'email' => '5@local.test',
         'password' => $password,
@@ -227,7 +227,7 @@ $users = [
     ],
     [
        
-        'first_name' => 'sous directeur',
+        'first_name' => 'sous directeur 1',
         'last_name' => 'RH',
         'user_name' => 'j12',
         'email' => '12@local.test',
@@ -244,7 +244,7 @@ $users = [
     ],
     [
         
-        'first_name' => 'sous directeur',
+        'first_name' => 'sous directeur 2',
         'last_name' => 'RH',
         'user_name' => 'j13',
         'email' => '13@local.test',

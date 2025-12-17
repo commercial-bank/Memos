@@ -180,7 +180,7 @@
 
         <table class="dist-table">
             <tr>
-                <td class="col-label">Date : {{ $memo->created_at->format('Y') }}</td>
+                <td class="col-label">Date :{{ $memo->created_at->format('d/m/Y') }}</td>
                 <td class="col-check">
                     <span class="checkbox {{ isset($recipientsByAction['Faire le nécessaire']) ? 'checked' : '' }}"></span> 
                     Faire le nécessaire

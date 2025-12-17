@@ -317,7 +317,7 @@
 
     {{-- MODALS --}}
     
-     @if($isOpen)
+    @if($isOpen)
         <!-- Modal Aperçu -->
         <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             
@@ -350,70 +350,65 @@
                 };
             @endphp
 
-            <!-- Conteneur Scrollable avec Alpine Data -->
-            <div class="fixed inset-0 z-10 w-screen overflow-y-auto pt-20 pb-10" x-data="memoPagination">
+            <!-- Conteneur Scrollable -->
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto pt-20 pb-10">
                 <div class="flex min-h-full items-start justify-center p-4 text-center sm:p-0">
                     
                     <div class="relative flex flex-col items-center font-sans w-full max-w-[210mm]">
 
                         <!-- BOUTON TÉLÉCHARGER -->
-                        <button 
-                            wire:click="downloadMemoPDF" 
-                            wire:loading.attr="disabled"
-                            type="button" 
-                            class="mb-4 pointer-events-auto bg-red-600 text-white hover:bg-red-700 px-6 py-2.5 rounded-full shadow-lg font-bold flex items-center gap-3 border border-red-500 transition-transform transform hover:scale-105 disabled:opacity-50">
-                            <span>Télécharger PDF</span>
-                        </button>
+                        <!-- Note: Assurez-vous d'avoir la fonction JS prepareAndDownloadPDF() ou remplacez par une action Livewire -->
+                        <!-- BOUTON TÉLÉCHARGER -->
+                    <button 
+                        onclick="downloadMemoPDF()" 
+                        type="button" 
+                        class="mb-4 pointer-events-auto bg-red-600 text-white hover:bg-red-700 px-6 py-2.5 rounded-full shadow-lg font-bold flex items-center gap-3 border border-red-500 transition-transform transform hover:scale-105">
+                        
+                        <!-- Icone Download -->
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        <span>Télécharger PDF</span>
+                    </button>
 
-                        <!-- 1. SOURCE DE CONTENU CACHÉE (Raw Content) -->
-                        <div x-ref="rawContent" class="hidden">
-                            {!! $content !!}
-                        </div>
+                        <!-- ID GLOBAL POUR HTML2PDF -->
+                        <div id="export-container">
 
-                        <!-- 2. CONTENEUR DES PAGES GÉNÉRÉES -->
-                        <div id="export-container" x-ref="pagesContainer" class="flex flex-col gap-8">
-                            <!-- Les pages vont être injectées ici par le JS -->
-                        </div>
-
-                        <!-- 3. TEMPLATE DE LA PAGE (Modèle utilisé par le JS) -->
-                        <template id="page-template">
-                            <!-- PAGE A4 -->
-                            <div class="page-a4 bg-white w-[210mm] h-[297mm] shadow-2xl p-[10mm] text-black 
-                                        font-['Times_New_Roman',_Times,_serif] text-base leading-snug 
-                                        relative text-left mx-auto overflow-hidden">
+                            <!-- PAGE 1 -->
+                            <div id="page-1" class="page-a4 bg-white w-[210mm] h-[297mm] shadow-2xl p-[10mm] text-black text-[13px] leading-snug relative text-left mx-auto mb-8">
                                 
                                 <!-- CADRE DORÉ -->
                                 <div class="gold-frame border-[3px] border-[#D4AF37] rounded-tr-[60px] rounded-bl-[60px] p-8 h-full flex flex-col relative">
 
-                                    <!-- EN-TÊTE -->
-                                    <div class="header-section flex flex-col items-center justify-center mb-4 text-center shrink-0">
+                                    <!-- EN-TÊTE LOGO + MEMORANDUM -->
+                                    <div class="header-section flex flex-col items-center justify-center mb-6 text-center">
                                         <div class="mb-2">
                                             <div class="w-17 h-16 flex items-center justify-center mx-auto mb-1">
+                                                <!-- Assurez-vous que l'image existe dans public/images/logo.jpg -->
                                                 <img src="{{ asset('images/logo.jpg') }}" alt="logo" class="w-full h-full object-contain">
                                             </div>
                                         </div>
-                                        <!-- Le texte de l'entité reste text-xs (12px, plus petit que 12pt) -->
+                                        <!-- Nom de l'entité de l'utilisateur connecté -->
                                         <h2 class="font-bold text-xs uppercase text-gray-800">{{ $user_entity_name }}</h2>
-                                        <!-- Le titre "Memorandum" reste en Arial 2xl -->
-                                        <h1 class="font-['Arial'] font-extrabold text-2xl uppercase mt-2 italic inline-block">Memorandum</h1>
+                                        <h1 class="font-['Arial'] font-extrabold text-2xl uppercase mt-2 italic inline-block">
+                                            Memorandum
+                                        </h1>
                                     </div>
 
-                                    <!-- TABLEAU DESTINATAIRES (Classe 'recipient-section' ajoutée pour le masquage page 2) -->
-                                    <div class="recipient-section mb-6 text-sm w-full shrink-0">
+                                    <!-- TABLEAU DESTINATAIRES -->
+                                    <div id="recipient-table" class="mb-6 text-sm w-full">
                                         
                                         <!-- LIGNE D'ALIGNEMENT -->
-                                        <!-- Le texte ici reste text-[13px] et font-['Arial'] -->
                                         <div class="flex w-full text-[13px] font-bold font-['Arial'] pb-1 text-black">
                                             <div class="w-[35%]"></div>
                                             <div class="w-[30%] text-center">Prière de :</div>
                                             <div class="w-[35%] pl-8">Destinataires :</div>
                                         </div>
                                         
-                                        <!-- TABLEAU COMPLET PHP -->
-                                        <!-- Le tableau lui-même reste en text-[13px] et font-['Arial'] -->
+                                        <!-- TABLEAU COMPLET -->
                                         <table class="w-full border-collapse border border-black text-[13px] font-['Arial'] text-black">
                                             
-                                            <!-- LIGNES DU TABLEAU -->
+                                            <!-- LIGNE 1 : Faire le nécessaire -->
                                             @php $recipients1 = $recipientsByAction['Faire le nécessaire'] ?? collect([]); @endphp
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold w-[35%] align-top">
@@ -428,6 +423,7 @@
                                                 </td>
                                             </tr>
 
+                                            <!-- LIGNE 2 : Prendre connaissance -->
                                             @php $recipients2 = $recipientsByAction['Prendre connaissance'] ?? collect([]); @endphp
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold align-top">
@@ -442,10 +438,12 @@
                                                 </td>
                                             </tr>
 
+                                            <!-- LIGNE 3 : Prendre position (Optionnel si vous l'utilisez) -->
                                             @php $recipients3 = $recipientsByAction['Prendre position'] ?? collect([]); @endphp
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold align-top">
-                                                    Emetteur : #
+                                                    <!-- On affiche le nom de l'utilisateur ici ou son entité -->
+                                                    Emetteur :  {{ $currentMemo->reference ? Str::afterLast($currentMemo->reference, '/') : 'En attente' }}
                                                 </td>
                                                 <td class="border border-black p-1 pl-2">
                                                     <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients3->count() > 0 ? 'bg-orange-500' : '' }}"></span> 
@@ -456,6 +454,7 @@
                                                 </td>
                                             </tr>
 
+                                            <!-- LIGNE 4 : Décider (ou autre action) -->
                                             @php $recipients4 = $recipientsByAction['Décider'] ?? collect([]); @endphp
                                             <tr>
                                                 <td class="border border-black p-1 pl-2 font-bold align-top">
@@ -472,10 +471,9 @@
                                         </table>
                                     </div>
 
-                                    <!-- OBJET & CONCERNE (Classe 'object-section' ajoutée pour le masquage page 2) -->
-                                    <div class="object-section mb-4 shrink-0">
+                                    <!-- OBJET & CONCERNE -->
+                                    <div class="mb-4">
                                         <div class="mb-6">
-                                            <!-- Le texte ici hérite Times New Roman, mais la taille reste 15px pour l'objet -->
                                             <p class="mb-1">
                                                 <span class="font-bold text-[15px] underline">Objet :</span> 
                                                 <span class="uppercase font-bold"> {{ $object }} </span>
@@ -489,35 +487,30 @@
                                         </div>
                                     </div>
 
-                                    <!-- ZONE DE CONTENU CIBLE -->
-                                    <!-- Cette div hérite désormais la police Times New Roman et la taille 12pt (text-base) du parent .page-a4 -->
-                                    <div class="content-target flex-grow min-h-0 px-2 overflow-hidden mb-4 text-justify space-y-3 
-                                                text-gray-900 break-words w-full">
-                                        <!-- VIDE PAR DÉFAUT -->
+                                    <!-- CORPS DU TEXTE -->
+                                    <div id="content-area" class="flex-grow px-2">
+                                        <div class="text-justify space-y-3 text-[14px] leading-relaxed font-serif text-gray-900">
+                                            {!! $content !!}
+                                        </div>
                                     </div>
 
-                                    <!-- PIED DE PAGE -->
-                                    <div class="footer-section mt-auto shrink-0 w-full flex flex-col items-center justify-center pt-2">
+                                    <!-- PIED DE PAGE AVEC QR CODE -->
+                                    <div class="absolute bottom-4 left-0 w-full flex flex-col items-center justify-center">
+                                        @if($currentMemo && $currentMemo->qr_code)
+                                            <div class="bg-white p-0.5 border border-gray-200 inline-block mb-2">
+                                                <!-- Génération du QR Code -->
+                                                {{ QrCode::size(50)->generate(route('memo.verify', $currentMemo->qr_code)) }}
+                                            </div>
+                                        @endif
                                         
-                                        <!-- QR Code Section (Classe 'qr-section' pour le masquage page 2) -->
-                                        <div class="qr-section">
-                                            @if($currentMemo && $currentMemo->qr_code)
-                                                <div class="bg-white p-0.5 border border-gray-200 inline-block mb-1">
-                                                    {{-- QR Code en SVG Base64 --}}
-                                                    <img src="data:image/svg+xml;base64,{{ base64_encode(QrCode::format('svg')->size(50)->generate(route('memo.verify', $currentMemo->qr_code))) }}" 
-                                                        width="50" height="50" alt="QR">
-                                                </div>
-                                            @endif
-                                        </div>
-
-                                        <!-- Le texte de référence reste en text-[10px] (plus petit) -->
-                                        <div class="ref-text text-[10px] text-gray-500 italic">{{ $currentMemo->numero_ref }}</div>
+                                        <!-- Numéro de version du formulaire -->
+                                        <div class="text-[10px] text-gray-500 italic">FOR-ME-07-V1</div>
                                     </div>
 
                                 </div> 
                             </div>
-                        </template>
 
+                        </div>
                     </div>
                 </div>
             </div>

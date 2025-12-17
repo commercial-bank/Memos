@@ -74,50 +74,7 @@
             </span>
             
             <ul class="space-y-1">
-                <!-- Groups -->
-                <li>
-                    <a href="#" wire:click.prevent="selectTab('groups')" 
-                       class="flex items-center rounded-xl py-3 transition-all duration-200 ease-in-out sidebar-link {{ $isCollapsed ? 'justify-center px-0' : 'px-4' }} {{ $activeTab == 'groups' ? 'sidebar-bg-active sidebar-text-active shadow-md' : 'sidebar-text-inactive' }}">
-                        
-                        <i class="fas fa-users text-lg w-5 text-center flex-shrink-0 {{ $isCollapsed ? 'mr-0' : 'mr-4' }}"></i>
-                        
-                        <span class="nav-text transition-opacity duration-300 ease-in-out whitespace-nowrap overflow-hidden {{ $isCollapsed ? 'opacity-0 w-0' : 'opacity-100' }}">Groups</span>
-                    </a>
-                </li>
-
-                <!-- Reports -->
-                <li>
-                    <a href="#" wire:click.prevent="selectTab('reports')" 
-                       class="flex items-center rounded-xl py-3 transition-all duration-200 ease-in-out sidebar-link {{ $isCollapsed ? 'justify-center px-0' : 'px-4' }} {{ $activeTab == 'reports' ? 'sidebar-bg-active sidebar-text-active shadow-md' : 'sidebar-text-inactive' }}">
-                        
-                        <i class="fas fa-flag text-lg w-5 text-center flex-shrink-0 {{ $isCollapsed ? 'mr-0' : 'mr-4' }}"></i>
-                        
-                        <span class="nav-text transition-opacity duration-300 ease-in-out whitespace-nowrap overflow-hidden {{ $isCollapsed ? 'opacity-0 w-0' : 'opacity-100' }}">Reports</span>
-                    </a>
-                </li>
-
-                <!-- Tasks -->
-                <li>
-                    <a href="#" wire:click.prevent="selectTab('tasks')" 
-                       class="flex items-center rounded-xl py-3 transition-all duration-200 ease-in-out sidebar-link {{ $isCollapsed ? 'justify-center px-0' : 'px-4' }} {{ $activeTab == 'tasks' ? 'sidebar-bg-active sidebar-text-active shadow-md' : 'sidebar-text-inactive' }}">
-                       
-                        <i class="fas fa-tasks text-lg w-5 text-center flex-shrink-0 {{ $isCollapsed ? 'mr-0' : 'mr-4' }}"></i>
-                           
-                        <span class="nav-text transition-opacity duration-300 ease-in-out whitespace-nowrap overflow-hidden {{ $isCollapsed ? 'opacity-0 w-0' : 'opacity-100' }}">Tasks</span>
-                    </a>
-                </li>
-
-                <!-- Calendar -->
-                <li>
-                    <a href="#" wire:click.prevent="selectTab('calendar')" 
-                       class="flex items-center rounded-xl py-3 transition-all duration-200 ease-in-out sidebar-link {{ $isCollapsed ? 'justify-center px-0' : 'px-4' }} {{ $activeTab == 'calendar' ? 'sidebar-bg-active sidebar-text-active shadow-md' : 'sidebar-text-inactive' }}">
-                       
-                        <i class="fas fa-calendar-alt text-lg w-5 text-center flex-shrink-0 {{ $isCollapsed ? 'mr-0' : 'mr-4' }}"></i>
-                           
-                        <span class="nav-text transition-opacity duration-300 ease-in-out whitespace-nowrap overflow-hidden {{ $isCollapsed ? 'opacity-0 w-0' : 'opacity-100' }}">Calendar</span>
-                    </a>
-                </li>
-
+                
                 <!-- Documents -->
                 <li>
                     <a href="#" wire:click.prevent="selectTab('documents')" 

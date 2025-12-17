@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('qr_code')->nullable();
             $table->string('workflow_direction')->default('sortant');
             $table->string('workflow_comment')->nullable();
+            $table->foreignId('parent_id')->nullable()->constrained('memos')->onDelete('cascade');
             $table->json('pieces_jointes')->nullable();
             $table->string('numero_ref')->default('FOR-ME-07-V1');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
