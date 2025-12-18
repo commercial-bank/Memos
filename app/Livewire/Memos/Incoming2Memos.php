@@ -483,6 +483,7 @@ class Incoming2Memos extends Component
      * Action : Le Directeur termine/classe le mémo.
      * Le mémo n'est pas supprimé, mais retiré de sa bannette.
      */
+
     public function closeMemo($id)
     {
         $memo = Memo::find($id);
@@ -535,6 +536,7 @@ class Incoming2Memos extends Component
         $this->memoIdToClose = null;
         $this->closingComment = '';
     }
+    
 
     /**
      * 3. Action : Confirme la clôture (Exécuté depuis le modal)
@@ -685,4 +687,5 @@ class Incoming2Memos extends Component
             'memos' => $memos,
         ]);
     }
+
 }

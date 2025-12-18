@@ -163,101 +163,101 @@
 
                                 <!-- 4. ACTIONS (Boutons Icones) -->
                                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-    <div class="flex items-center justify-center space-x-3">
+                                    <div class="flex items-center justify-center space-x-3">
 
-        <!-- 1. APERÇU (Pour tout le monde) -->
-        <button wire:click="viewMemo({{ $memo->id }})" 
-                class="text-gray-400 hover:text-blue-600 transition-colors" 
-                title="Aperçu">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-        </button>
+                                        <!-- 1. APERÇU (Pour tout le monde) -->
+                                        <button wire:click="viewMemo({{ $memo->id }})" 
+                                                class="text-gray-400 hover:text-blue-600 transition-colors" 
+                                                title="Aperçu">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                        </button>
 
-        <!-- 2. FAVORIS (Pour tout le monde) -->
-        <button wire:click="toggleFavorite({{ $memo->id }})" 
-                class="transition-colors duration-200 {{ $memo->is_favorited ? 'text-yellow-400 hover:text-yellow-500' : 'text-gray-300 hover:text-yellow-400' }}" 
-                title="{{ $memo->is_favorited ? 'Retirer des favoris' : 'Ajouter aux favoris' }}">
-            @if($memo->is_favorited)
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-            @else
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
-            @endif
-        </button>
+                                        <!-- 2. FAVORIS (Pour tout le monde) -->
+                                        <button wire:click="toggleFavorite({{ $memo->id }})" 
+                                                class="transition-colors duration-200 {{ $memo->is_favorited ? 'text-yellow-400 hover:text-yellow-500' : 'text-gray-300 hover:text-yellow-400' }}" 
+                                                title="{{ $memo->is_favorited ? 'Retirer des favoris' : 'Ajouter aux favoris' }}">
+                                            @if($memo->is_favorited)
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                            @else
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
+                                            @endif
+                                        </button>
 
-        @php
-            $userPoste = Str::lower(Auth::user()->poste);
-            $isSecretaire = Str::contains($userPoste, 'secretaire');
-            $isManager = !$isSecretaire; // Tout ce qui n'est pas secrétaire est considéré manager ici (Dir, Sous-Dir, Chef...)
-        @endphp
+                                        @php
+                                            $userPoste = Str::lower(Auth::user()->poste);
+                                            $isSecretaire = Str::contains($userPoste, 'secretaire');
+                                            $isManager = !$isSecretaire; // Tout ce qui n'est pas secrétaire est considéré manager ici (Dir, Sous-Dir, Chef...)
+                                        @endphp
 
-        <!-- 3. BOUTON ENREGISTRER / TRANSMETTRE (CRUCIAL POUR L'ASSISTANTE) -->
-        <!-- Ce bouton est visible PAR TOUT LE MONDE. -->
-        <!-- Pour l'assistante : Il ouvre l'enregistrement PUIS la transmission -->
-        <!-- Pour le directeur : Il ouvre directement la transmission -->
-        <button wire:click="transMemo({{ $memo->id }})" 
-                wire:loading.attr="disabled"
-                class="text-gray-400 hover:text-indigo-600 transition-colors" 
-                title="{{ $isSecretaire ? 'Enregistrer et Transmettre' : 'Transmettre' }}">
-            
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-            </svg>
-        </button>
+                                        <!-- 3. BOUTON ENREGISTRER / TRANSMETTRE (CRUCIAL POUR L'ASSISTANTE) -->
+                                        <!-- Ce bouton est visible PAR TOUT LE MONDE. -->
+                                        <!-- Pour l'assistante : Il ouvre l'enregistrement PUIS la transmission -->
+                                        <!-- Pour le directeur : Il ouvre directement la transmission -->
+                                        <button wire:click="transMemo({{ $memo->id }})" 
+                                                wire:loading.attr="disabled"
+                                                class="text-gray-400 hover:text-indigo-600 transition-colors" 
+                                                title="{{ $isSecretaire ? 'Enregistrer et Transmettre' : 'Transmettre' }}">
+                                            
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                            </svg>
+                                        </button>
 
-        <!-- ============================================================== -->
-        <!-- 4. ZONE RÉSERVÉE AUX MANAGERS (Directeurs, Chefs, etc.)        -->
-        <!-- Les secrétaires ne voient PAS ce qui suit                      -->
-        <!-- ============================================================== -->
-        @if($isManager)
+                                        <!-- ============================================================== -->
+                                        <!-- 4. ZONE RÉSERVÉE AUX MANAGERS (Directeurs, Chefs, etc.)        -->
+                                        <!-- Les secrétaires ne voient PAS ce qui suit                      -->
+                                        <!-- ============================================================== -->
+                                        @if($isManager)
 
-            <div class="h-4 w-px bg-gray-300 mx-1"></div>
+                                            <div class="h-4 w-px bg-gray-300 mx-1"></div>
 
-            <!-- A. RÉPONDRE -->
-            <button wire:click="replyMemo({{ $memo->id }})"
-                    class="text-gray-400 hover:text-purple-600 transition-colors"
-                    title="Répondre à ce mémo">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
-            </button>
+                                            <!-- A. RÉPONDRE -->
+                                            <button wire:click="replyMemo({{ $memo->id }})"
+                                                    class="text-gray-400 hover:text-purple-600 transition-colors"
+                                                    title="Répondre à ce mémo">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                                            </button>
 
-            @php
-                // Vérification pour l'action "DÉCIDER"
-                $myDestinataire = $memo->destinataires->where('entity_id', Auth::user()->entity_id)->first();
-                $myAction = $myDestinataire->action ?? '';
-                $isDeciderEntity = Str::contains($myAction, 'Décider');
-                $decisionDejaPrise = $myDestinataire && $myDestinataire->processing_status === 'decision_prise';
-            @endphp
+                                            @php
+                                                // Vérification pour l'action "DÉCIDER"
+                                                $myDestinataire = $memo->destinataires->where('entity_id', Auth::user()->entity_id)->first();
+                                                $myAction = $myDestinataire->action ?? '';
+                                                $isDeciderEntity = Str::contains($myAction, 'Décider');
+                                                $decisionDejaPrise = $myDestinataire && $myDestinataire->processing_status === 'decision_prise';
+                                            @endphp
 
-            @if($isDeciderEntity)
-                <!-- B. CAS SPECIAL : DÉCIDER (Accord/Refus) -->
-                @if(!$decisionDejaPrise)
-                    <button wire:click="submitDecision({{ $memo->id }}, 'accord')"
-                            wire:confirm="Confirmez-vous votre ACCORD ?"
-                            class="text-gray-400 hover:text-green-600 transition-colors"
-                            title="Donner Accord">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </button>
+                                            @if($isDeciderEntity)
+                                                <!-- B. CAS SPECIAL : DÉCIDER (Accord/Refus) -->
+                                                @if(!$decisionDejaPrise)
+                                                    <button wire:click="submitDecision({{ $memo->id }}, 'accord')"
+                                                            wire:confirm="Confirmez-vous votre ACCORD ?"
+                                                            class="text-gray-400 hover:text-green-600 transition-colors"
+                                                            title="Donner Accord">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                    </button>
 
-                    <button wire:click="submitDecision({{ $memo->id }}, 'refus')"
-                            wire:confirm="Confirmez-vous le REFUS ?"
-                            class="text-gray-400 hover:text-red-600 transition-colors"
-                            title="Refuser">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                @else
-                    <span class="text-xs font-bold text-blue-600 border border-blue-600 px-1 rounded cursor-default">Fait</span>
-                @endif
-            @else
-                <!-- C. CAS STANDARD : TERMINER (Modal Vert) -->
-                <button wire:click="openCloseModal({{ $memo->id }})"
-                        class="text-gray-400 hover:text-green-600 transition-colors"
-                        title="Terminer le traitement">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                </button>
-            @endif
+                                                    <button wire:click="submitDecision({{ $memo->id }}, 'refus')"
+                                                            wire:confirm="Confirmez-vous le REFUS ?"
+                                                            class="text-gray-400 hover:text-red-600 transition-colors"
+                                                            title="Refuser">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                    </button>
+                                                @else
+                                                    <span class="text-xs font-bold text-blue-600 border border-blue-600 px-1 rounded cursor-default">Fait</span>
+                                                @endif
+                                            @else
+                                                <!-- C. CAS STANDARD : TERMINER (Modal Vert) -->
+                                                <button wire:click="openCloseModal({{ $memo->id }})"
+                                                        class="text-gray-400 hover:text-green-600 transition-colors"
+                                                        title="Terminer le traitement">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                </button>
+                                            @endif
 
-        @endif <!-- Fin isManager -->
+                                        @endif <!-- Fin isManager -->
 
-    </div>
-</td>
+                                    </div>
+                                </td>
                             </tr>
                         @empty
                             <tr>

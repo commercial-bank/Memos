@@ -20,6 +20,25 @@
             outline: none;
             box-shadow: 0 0 0 2px var(--c-gold);
         }
+
+        
+    /* ... vos styles existants ... */
+
+    /* STYLE DES TABLEAUX DANS L'EDITEUR */
+    .ql-editor table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 15px;
+    }
+    .ql-editor table td, 
+    .ql-editor table th {
+        border: 1px solid #000; /* Bordure noire */
+        padding: 8px;
+        min-width: 30px;
+        height: 25px;
+    }
+
+
     </style>
 
     <!-- ========================================================== -->
@@ -60,25 +79,88 @@
                             'incoming' => 'Mémos Sortants',
                             'incoming2' => 'Mémos Entrants',
                         ];
-                        if(auth()->user()->poste == 'Secretaire') {
+                        
+                        // Note: J'ai corrigé "Secretaire" en "secretaire" (minuscule) ou utilise Str::contains si nécessaire, 
+                        // mais gardons ta logique exacte pour l'instant.
+                        if(auth()->user()->poste == 'Secretaire') { 
                             $tabs['blockout'] = 'Blocs Mémos Sortants';
                             $tabs['blockint'] = 'Blocs Mémos Entrants';
                         } else {
                             $tabs['drafted'] = 'Mes Mémos';
                             $tabs['document'] = 'Mémos Envoyés';
                             $tabs['favorites'] = 'Favoris';
+                            $tabs['archives'] = 'Archives';
                         }
                     @endphp
 
                     @foreach($tabs as $key => $label)
                         <button
                             wire:click="selectTab('{{ $key }}')"
-                            class="whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm transition-colors duration-200"
+                            class="whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm transition-colors duration-200 flex items-center gap-2 group"
                             style="{{ $activeTab === $key 
                                 ? 'border-color: var(--c-gold); color: var(--c-black);' 
                                 : 'border-color: transparent; color: var(--c-grey);' }}"
                         >
-                            {{ $label }}
+                            <!-- Gestion des Icônes par Clé -->
+                            @switch($key)
+                                @case('incoming')
+                                    <!-- Mémos Sortants : Avion en papier -->
+                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                                    </svg>
+                                    @break
+
+                                @case('incoming2')
+                                    <!-- Mémos Entrants : Boîte de réception -->
+                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                    </svg>
+                                    @break
+
+                                @case('blockout')
+                                    <!-- Blocs Sortants : Piles de dossiers vers le haut -->
+                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15M9 12l3-3m0 0l3 3m-3-3v10.125" />
+                                    </svg>
+                                    @break
+
+                                @case('blockint')
+                                    <!-- Blocs Entrants : Piles de dossiers vers le bas -->
+                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15m0-3l-3 3m0 0l-3-3m3 3V1.5" />
+                                    </svg>
+                                    @break
+
+                                @case('drafted')
+                                    <!-- Mes Mémos (Brouillons) : Crayon -->
+                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                    </svg>
+                                    @break
+
+                                @case('document')
+                                    <!-- Mémos Envoyés : Document coché -->
+                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    @break
+
+                                @case('favorites')
+                                    <!-- Favoris : Étoile -->
+                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="{{ $activeTab === $key ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                                    </svg>
+                                    @break
+
+                                @case('archives')
+                                    <!-- Archives : Boîte d'archives -->
+                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                                    </svg>
+                                    @break
+                            @endswitch
+
+                            <span>{{ $label }}</span>
                         </button>
                     @endforeach
                 </nav>
@@ -94,6 +176,7 @@
                     @case('blockout') <livewire:memos.blockout-memos wire:key="tab-blockout"/> @break
                     @case('blockint') <livewire:memos.blockint-memos wire:key="tab-blockint"/> @break
                     @case('favorites') <livewire:favorites.favorite-memos wire:key="tab-favorites"/> @break
+                    @case('archives') <livewire:memos.archives wire:key="tab-archives"/> @break
                 @endswitch
             </div>
         </div>
@@ -298,67 +381,145 @@
                         @endif
                     </div>
 
-                    <!-- 3. SECTION ÉDITEUR TYPE WORD (Quill) -->
-                    <div class="pt-2">
-                        <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2" style="color: var(--c-grey);">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Corps du Document
-                        </label>
-                        
-                        <div wire:ignore 
-                             class="flex flex-col items-center bg-gray-50 rounded-lg p-4 border border-gray-200"
-                             x-data="{
-                                content: @entangle('content'),
-                                quill: null,
-                                initQuill() {
-                                    this.quill = new Quill(this.$refs.quillEditor, {
-                                        theme: 'snow',
-                                        placeholder: 'Rédigez votre mémo ici...',
-                                        modules: { toolbar: '#toolbar-container' }
-                                    });
-                                    if (this.content) { this.quill.root.innerHTML = this.content; }
-                                    this.quill.on('text-change', () => { this.content = this.quill.root.innerHTML; });
-                                }
-                             }"
-                             x-init="initQuill()"
-                        >
-                            
-                            <!-- BARRE D'OUTILS (Clean & Grey) -->
-                            <div id="toolbar-container" class="w-full max-w-4xl mb-4 !border-0 bg-white rounded-lg shadow-sm flex flex-wrap items-center justify-center gap-x-2 border border-gray-200">
-                                <span class="ql-formats">
-                                    <select class="ql-header">
-                                        <option value="1">Titre 1</option>
-                                        <option value="2">Titre 2</option>
-                                        <option selected>Normal</option>
-                                    </select>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-bold"></button>
-                                    <button class="ql-italic"></button>
-                                    <button class="ql-underline"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <select class="ql-color"></select>
-                                    <select class="ql-background"></select>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-list" value="ordered"></button>
-                                    <button class="ql-list" value="bullet"></button>
-                                    <button class="ql-indent" value="-1"></button>
-                                    <button class="ql-indent" value="+1"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-align" value=""></button>
-                                    <button class="ql-align" value="center"></button>
-                                    <button class="ql-align" value="right"></button>
-                                    <button class="ql-align" value="justify"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-clean"></button>
-                                </span>
-                            </div>
+                   <!-- 3. SECTION ÉDITEUR TYPE WORD (Quill) -->
+<div class="pt-2">
+    <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2" style="color: var(--c-grey);">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        Corps du Document
+    </label>
+
+    <div wire:ignore 
+         class="flex flex-col items-center bg-gray-50 rounded-lg p-4 border border-gray-200"
+         x-data="{
+            content: @entangle('content'),
+            quill: null,
+            
+            initQuill() {
+                // Initialisation de Quill
+                this.quill = new Quill(this.$refs.quillEditor, {
+                    theme: 'snow',
+                    placeholder: 'Rédigez votre mémo ici...',
+                    modules: {
+                        toolbar: '#toolbar-container',
+                        table: true 
+                    }
+                });
+
+                // Charger le contenu initial
+                if (this.content) {
+                    this.quill.root.innerHTML = this.content;
+                }
+                
+                // Update Livewire on change
+                this.quill.on('text-change', () => {
+                    this.content = this.quill.root.innerHTML;
+                });
+            },
+
+            insertCustomTable() {
+                let rows = prompt('Nombre de lignes ?', 3);
+                let cols = prompt('Nombre de colonnes ?', 3);
+
+                if (!rows || !cols || isNaN(rows) || isNaN(cols)) return;
+
+                // Génération du HTML du tableau
+                let tableRows = '';
+                for (let r = 0; r < rows; r++) {
+                    tableRows += '<tr>';
+                    for (let c = 0; c < cols; c++) {
+                        tableRows += '<td style=\'border: 1px solid #000000; padding: 8px; min-width: 50px; height: 30px;\'>&nbsp;</td>';
+                    }
+                    tableRows += '</tr>';
+                }
+
+                let tableHTML = `<br><table style='width:100%; border-collapse: collapse; border: 1px solid #000000; margin: 10px 0;'><tbody>${tableRows}</tbody></table><p><br></p>`;
+
+                // Insertion Directe
+                this.quill.focus();
+                const selection = window.getSelection();
+                
+                if (selection.rangeCount > 0) {
+                    let range = selection.getRangeAt(0);
+                    
+                    // Vérifier si le curseur est dans l'éditeur
+                    if (!this.$refs.quillEditor.contains(range.commonAncestorContainer)) {
+                        range = document.createRange();
+                        range.selectNodeContents(this.quill.root);
+                        range.collapse(false);
+                    }
+
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = tableHTML;
+                    const fragment = document.createDocumentFragment();
+                    while (tempDiv.firstChild) {
+                        fragment.appendChild(tempDiv.firstChild);
+                    }
+
+                    const lastNode = fragment.lastChild;
+                    range.deleteContents();
+                    range.insertNode(fragment);
+
+                    // Placer le curseur après le tableau
+                    const newRange = document.createRange();
+                    newRange.setStartAfter(lastNode);
+                    newRange.setEndAfter(lastNode);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+
+                    // Sync
+                    this.quill.update();
+                    this.content = this.quill.root.innerHTML;
+                }
+            }
+         }"
+         x-init="initQuill()">
+        
+        <!-- BARRE D'OUTILS -->
+        <div id="toolbar-container" class="w-full max-w-4xl mb-4 !border-0 bg-white rounded-lg shadow-sm flex flex-wrap items-center justify-center gap-x-2 border border-gray-200">
+            <span class="ql-formats">
+                <select class="ql-header">
+                    <option value="1">Titre 1</option>
+                    <option value="2">Titre 2</option>
+                    <option selected>Normal</option>
+                </select>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-bold"></button>
+                <button class="ql-italic"></button>
+                <button class="ql-underline"></button>
+            </span>
+            <span class="ql-formats">
+                <select class="ql-color"></select>
+                <select class="ql-background"></select>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-list" value="ordered"></button>
+                <button class="ql-list" value="bullet"></button>
+                <button class="ql-align" value="center"></button>
+                <button class="ql-align" value="justify"></button>
+            </span>
+
+            <!-- BOUTON TABLEAU CUSTOM -->
+            <span class="ql-formats border-l pl-2">
+                <button type="button" @click.prevent="insertCustomTable()" class="hover:bg-gray-100 p-1 rounded" title="Insérer un tableau">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="3" y1="9" x2="21" y2="9"></line>
+                        <line x1="3" y1="15" x2="21" y2="15"></line>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                        <line x1="15" y1="3" x2="15" y2="21"></line>
+                    </svg>
+                </button>
+            </span>
+
+            <span class="ql-formats">
+                <button class="ql-clean"></button>
+            </span>
+        </div>
+
+       
 
                             <!-- LA FEUILLE BLANCHE -->
                             <div class="w-full max-w-[21cm] shadow-xl ring-1 ring-gray-900/5">
