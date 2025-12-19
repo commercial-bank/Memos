@@ -808,85 +808,90 @@
     {{-- MODAL HISTORIQUE --}}
     @if($isOpenHistory)
         <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <!-- Overlay (Fond noir) -->
             <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" wire:click="closeHistoryModal"></div>
             
             <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
                 <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-                    
-                    <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-gray-200">
+                    <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border border-gray-200">
                         
-                        <!-- En-tête -->
                         <div class="bg-gray-50 px-4 py-4 border-b border-gray-200 flex justify-between items-center">
                             <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                                 <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                Historique du Workflow
+                                Fil de discussion & Historique global
                             </h3>
-                            <button type="button" wire:click="closeHistoryModal" class="text-gray-400 hover:text-gray-600">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </button>
+                            <button type="button" wire:click="closeHistoryModal" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                         </div>
 
-                        <!-- Corps (Timeline) -->
-                        <div class="px-6 py-6 bg-white max-h-[60vh] overflow-y-auto">
-                            
+                        <div class="px-6 py-6 bg-white max-h-[70vh] overflow-y-auto">
                             @forelse($memoHistory as $log)
-                                <div class="relative pl-8 pb-8 group last:pb-0 border-l-2 border-gray-200 ml-2">
+                                @php
+                                    // On vérifie si ce log appartient au mémo d'origine ou à une réponse
+                                    $isReply = ($log->memo_id != $this->memo_id);
                                     
-                                    <!-- Point sur la timeline (Couleur selon l'action) -->
-                                    @php
-                                        $dotColor = 'bg-blue-500'; // Défaut (Vu)
-                                        if(str_contains(strtolower($log->visa), 'accord') && !str_contains(strtolower($log->visa), 'pas')) {
-                                            $dotColor = 'bg-green-500';
-                                        } elseif(str_contains(strtolower($log->visa), 'pas')) {
-                                            $dotColor = 'bg-red-500';
-                                        }
-                                    @endphp
-                                    <div class="absolute -left-[9px] top-0 h-5 w-5 rounded-full border-4 border-white {{ $dotColor }} shadow-sm"></div>
+                                    // Logique de couleur pour les points de la timeline
+                                    $dotColor = 'bg-blue-500'; // Défaut
+                                    $visa = Str::lower($log->visa);
+                                    if(Str::contains($visa, 'accord') || Str::contains($visa, 'signé')) $dotColor = 'bg-green-500';
+                                    if(Str::contains($visa, 'rejeter') || Str::contains($visa, 'clôturé')) $dotColor = 'bg-red-500';
+                                    if(Str::contains($visa, 'réponse')) $dotColor = 'bg-purple-600';
+                                @endphp
 
-                                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-baseline mb-1">
-                                        <!-- Nom de l'utilisateur -->
-                                        <h4 class="text-sm font-bold text-gray-900">
-                                            {{ $log->user->first_name ?? '' }} {{ $log->user->last_name ?? 'Utilisateur' }}
+                                <div class="relative pl-8 pb-8 group last:pb-0 border-l-2 border-gray-100 ml-2">
+                                    
+                                    <!-- Point sur la timeline -->
+                                    <div class="absolute -left-[9px] top-0 h-4 w-4 rounded-full border-2 border-white {{ $dotColor }} shadow-sm"></div>
+
+                                    <div class="flex flex-col mb-1">
+                                        <div class="flex justify-between items-center">
+                                            <!-- Indicateur : Original vs Réponse -->
+                                            @if($isReply)
+                                                <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded border border-purple-200">
+                                                    ↪ Élément de Réponse
+                                                </span>
+                                            @else
+                                                <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded border border-gray-200">
+                                                    Mémo Principal
+                                                </span>
+                                            @endif
+                                            <span class="text-[11px] text-gray-400 font-mono">{{ $log->created_at->format('d/m/Y H:i') }}</span>
+                                        </div>
+
+                                        <h4 class="text-sm font-bold text-gray-900 mt-1">
+                                            {{ $log->user->first_name }} {{ $log->user->last_name }}
+                                            <span class="text-xs font-normal text-gray-500"> — {{ $log->user->poste }}</span>
                                         </h4>
-                                        <!-- Date -->
-                                        <span class="text-xs text-gray-400 font-mono">
-                                            {{ $log->created_at->format('d/m/Y à H:i') }}
-                                        </span>
                                     </div>
 
                                     <!-- Action / Visa -->
                                     <div class="mb-2">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                            {{ $dotColor == 'bg-green-500' ? 'bg-green-100 text-green-800' : 
-                                              ($dotColor == 'bg-red-500' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800') }}">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold {{ $dotColor }} text-white">
                                             {{ $log->visa }}
                                         </span>
+                                        
+                                        @if($isReply)
+                                            <span class="ml-2 text-[10px] text-gray-400 italic">
+                                                (Sur mémo réponse ID #{{ $log->memo_id }})
+                                            </span>
+                                        @endif
                                     </div>
 
                                     <!-- Commentaire -->
-                                    @if(!empty($log->workflow_comment) && $log->workflow_comment !== 'R.A.S')
-                                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-600 italic relative">
-                                            <svg class="absolute top-2 left-2 w-3 h-3 text-gray-300 transform -scale-x-100" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21L14.017 18C14.017 16.8954 13.1216 16 12.017 16H9C9 14.9381 9.32569 13.9163 10.0163 13.065C10.6698 12.2595 11.6033 11.6917 12.6397 11.4552C13.6761 11.2187 14.7645 11.3248 15.7289 11.7562L16.5492 10.1158C15.1587 9.49392 13.5935 9.34098 12.1009 9.68153C10.6083 10.0221 9.26402 10.8396 8.32281 11.9996C7.03661 13.5847 6.47466 15.5866 6.78453 17.575L7.26521 20.334C7.45262 21.4087 8.38459 22.1818 9.47526 22.1818H14.017V21Z"/></svg>
-                                            <span class="pl-4">{{ $log->workflow_comment }}</span>
+                                    @if($log->workflow_comment && $log->workflow_comment !== 'R.A.S')
+                                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-600 leading-relaxed shadow-sm">
+                                            <p>{{ $log->workflow_comment }}</p>
                                         </div>
                                     @endif
                                 </div>
                             @empty
-                                <div class="text-center py-8 text-gray-500">
-                                    <p>Aucun historique disponible.</p>
+                                <div class="text-center py-10">
+                                    <p class="text-gray-400 italic">Aucun historique trouvé pour ce dossier.</p>
                                 </div>
                             @endforelse
-
                         </div>
 
-                        <!-- Footer -->
-                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                            <button type="button" wire:click="closeHistoryModal" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:w-auto sm:text-sm">
-                                Fermer
-                            </button>
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t">
+                            <button type="button" wire:click="closeHistoryModal" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:w-auto sm:text-sm">Fermer</button>
                         </div>
-
                     </div>
                 </div>
             </div>

@@ -100,18 +100,25 @@ class DocsMemos extends Component
     }
 
      public function viewHistory($id)
-    {
-        // 1. On récupère les historiques liés à ce mémo
-        // 2. On charge la relation 'user' pour afficher le nom (pas juste l'ID)
-        // 3. On trie du plus récent au plus ancien
-        $this->memoHistory = Historiques::with('user')
-            ->where('memo_id', $id)
-            ->orderBy('created_at', 'desc') 
-            ->get();
+        {
+            // 1. On stocke l'ID du mémo principal pour la comparaison dans la vue
+            $this->memo_id = $id;
 
-        // 4. On ouvre le modal
-        $this->isOpenHistory = true;
-    }
+            // 2. On récupère les IDs de tous les "enfants" (les réponses)
+            $childrenIds = Memo::where('parent_id', $id)->pluck('id')->toArray();
+
+            // 3. On crée une liste contenant l'ID du mémo actuel + les IDs des réponses
+            $allRelatedMemoIds = array_merge([$id], $childrenIds);
+
+            // 4. On récupère tout l'historique lié à ces IDs
+            // On charge 'memo' pour pouvoir afficher l'objet du mémo de réponse dans la timeline
+            $this->memoHistory = Historiques::with(['user', 'memo'])
+                ->whereIn('memo_id', $allRelatedMemoIds)
+                ->orderBy('created_at', 'desc') 
+                ->get();
+
+            $this->isOpenHistory = true;
+        }
 
     /**
      * Ferme le modal historique
@@ -489,7 +496,7 @@ class DocsMemos extends Component
             ->where('user_id', Auth::id())
             
             // UTILISATION DE whereIn POUR PLUSIEURS STATUTS
-            ->whereIn('status', ['envoyer', 'rejeter','transmit' ,'valider']) 
+            ->whereIn('status', ['envoyer', 'rejeter','transmit' ,'reponse','terminer']) 
             
             ->where(function($query) {
                 $query->where('object', 'like', '%'.$this->search.'%')

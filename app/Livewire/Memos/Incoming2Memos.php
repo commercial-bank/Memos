@@ -26,6 +26,21 @@ class Incoming2Memos extends Component
     // --- RECHERCHE & DATATABLE ---
     public $search = '';
 
+    public $isCreatingReply = false; // Pour basculer l'affichage
+    public $parent_id = null;        // L'ID du mémo original
+
+    // Propriétés pour le formulaire de création
+    public $new_object = '';
+    public $new_concern = '';
+    public $new_content = '';
+    public $recipients = [];         // Liste des destinataires
+    public $attachments = [];        // Pour les fichiers (nécessite WithFileUploads)
+
+    // Variables pour le sélecteur de destinataires
+    public $newRecipientEntity = '';
+    public $newRecipientAction = '';
+    public $actionsList = ['Faire le nécessaire', 'Prendre connaissance', 'Prendre position', 'Décider'];
+
     // --- VARIABLES MODAL ASSIGNATION ---
     public $memo_type = 'standard'; // 'standard' ou 'projet'
 
@@ -510,11 +525,7 @@ class Incoming2Memos extends Component
         $this->dispatch('notify', message: "Le mémo a été terminé avec succès.");
     }
     
-    // N'oubliez pas d'ajouter la fonction replyMemo si elle n'y est pas encore
-    public function replyMemo($id)
-    {
-        return redirect()->route('memos.create', ['reply_to' => $id]);
-    }
+   
 
 
      /**
@@ -659,6 +670,180 @@ class Incoming2Memos extends Component
         ]);
 
         $this->dispatch('notify', message: "Décision enregistrée. Les autres entités peuvent maintenant clôturer.");
+    }
+
+    // 1. La méthode déclenchée par le bouton "Répondre"
+    public function replyMemo($id)
+    {
+        $parent = Memo::with('user.entity')->find($id);
+        if (!$parent) return;
+
+        $this->parent_id = $id;
+        
+        // Pré-remplissage intelligent
+        $this->new_object = "RE: " . $parent->object;
+        $this->new_concern = "Réponse au mémo réf: " . ($parent->reference ?? 'N/A');
+        $this->new_content = ""; // Vide pour la réponse
+        
+        // Auto-ajout de l'expéditeur original comme premier destinataire
+        $this->recipients = [];
+        if($parent->user && $parent->user->entity_id) {
+            $this->recipients[] = [
+                'entity_id' => $parent->user->entity_id,
+                'entity_name' => $parent->user->entity->name,
+                'action' => 'Faire le nécessaire'
+            ];
+        }
+
+        $this->isCreatingReply = true; // On affiche l'interface de création
+    }
+
+    // 2. Méthode pour annuler et revenir à la liste
+    public function cancelReply()
+    {
+        $this->isCreatingReply = false;
+        $this->reset(['new_object', 'new_concern', 'new_content', 'recipients', 'parent_id']);
+    }
+
+    // 3. Méthode pour ajouter un destinataire (logique de votre interface)
+    public function addRecipient()
+    {
+        $this->validate([
+            'newRecipientEntity' => 'required',
+            'newRecipientAction' => 'required',
+        ]);
+
+        $entity = Entity::find($this->newRecipientEntity);
+        $this->recipients[] = [
+            'entity_id' => $entity->id,
+            'entity_name' => $entity->name,
+            'action' => $this->newRecipientAction
+        ];
+
+        $this->reset(['newRecipientEntity', 'newRecipientAction']);
+    }
+
+    // 4. Enregistrement final du mémo de réponse
+    public function saveReply()
+{
+    // 1. Validation des champs du formulaire
+    $this->validate([
+        'new_object'  => 'required|string|max:255',
+        'new_concern' => 'required|string|max:255',
+        'new_content' => 'required',
+        'recipients'  => 'required|array|min:1',
+    ]);
+
+    // Vérification de sécurité : Avons-nous bien le mémo original ?
+    if (!$this->parent_id) {
+        $this->dispatch('notify', message: "Erreur : Impossible de retrouver le mémo d'origine pour lier la réponse.");
+        return;
+    }
+
+    $currentUser = Auth::user();
+    $poste = Str::lower(trim($currentUser->poste));
+    $targetId = null;
+    $targetType = ""; 
+
+    // 2. LOGIQUE DE DÉTERMINATION DU DESTINATAIRE (DETENTEUR)
+    if (Str::contains($poste, 'directeur') && !Str::contains($poste, 'sous-directeur')) {
+        $secretary = User::where('entity_id', $currentUser->entity_id)
+                        ->where('poste', 'like', '%secretaire%')
+                        ->where('is_active', true)
+                        ->first();
+        
+        if ($secretary) {
+            $targetId = $secretary->id;
+            $targetType = "au Secrétariat pour enregistrement";
+        } else {
+            $targetId = $currentUser->manager_id;
+            $targetType = "au Manager (Secrétaire introuvable)";
+        }
+    } else {
+        $targetId = $currentUser->manager_id;
+        $targetType = "au Manager pour validation";
+    }
+
+    if (!$targetId) {
+        $this->dispatch('notify', message: "Erreur : Aucun destinataire trouvé.");
+        return;
+    }
+
+    $newMemo = null;
+
+    DB::transaction(function () use (&$newMemo, $currentUser, $targetId, $targetType) {
+        
+        // --- A. RÉCUPÉRATION ET CLÔTURE DU MÉMO ORIGINAL (LE PARENT) ---
+        $parentMemo = Memo::find($this->parent_id);
+        
+        if ($parentMemo) {
+            $parentMemo->update([
+                'workflow_direction' => 'terminer',
+                'status' => 'terminer',
+                'current_holders' => [] // On vide les détenteurs car il est traité
+            ]);
+
+            // Historique sur le mémo ORIGINAL
+            Historiques::create([
+                'user_id'          => $currentUser->id,
+                'memo_id'          => $parentMemo->id, // L'ID du parent
+                'visa'             => 'CLÔTURÉ PAR RÉPONSE',
+                'workflow_comment' => "Le dossier a été clôturé. Une réponse a été émise sous la référence en attente."
+            ]);
+        }
+
+        // --- B. CRÉATION DU NOUVEAU MÉMO (LA RÉPONSE) ---
+        // Ici on utilise explicitement $this->parent_id pour créer le lien hiérarchique
+        $newMemo = Memo::create([
+            'object'             => $this->new_object,
+            'concern'            => $this->new_concern,
+            'content'            => $this->new_content,
+            'user_id'            => $currentUser->id,
+            'parent_id'          => $parentMemo->id, // L'ID du mémo qu'on vient de clôturer (Lien de parenté)
+            'workflow_direction' => 'sortant',        
+            'status'             => 'reponse',       
+            'current_holders'    => [$targetId], 
+        ]);
+
+        // --- C. CRÉATION DES DESTINATAIRES POUR LA RÉPONSE ---
+        foreach ($this->recipients as $item) {
+            Destinataires::create([
+                'memo_id'           => $newMemo->id,
+                'entity_id'         => $item['entity_id'],
+                'action'            => $item['action'],
+                'processing_status' => 'en_cours'
+            ]);
+        }
+
+        // --- D. HISTORIQUE SUR LE NOUVEAU MÉMO (L'ENFANT) ---
+        Historiques::create([
+            'user_id'          => $currentUser->id,
+            'memo_id'          => $newMemo->id,
+            'visa'             => 'CRÉATION RÉPONSE',
+            'workflow_comment' => "Ce mémo est une réponse au mémo ID #{$this->parent_id}. Transmis {$targetType}."
+        ]);
+    });
+
+    // 3. NOTIFICATION DU DESTINATAIRE CIBLE
+    if ($newMemo && isset($targetId)) {
+        $targetUser = User::find($targetId);
+        if ($targetUser) {
+            $targetUser->notify(new MemoActionNotification($newMemo, 'envoyer', $currentUser));
+        }
+    }
+
+    // 4. Finalisation
+    $this->dispatch('notify', message: "Dossier original clos. Réponse transmise avec succès.");
+    
+    // Fermeture de l'interface de création et reset
+    $this->isCreatingReply = false;
+    $this->resetReplyForm();
+}
+
+
+
+    private function resetReplyForm() {
+        $this->reset(['isCreatingReply', 'parent_id', 'new_object', 'new_concern', 'new_content', 'recipients']);
     }
 
 
