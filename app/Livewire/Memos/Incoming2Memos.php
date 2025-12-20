@@ -401,6 +401,7 @@ class Incoming2Memos extends Component
 
         // C. Sauvegarde
         $memo->current_holders = $holders;
+        $memo->status = 'coter';
         $memo->save();
 
         // 3. Historique & Notification
@@ -510,7 +511,7 @@ class Incoming2Memos extends Component
         $memo->workflow_direction = "terminer";
         
         // Optionnel : Vous pouvez aussi mettre à jour le statut
-        // $memo->status = 'traité';
+        $memo->status = 'traiter';
 
         $memo->save();
 
@@ -556,16 +557,23 @@ class Incoming2Memos extends Component
 
     public function confirmCloseMemo()
     {
+         // Utilisation de la validation commune
+        $errorMessage = $this->checkDecisionBlock($this->memoIdToClose);
+        if ($errorMessage) {
+            $this->dispatch('notify', message: $errorMessage);
+            $this->cancelCloseModal();
+            return;
+        }
+
         $memo = Memo::find($this->memoIdToClose);
         $user = Auth::user();
         
-        // 1. Récupérer l'entrée 'destinataires' correspondant à l'entité de l'utilisateur courant
         $myDestinataireRecord = Destinataires::where('memo_id', $memo->id)
             ->where('entity_id', $user->entity_id)
             ->first();
 
         if (!$myDestinataireRecord) {
-            $this->dispatch('notify', message: "Erreur : Votre entité n'est pas destinataire de ce mémo.");
+            $this->dispatch('notify', message: "Erreur : Votre entité n'est pas destinataire.");
             return;
         }
 
@@ -672,9 +680,16 @@ class Incoming2Memos extends Component
         $this->dispatch('notify', message: "Décision enregistrée. Les autres entités peuvent maintenant clôturer.");
     }
 
-    // 1. La méthode déclenchée par le bouton "Répondre"
-    public function replyMemo($id)
+        public function replyMemo($id)
     {
+        // --- NOUVEAU : VERIFICATION DU BLOCAGE ---
+        $errorMessage = $this->checkDecisionBlock($id);
+        if ($errorMessage) {
+            $this->dispatch('notify', message: $errorMessage);
+            return; // On arrête tout, l'interface de réponse ne s'ouvrira pas
+        }
+
+        // --- RESTE DU CODE EXISTANT ---
         $parent = Memo::with('user.entity')->find($id);
         if (!$parent) return;
 
@@ -683,7 +698,7 @@ class Incoming2Memos extends Component
         // Pré-remplissage intelligent
         $this->new_object = "RE: " . $parent->object;
         $this->new_concern = "Réponse au mémo réf: " . ($parent->reference ?? 'N/A');
-        $this->new_content = ""; // Vide pour la réponse
+        $this->new_content = ""; 
         
         // Auto-ajout de l'expéditeur original comme premier destinataire
         $this->recipients = [];
@@ -695,7 +710,7 @@ class Incoming2Memos extends Component
             ];
         }
 
-        $this->isCreatingReply = true; // On affiche l'interface de création
+        $this->isCreatingReply = true; 
     }
 
     // 2. Méthode pour annuler et revenir à la liste
@@ -779,8 +794,7 @@ class Incoming2Memos extends Component
         if ($parentMemo) {
             $parentMemo->update([
                 'workflow_direction' => 'terminer',
-                'status' => 'terminer',
-                'current_holders' => [] // On vide les détenteurs car il est traité
+                'status' => 'repondu',
             ]);
 
             // Historique sur le mémo ORIGINAL
@@ -792,6 +806,8 @@ class Incoming2Memos extends Component
             ]);
         }
 
+    
+
         // --- B. CRÉATION DU NOUVEAU MÉMO (LA RÉPONSE) ---
         // Ici on utilise explicitement $this->parent_id pour créer le lien hiérarchique
         $newMemo = Memo::create([
@@ -801,7 +817,7 @@ class Incoming2Memos extends Component
             'user_id'            => $currentUser->id,
             'parent_id'          => $parentMemo->id, // L'ID du mémo qu'on vient de clôturer (Lien de parenté)
             'workflow_direction' => 'sortant',        
-            'status'             => 'reponse',       
+            'status'             => 'envoyer',       
             'current_holders'    => [$targetId], 
         ]);
 
@@ -844,6 +860,31 @@ class Incoming2Memos extends Component
 
     private function resetReplyForm() {
         $this->reset(['isCreatingReply', 'parent_id', 'new_object', 'new_concern', 'new_content', 'recipients']);
+    }
+
+        /**
+     * Vérifie si l'utilisateur actuel est autorisé à traiter le mémo 
+     * (Terminer ou Répondre) en fonction des décisions attendues.
+     */
+    private function checkDecisionBlock($memoId)
+    {
+        $user = Auth::user();
+
+        // On cherche s'il y a UNE AUTRE entité qui doit "Décider"
+        $decisionMakers = Destinataires::where('memo_id', $memoId)
+            ->where('action', 'like', '%Décider%')
+            ->where('entity_id', '!=', $user->entity_id) // Ce n'est pas moi
+            ->get();
+
+        foreach ($decisionMakers as $maker) {
+            // Si le décideur n'a pas encore rendu sa décision
+            if ($maker->processing_status !== 'decision_prise') {
+                $entityName = $maker->entity->name ?? "l'entité responsable";
+                return "Action impossible : Vous devez attendre la décision de {$entityName}.";
+            }
+        }
+
+        return null; // Pas de blocage
     }
 
 

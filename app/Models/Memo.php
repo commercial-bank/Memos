@@ -34,6 +34,8 @@ class Memo extends Model
         'pieces_jointes',
         
         'user_id',
+
+        'parent_id',
     ];
 
     protected $casts = [

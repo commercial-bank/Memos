@@ -100,7 +100,7 @@ class DocsMemos extends Component
     }
 
      public function viewHistory($id)
-        {
+    {
             // 1. On stocke l'ID du mémo principal pour la comparaison dans la vue
             $this->memo_id = $id;
 
@@ -118,7 +118,7 @@ class DocsMemos extends Component
                 ->get();
 
             $this->isOpenHistory = true;
-        }
+    }
 
     /**
      * Ferme le modal historique
@@ -496,7 +496,7 @@ class DocsMemos extends Component
             ->where('user_id', Auth::id())
             
             // UTILISATION DE whereIn POUR PLUSIEURS STATUTS
-            ->whereIn('status', ['envoyer', 'rejeter','transmit' ,'reponse','terminer']) 
+            ->whereIn('status', ['envoyer', 'rejeter','transmit' ,'coter','repondu','terminer','traiter']) 
             
             ->where(function($query) {
                 $query->where('object', 'like', '%'.$this->search.'%')
