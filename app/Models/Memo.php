@@ -6,6 +6,7 @@ use App\Models\Historiques;
 use App\Models\Destinataires;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Memo extends Model
 {
@@ -51,8 +52,20 @@ class Memo extends Model
         'created_at' => 'datetime',
     ];
 
+    public function replies()
+    {
+        return $this->hasMany(Memo::class, 'parent_id')->with('user.entity');
+    }
 
 
+     /**
+     * Relation vers le mémo parent (celui auquel on répond)
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Memo::class, 'parent_id');
+    }
+    
 
     public function destinataires()
     {

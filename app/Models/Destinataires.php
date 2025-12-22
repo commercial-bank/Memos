@@ -9,6 +9,8 @@ class Destinataires extends Model
     protected $fillable = [
         'action',
         'memo_id',
+        'processing_status',
+        'completed_at',
         'entity_id',
     ];
 

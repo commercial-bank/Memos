@@ -16,10 +16,7 @@ return new class extends Migration
             $table->string('action');
             // Statuts possibles : 'en_cours', 'traite', 'decision_prise'
             $table->string('processing_status')->default('en_cours'); 
-            
-            // Pour stocker la décision si l'action était "Décider" (Accord/Refus)
-            $table->string('decision_result')->nullable(); 
-            
+               
             // Date de fin de traitement pour cette entité
             $table->timestamp('completed_at')->nullable();
             $table->foreignId('memo_id')->constrained()->onDelete('cascade');

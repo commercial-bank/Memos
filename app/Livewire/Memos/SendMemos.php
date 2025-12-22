@@ -186,7 +186,7 @@ class SendMemos extends Component
 
         }else{
 
-            $this->validate([
+            $this->validate([ 
                 'next_user_id' => 'required|exists:users,id',
                 'action' => 'required',
             ]);

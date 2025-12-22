@@ -150,7 +150,7 @@
                     @case('blockout') <livewire:memos.blockout-memos wire:key="tab-blockout"/> @break
                     @case('blockint') <livewire:memos.blockint-memos wire:key="tab-blockint"/> @break
                     @case('favorites') <livewire:favorites.favorite-memos wire:key="tab-favorites"/> @break
-                    @case('archives') <livewire:memos.archives wire:key="tab-archives"/> @break
+                    @case('archives') <livewire:memos.archives wire:key="tab-archives"/> @break 
                 @endswitch
             </div>
         </div>

@@ -1,134 +1,132 @@
-<div class="flex flex-col h-full">
-    <!-- Toolbar -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 bg-white p-3 rounded-xl shadow-sm border border-gray-100 gap-4">
-        <div class="flex items-center text-sm text-gray-500 ml-2">
-            <span class="hover:text-[#daaf2c] cursor-pointer">Mes Archives</span>
-            <svg class="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-            <span class="font-bold text-gray-900">Activité Mensuelle</span>
-        </div>
-        
-        <div class="flex flex-wrap gap-3 items-center">
-            <select wire:model.live="selectedMonth" class="bg-gray-50 border-none text-sm rounded-lg focus:ring-[#daaf2c] py-2 pl-3 pr-8 cursor-pointer">
-                @foreach($months as $key => $name)
-                    <option value="{{ $key }}">{{ $name }}</option>
-                @endforeach
-            </select>
-            <select wire:model.live="selectedYear" class="bg-gray-50 border-none text-sm rounded-lg focus:ring-[#daaf2c] py-2 pl-3 pr-8 cursor-pointer">
-                @foreach($years as $year)
-                    <option value="{{ $year }}">{{ $year }}</option>
-                @endforeach
-            </select>
-            <div class="relative">
-                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Rechercher..." class="pl-9 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-[#daaf2c] w-48 transition-all">
-                <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+<div class="min-h-screen bg-gray-50/50 p-4 lg:p-8 font-sans">
+    
+    <!-- HEADER & FILTRES -->
+    <div class="max-w-6xl mx-auto mb-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div>
+                <h1 class="text-2xl font-black text-gray-900 tracking-tight">Mes Documents</h1>
+                <p class="text-sm text-gray-500 font-medium">Suivi de vos mémos et fils de discussion</p>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+                <div class="flex bg-gray-100 p-1 rounded-xl">
+                    <select wire:model.live="selectedMonth" class="bg-transparent border-none text-xs font-bold uppercase cursor-pointer focus:ring-0">
+                        @foreach($months as $key => $name) <option value="{{ $key }}">{{ $name }}</option> @endforeach
+                    </select>
+                    <select wire:model.live="selectedYear" class="bg-transparent border-none text-xs font-bold uppercase cursor-pointer focus:ring-0">
+                        @foreach($years as $year) <option value="{{ $year }}">{{ $year }}</option> @endforeach
+                    </select>
+                </div>
+                <div class="relative">
+                    <input wire:model.live.debounce.300ms="search" type="text" placeholder="Rechercher un dossier..." 
+                           class="w-64 pl-10 pr-4 py-2.5 bg-gray-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 transition-all">
+                    <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Stats Dossiers -->
-    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">
-        Dossiers de {{ $months[$selectedMonth] }} {{ $selectedYear }}
-    </h3>
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
+    <!-- STATS GRID -->
+    <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div class="bg-indigo-600 p-6 rounded-2xl shadow-lg shadow-indigo-200 flex items-center justify-between text-white">
+            <div>
+                <p class="text-indigo-100 text-xs font-bold uppercase tracking-wider mb-1">Mémos Créés</p>
+                <h3 class="text-3xl font-black">{{ $stats['envoyes'] }}</h3>
+            </div>
+            <div class="p-3 bg-white/20 rounded-xl"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg></div>
+        </div>
         
-        <!-- NOUVEAU : Dossier Envoyés -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:border-[#daaf2c] hover:shadow-md transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group">
-            <div class="w-12 h-12 rounded-full bg-yellow-50 flex items-center justify-center group-hover:bg-yellow-100 transition-colors">
-                 <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+            <div>
+                <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Réponses Reçues</p>
+                <h3 class="text-3xl font-black text-gray-900">{{ $stats['reponses_recues'] }}</h3>
             </div>
-            <div class="text-center">
-                <span class="block font-medium text-gray-700 text-sm group-hover:text-black">Envoyés / Créés</span>
-                <span class="block text-xs text-gray-400 font-bold mt-1">{{ $stats['envoyes'] }} mémos</span>
-            </div>
+            <div class="p-3 bg-purple-50 text-purple-600 rounded-xl"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg></div>
         </div>
 
-        <!-- Dossier Signatures -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:border-[#daaf2c] hover:shadow-md transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group">
-             <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors">
-                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-             </div>
-            <div class="text-center">
-                <span class="block font-medium text-gray-700 text-sm group-hover:text-black">Signés</span>
-                <span class="block text-xs text-gray-400 font-bold mt-1">{{ $stats['signes'] }} mémos</span>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+            <div>
+                <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Activité Totale</p>
+                <h3 class="text-3xl font-black text-gray-900">{{ $stats['vises'] }}</h3>
             </div>
-        </div>
-        
-        <!-- Dossier Visas -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:border-[#daaf2c] hover:shadow-md transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group">
-             <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-             </div>
-            <div class="text-center">
-                <span class="block font-medium text-gray-700 text-sm group-hover:text-black">Visés</span>
-                <span class="block text-xs text-gray-400 font-bold mt-1">{{ $stats['vises'] }} mémos</span>
-            </div>
+            <div class="p-3 bg-amber-50 text-amber-600 rounded-xl"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
         </div>
     </div>
 
-    <!-- Tableau -->
-    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Historique détaillé</h3>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table class="w-full text-left border-collapse">
-            <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
-                <tr>
-                    <th class="p-4 w-1/3">Objet du Mémo</th>
-                    <th class="p-4">Action réalisée</th>
-                    <th class="p-4">Date</th>
-                    <th class="p-4 w-1/4">Commentaire</th>
-                    <th class="p-4 text-right">Action</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 text-sm">
-                @forelse($memos as $memo)
-                    @php
-                        $history = $memo->historiques->first(); 
-                        $isCreator = $memo->user_id === auth()->id();
-                    @endphp
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="p-4">
-                            <div class="flex flex-col">
-                                <span class="font-medium text-gray-800 line-clamp-1" title="{{ $memo->object }}">{{ $memo->object }}</span>
-                                <span class="text-xs text-gray-400">Ref: {{ $memo->reference ?? 'En attente' }}</span>
+    <!-- THREADS / DOCUMENTS LIST -->
+    <div class="max-w-6xl mx-auto space-y-6">
+        @forelse($memos as $memo)
+            <div x-data="{ open: false }" class="relative">
+                
+                <!-- CARTE PRINCIPALE (Parent) -->
+                <div class="relative z-10 bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="flex items-start gap-4">
+                            <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl flex-shrink-0">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                             </div>
-                        </td>
-                        <td class="p-4">
-                            @if($history)
-                                {{-- Cas où il y a une action dans l'historique --}}
-                                @if(str_contains(strtolower($history->visa), 'sign'))
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        <i class="fas fa-pen-nib mr-1"></i> {{ $history->visa }}
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        <i class="fas fa-check mr-1"></i> {{ $history->visa }}
-                                    </span>
-                                @endif
-                            @elseif($isCreator)
-                                {{-- Cas où c'est un mémo envoyé (créé) sans encore de visa perso --}}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                    <i class="fas fa-paper-plane mr-1"></i> Initié / Envoyé
-                                </span>
+                            <div>
+                                <h4 class="text-base font-bold text-gray-900 line-clamp-1 uppercase">{{ $memo->object }}</h4>
+                                <div class="flex items-center gap-3 mt-1 text-xs font-medium text-gray-400">
+                                    <span class="bg-gray-100 px-2 py-0.5 rounded text-indigo-600 font-mono">{{ $memo->reference ?? 'NON-REF' }}</span>
+                                    <span>•</span>
+                                    <span>Initié le {{ $memo->created_at->format('d/m/Y') }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-4 ml-auto md:ml-0">
+                            @if($memo->replies_count > 0)
+                                <button @click="open = !open" 
+                                        class="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-100 transition-all">
+                                    <svg class="w-4 h-4" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"></path></svg>
+                                    {{ $memo->replies_count }} Réponses
+                                </button>
                             @endif
-                        </td>
-                        <td class="p-4 text-gray-500">
-                            {{-- Si historique existe, on prend sa date, sinon la date de création du mémo --}}
-                            {{ $history ? $history->created_at->format('d/m/Y H:i') : $memo->created_at->format('d/m/Y H:i') }}
-                        </td>
-                        <td class="p-4 text-gray-500 italic text-xs max-w-xs truncate">
-                            {{ $history->workflow_comment ?? 'Aucun commentaire' }}
-                        </td>
-                        <td class="p-4 text-right">
-                            <button class="text-gray-400 hover:text-[#daaf2c]"><i class="fas fa-eye"></i></button>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="p-8 text-center text-gray-400">Aucun document trouvé.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-        <div class="p-4">
+                            <div class="flex gap-1">
+                                <button title="Aperçu" class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button>
+                                <button title="Télécharger" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SOUS-SECTION RÉPONSES (THREAD) -->
+                <div x-show="open" x-collapse class="relative ml-8 md:ml-12 mt-2 space-y-3">
+                    <!-- Ligne verticale de connexion -->
+                    <div class="absolute -left-6 top-0 bottom-6 w-0.5 bg-indigo-100"></div>
+
+                    @foreach($memo->replies as $reply)
+                        <div class="relative bg-white rounded-2xl border border-gray-100 p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <!-- Petit coude horizontal -->
+                            <div class="absolute -left-6 top-1/2 w-6 h-0.5 bg-indigo-100"></div>
+                            
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                                </div>
+                                <div>
+                                    <h5 class="text-xs font-bold text-gray-800">RE: {{ $reply->object }}</h5>
+                                    <p class="text-[10px] text-gray-400 font-medium">Répondu par <span class="text-gray-600">{{ $reply->user->first_name }} {{ $reply->user->last_name }}</span> ({{ $reply->user->entity->ref }}) • {{ $reply->created_at->diffForHumans() }}</p>
+                                </div>
+                            </div>
+
+                            <button class="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all">Consulter la réponse</button>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @empty
+            <div class="bg-white rounded-3xl p-12 text-center border-2 border-dashed border-gray-200">
+                <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900">Aucun mémo trouvé</h3>
+                <p class="text-sm text-gray-400">Vous n'avez initié aucun mémo pour cette période.</p>
+            </div>
+        @endforelse
+
+        <div class="mt-8">
             {{ $memos->links() }}
         </div>
     </div>
