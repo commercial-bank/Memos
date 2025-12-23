@@ -3,24 +3,28 @@
 namespace App\Livewire\Memos;
 
 use App\Models\Memo;
-use Livewire\Component;
+use App\Models\User;
+use App\Models\Entity;
 use App\Models\Historiques;
+use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 
 class SendMemos extends Component
 {
+    // --- États des Modals ---
     public $isOpen = false;
     public $isOpen2 = false;
-    public $isSendOpen = false; // Modal Envoyer
-    public $isRejectOpen = false; // Modal Rejeter
+    public $isSendOpen = false; 
+    public $isRejectOpen = false; 
+    public $isHistoryOpen = false;
 
-    // Variables pour l'envoi
+    // --- Variables de formulaire / Envoi ---
     public $selectedMemoId;
-    public $next_user_id; // L'utilisateur à qui on envoie
-    public $comment = ''; // Commentaire (optionnel)
+    public $next_user_id; 
+    public $comment = ''; 
     public $action = ''; 
 
-    // Variables pour stocker les infos du mémo sélectionné
+    // --- Variables de stockage de données (Vue/Aperçu) ---
     public $memo_id;
     public $object = '';
     public $content = '';
@@ -32,26 +36,22 @@ class SendMemos extends Component
     public $user_last_name = '';
     public $user_service = '';
     public $user_entity_name = '';
-    public $user_entity_name_acronym='';
+    public $user_entity_name_acronym = '';
 
-    // NOUVEAU : Variables pour l'historique
-    public $isHistoryOpen = false;
+    // --- Collections de données ---
     public $memoHistory = [];
-
-    // Variable tableau pour stocker les destinataires triés par action
     public $recipientsByAction = [];
-
     public $author_memo;
-    public $usersList = []; // Liste des destinataires possibles
+    public $usersList = []; 
 
-
+    /**
+     * Visualise un document avec ses destinataires groupés par action
+     */
     public function viewDocument($id)
     {
-        // 1. Récupérer le document
-        // J'ai retiré 'user.entity' du with() car cette relation n'existe pas chez toi
+        // Optimisation : Chargement des relations destinataires et user en une seule fois
         $memo = Memo::with(['destinataires', 'user'])->findOrFail($id);
 
-        // 2. Remplir les variables
         $this->object = $memo->object;
         $this->content = $memo->content;
         $this->concern = $memo->concern;
@@ -62,61 +62,63 @@ class SendMemos extends Component
         $this->user_first_name = $memo->user->first_name;
         $this->user_last_name = $memo->user->last_name;
         $this->user_service = $memo->user->service ?? 'Service Non Défini';
-        $this->user_entity_name = $memo->user->entity_name; // Valeur par défaut
+        $this->user_entity_name = $memo->user->entity_name;
+        
+        // Appel de la méthode statique pour l'acronyme
         $this->user_entity_name_acronym = Entity::StatgetAcronymAttribute($this->user_entity_name);
 
-        // 3. CORRECTION : Utiliser une fonction anonyme pour cibler 'pivot.action'
+        // Groupement des destinataires via la table pivot
         $this->recipientsByAction = $memo->destinataires
-            ->groupBy(function ($destinataire) {
-                // On groupe selon la colonne 'action' de la table PIVOT
-                return $destinataire->pivot->action;
-            })
+            ->groupBy(fn($destinataire) => $destinataire->pivot->action)
             ->toArray();
 
-        // 4. Ouvrir le modal
         $this->isOpen = true;
     }
 
+    /**
+     * Charge les données du mémo pour édition (Brouillon)
+     */
     public function editMemo($id)
     {
-        $memo = Memo::findOrFail($id);
+        $memo = Memo::with('user')->findOrFail($id);
+        
+        $this->memo_id = $memo->id;
         $this->object = $memo->object;
         $this->concern = $memo->concern;
         $this->content = $memo->content;
-        $this->memo_id = $memo->id;
         $this->date = $memo->created_at->format('d/m/Y');   
         $this->user_first_name = $memo->user->first_name;
         $this->user_last_name = $memo->user->last_name;
         $this->user_service = $memo->user->service;
         $this->user_entity_name = $memo->user->entity_name;
+        
         $this->openModalDeux();
     }
 
+    /**
+     * Ferme l'aperçu et réinitialise les variables pour alléger le prochain rendu Livewire
+     */
     public function closeModal()
     {
         $this->isOpen = false;
-        $this->reset(['object','concern', 'content', 'recipientsByAction']);
+        // Optimisation : Vider les variables lourdes réduit le délai de réponse réseau
+        $this->reset(['object', 'concern', 'content', 'recipientsByAction']);
     }
 
-    // Ouvrir le modal
-    public function openModalDeux()
-    {
-        $this->isOpen2 = true;
-    }
+    public function openModalDeux() { $this->isOpen2 = true; }
+    public function closeModalDeux() { $this->isOpen2 = false; }
 
-    public function closeModalDeux()
-    {
-        $this->isOpen2 = false;
-    }
-
-
+    /**
+     * Récupère l'historique des actions sur un mémo
+     */
     public function openHistoryModal($id)
     {
-        // On récupère l'historique trié par date (du plus récent au plus vieux ou inversement)
+        // Optimisation : Eager loading de 'user' au lieu de 'user_id' pour éviter les requêtes N+1
         $this->memoHistory = Historiques::where('memo_id', $id)
-            ->with('user_id')
-            ->orderBy('created_at', 'desc') // Le plus récent en haut
-            ->get();
+            ->with('user') 
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->toArray(); // Conversion en array pour plus de rapidité d'affichage
 
         $this->isHistoryOpen = true;
     }
@@ -124,113 +126,77 @@ class SendMemos extends Component
     public function closeHistoryModal()
     {
         $this->isHistoryOpen = false;
+        $this->reset(['memoHistory']); // Nettoyage mémoire
     }
 
+    /**
+     * Prépare l'ouverture du modal d'envoi vers le manager ou remplaçant
+     */
     public function openSendModal($id)
     {
         $this->selectedMemoId = $id;
-        $memo = Memo::findOrFail($id);
+        $memo = Memo::select('user_id')->findOrFail($id);
         $this->author_memo = $memo->user_id;
 
-        // 1. On récupère les IDs cibles (Manager + Remplaçant)
-        $targetIds = [
-            Auth::user()->manager_id, 
-            Auth::user()->manager_replace_id
-        ];
+        $user = Auth::user();
+        // Optimisation : Récupération ciblée des IDs valides
+        $targetIds = array_filter([$user->manager_id, $user->manager_replace_id]);
 
-        // 2. On filtre pour enlever les valeurs nulles (si pas de remplaçant par exemple)
-        // array_filter va retirer les entrées vides/nulles du tableau
-        $targetIds = array_filter($targetIds);
-
-        // 3. On récupère uniquement ces utilisateurs
         $this->usersList = User::whereIn('id', $targetIds)->get();
         $this->isSendOpen = true;
     }
 
+    /**
+     * Exécute l'envoi du mémo et enregistre l'historique
+     */
     public function sendMemo()
     {
-
         $memo = Memo::findOrFail($this->selectedMemoId);
+        $isAuthor = (Auth::id() == $memo->user_id);
 
-        if(Auth::id() == $memo->user_id)
-        {
-            $this->validate([
-                'next_user_id' => 'required|exists:users,id',
-            ]);
-
-        
-       
-            // === AJOUT : ENREGISTRER L'HISTORIQUE ===
-            Historiques::create([
-                'workflow_comment' => $this->comment,
-                'action' => 'createur',
-                'memo_id' =>$memo->id,
-                'user_id' => Auth::id()
-            ]);
-
-            $currentUser = Auth::user();
-
-            // LOGIQUE DES SIGNATURES AUTOMATIQUES SELON LE POSTE
-        
-        
-
-            // Mise à jour du détenteur
-            $memo->previous_holders =  Auth::id();
-            $memo->current_holders = (int) $this->next_user_id;
-            $memo->workflow_comment = $this->comment;
-            $memo->status = 'pending';
-            $memo->save();
-
-            $this->isSendOpen = false;
-            $this->dispatch('notify', message: 'Mémo envoyer avec succès !', type: 'success');
-
-        }else{
-
-            $this->validate([ 
-                'next_user_id' => 'required|exists:users,id',
-                'action' => 'required',
-            ]);
-
-        
-       
-            // === AJOUT : ENREGISTRER L'HISTORIQUE ===
-            Historiques::create([
-                'workflow_comment' => $this->comment,
-                'action' => $this->action,
-                'memo_id' =>$memo->id,
-                'user_id' => Auth::id()
-            ]);
-
-            $currentUser = Auth::user();
-
-            // LOGIQUE DES SIGNATURES AUTOMATIQUES SELON LE POSTE
-        
-        
-
-            // Mise à jour du détenteur
-            $memo->previous_holders =  [Auth::id()];
-            $memo->current_holders = [$this->next_user_id];
-            $memo->workflow_comment = $this->comment;
-            $memo->status = 'pending';
-            $memo->save();
-
-            $this->isSendOpen = false;
-            $this->dispatch('notify', message: 'Mémo envoyer avec succès !', type: 'success');
-
-
+        // Validation dynamique selon le rôle (auteur ou validateur)
+        $rules = [
+            'next_user_id' => 'required|exists:users,id',
+        ];
+        if (!$isAuthor) {
+            $rules['action'] = 'required';
         }
-        
+
+        $this->validate($rules);
+
+        // Création de l'historique (Unifié pour gagner en lisibilité/vitesse)
+        Historiques::create([
+            'workflow_comment' => $this->comment,
+            'action' => $isAuthor ? 'createur' : $this->action,
+            'memo_id' => $memo->id,
+            'user_id' => Auth::id()
+        ]);
+
+        // Mise à jour du mémo
+        // Note : On respecte tes types de données (int pour auteur, array pour les autres)
+        $memo->update([
+            'previous_holders' => $isAuthor ? Auth::id() : [Auth::id()],
+            'current_holders'  => $isAuthor ? (int) $this->next_user_id : [$this->next_user_id],
+            'workflow_comment' => $this->comment,
+            'status'           => 'pending',
+        ]);
+
+        $this->isSendOpen = false;
+        $this->reset(['comment', 'action', 'next_user_id']); // Nettoyage après envoi
+        $this->dispatch('notify', message: 'Mémo envoyé avec succès !', type: 'success');
     }
 
     public function closeSendModal()
     {
         $this->isSendOpen = false;
+        $this->reset(['usersList']);
     }
 
+    /**
+     * Sauvegarde du brouillon
+     */
     public function save()
     {
-        
-
         Memo::updateOrCreate(
             ['id' => $this->memo_id],
             [
@@ -242,21 +208,18 @@ class SendMemos extends Component
         );
 
         $action = $this->memo_id ? 'modifié' : 'créé';
-        
         $this->closeModalDeux();
-        
-        // Envoi de l'événement pour le Toast
         $this->dispatch('notify', message: "Brouillon $action avec succès !");
     }
 
-    
-
-
+    /**
+     * Rendu du composant
+     */
     public function render()
     {
-        
+        // Optimisation : Sélection uniquement des champs nécessaires et eager loading
         $groupedMemos = Memo::where('user_id', Auth::id())
-            ->whereNotIn('status', ['brouillon', 'document']) // C'est ici qu'on filtre
+            ->whereNotIn('status', ['brouillon', 'document'])
             ->has('destinataires')
             ->with(['destinataires', 'user'])
             ->latest()
@@ -267,4 +230,3 @@ class SendMemos extends Component
         ]);
     }
 }
-

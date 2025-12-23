@@ -51,7 +51,7 @@
                     <p class="mt-1 text-sm font-medium" style="color: var(--c-grey);">Gérez, suivez et archivez vos communications internes.</p>
                 </div>
                 <div class="mt-4 md:mt-0">
-                    @if(!in_array(auth()->user()->poste, ['Secretaire', 'Directeur', 'Sous-Directeur']))
+                    @if(!in_array(auth()->user()->poste, ['Directeur', 'Sous-Directeur']))
                         <!-- Bouton Nouveau Mémo -->
                         <button wire:click="createMemo"
                             class="group inline-flex items-center justify-center px-6 py-3 text-base font-bold text-black transition-all duration-200 rounded-full shadow-lg transform hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#daaf2c]"
@@ -365,7 +365,7 @@
                                     // 3. Initialisation de l'éditeur
                                     this.quill = new Quill(this.$refs.quillEditor, {
                                         theme: 'snow',
-                                        placeholder: 'Rédigez votre mémo ici...',
+                                        placeholder: ' Rédigez votre mémo ici...',
                                         modules: {
                                             toolbar: '#toolbar-container'
                                         }
@@ -380,37 +380,7 @@
                                     });
                                 },
 
-                                // Taille personnalisée
-                                askCustomSize() {
-                                    let size = prompt('Entrez la taille souhaitée (ex: 17px, 50px) :', '16px');
-                                    if (size) {
-                                        if (!size.includes('px') && !isNaN(size)) size += 'px';
-                                        this.quill.focus();
-                                        const range = this.quill.getSelection(true);
-                                        if (range) {
-                                            this.quill.format('size', size);
-                                        }
-                                    }
-                                },
-
-                                insertShape(type) {
-                                    this.quill.focus();
-                                    const range = this.quill.getSelection(true);
-                                    let shapeHTML = '';
-                                    if(type === 'circle') {
-                                        shapeHTML = '<svg width=&quot;60&quot; height=&quot;60&quot; style=&quot;display:inline-block; vertical-align:middle;&quot;><circle cx=&quot;30&quot; cy=&quot;30&quot; r=&quot;25&quot; stroke=&quot;black&quot; stroke-width=&quot;2&quot; fill=&quot;transparent&quot; /></svg>&nbsp;';
-                                    } else if(type === 'square') {
-                                        shapeHTML = '<svg width=&quot;60&quot; height=&quot;60&quot; style=&quot;display:inline-block; vertical-align:middle;&quot;><rect width=&quot;50&quot; height=&quot;50&quot; x=&quot;5&quot; y=&quot;5&quot; stroke=&quot;black&quot; stroke-width=&quot;2&quot; fill=&quot;transparent&quot; /></svg>&nbsp;';
-                                    }
-                                    if (range) { this.quill.clipboard.dangerouslyPasteHTML(range.index, shapeHTML); }
-                                },
-
-                                insertTable() {
-                                    this.quill.focus();
-                                    const range = this.quill.getSelection(true);
-                                    const tableHTML = '<br><table style=&quot;width: 100%; border-collapse: collapse; border: 1px solid black;&quot;><tbody><tr><td style=&quot;border: 1px solid black; padding: 8px;&quot;>&nbsp;</td><td style=&quot;border: 1px solid black; padding: 8px;&quot;>&nbsp;</td></tr><tr><td style=&quot;border: 1px solid black; padding: 8px;&quot;>&nbsp;</td><td style=&quot;border: 1px solid black; padding: 8px;&quot;>&nbsp;</td></tr></tbody></table><p><br></p>';
-                                    if (range) { this.quill.clipboard.dangerouslyPasteHTML(range.index, tableHTML); }
-                                }
+                    
                             }"
                             x-init="initQuill()">
                             
@@ -433,10 +403,9 @@
                                 <!-- Polices (Tahoma ajoutée) -->
                                 <span class="ql-formats">
                                     <select class="ql-font">
-                                        <option selected>Police</option>
                                         <option value="helvetica">Helvetica</option>
                                         <option value="arial">Arial</option>
-                                        <option value="tahoma">Tahoma</option>
+                                        <option value="tahoma" selected>Tahoma</option>
                                         <option value="roboto">Roboto</option>
                                         <option value="calibri">Calibri</option>
                                         <option value="opensans">Open Sans</option>
@@ -453,14 +422,14 @@
                                 <!-- Tailles -->
                                 <span class="ql-formats flex items-center border-r pr-2">
                                     <select class="ql-size">
-                                        <option value="10px">10px</option>
-                                        <option value="12px">12px</option>
-                                        <option value="14px" selected>14px</option>
-                                        <option value="16px">16px</option>
-                                        <option value="18px">18px</option>
-                                        <option value="20px">20px</option>
-                                        <option value="24px">24px</option>
-                                        <option value="32px">32px</option>
+                                        <option value="10pt">10pt</option>
+                                        <option value="12pt">12pt</option>
+                                        <option value="14pt" selected>14pt</option>
+                                        <option value="16pt">16pt</option>
+                                        <option value="18pt">18pt</option>
+                                        <option value="20pt">20pt</option>
+                                        <option value="24pt">24pt</option>
+                                        <option value="32pt">32pt</option>
                                     </select>
                                     <button type="button" @click.prevent="askCustomSize()" class="ml-1 p-1 hover:bg-gray-100 rounded text-xs font-bold" title="Taille libre">px+</button>
                                 </span>
@@ -477,23 +446,10 @@
                                     <button class="ql-align" value="justify"></button>
                                 </span>
 
-                                <!-- Listes & Outils -->
-                                <span class="ql-formats">
-                                    <button class="ql-list" value="ordered"></button>
-                                    <button class="ql-list" value="bullet"></button>
-                                    <button type="button" @click.prevent="insertTable()" title="Tableau">
-                                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
-                                    </button>
-                                </span>
+                             
 
                                 <!-- Formes -->
                                 <span class="ql-formats border-l pl-2">
-                                    <button type="button" @click.prevent="insertShape('circle')" title="Cercle">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle></svg>
-                                    </button>
-                                    <button type="button" @click.prevent="insertShape('square')" title="Carré">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect></svg>
-                                    </button>
                                     <button class="ql-clean"></button>
                                 </span>
                             </div>
@@ -548,7 +504,6 @@
                                             <span>Téléverser des fichiers</span>
                                             <input id="file-upload" wire:model="attachments" type="file" class="sr-only" multiple>
                                         </label>
-                                        <p class="pl-1">ou glisser-déposer</p>
                                     </div>
                                     <p class="text-xs text-gray-500">PDF, DOCX, PNG, JPG jusqu'à 10MB</p>
                                 </div>

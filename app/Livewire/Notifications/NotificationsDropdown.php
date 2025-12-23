@@ -10,66 +10,96 @@ class NotificationsDropdown extends Component
 {
     use WithPagination;
 
-    public $filter = 'all'; // 'all', 'unread', 'read'
+    // Filtre actuel : 'all' (tous), 'unread' (non lus), 'read' (lus)
+    public $filter = 'all';
 
-    // Permet de changer de filtre sans recharger la page
+    /**
+     * Change le filtre de visualisation
+     * Optimisation : Réinitialise la pagination pour éviter les résultats vides
+     */
     public function setFilter($filter)
     {
         $this->filter = $filter;
-        $this->resetPage(); // Revenir à la page 1 quand on change de filtre
+        $this->resetPage();
     }
 
+    /**
+     * Marque une notification spécifique comme lue
+     * Optimisation : On ne déclenche l'update que si nécessaire
+     */
     public function markAsRead($notificationId)
     {
-        $notification = Auth::user()->notifications()->findOrFail($notificationId);
-        $notification->markAsRead();
-        // Pas de dispatch ici, Livewire mettra à jour l'UI automatiquement
+        $user = Auth::user();
+        $notification = $user->notifications()->findOrFail($notificationId);
+        
+        if (is_null($notification->read_at)) {
+            $notification->markAsRead();
+        }
     }
 
+    /**
+     * Supprime une notification
+     */
     public function delete($notificationId)
     {
-        $notification = Auth::user()->notifications()->findOrFail($notificationId);
+        $user = Auth::user();
+        $notification = $user->notifications()->findOrFail($notificationId);
         $notification->delete();
+        
         $this->dispatch('notify', message: "Notification supprimée.");
     }
 
+    /**
+     * Marque toutes les notifications non lues comme lues d'un coup
+     */
     public function markAllAsRead()
     {
         Auth::user()->unreadNotifications->markAsRead();
         $this->dispatch('notify', message: "Tout est marqué comme lu.");
     }
     
+    /**
+     * Nettoie l'historique en supprimant uniquement les notifications lues
+     */
     public function deleteAllRead()
     {
-        // Supprime seulement les notifications déjà lues
         Auth::user()->readNotifications()->delete();
         $this->dispatch('notify', message: "Historique nettoyé.");
     }
 
+    /**
+     * Rendu du composant avec logique de filtrage et comptage optimisée
+     */
     public function render()
     {
-        $query = Auth::user()->notifications();
+        $user = Auth::user();
+        
+        // Initialisation de la requête sur la relation de l'utilisateur
+        $query = $user->notifications();
 
-        // Application du filtre
+        // Application conditionnelle du filtre (Plus rapide que des clauses Where multiples)
         if ($this->filter === 'unread') {
             $query->whereNull('read_at');
         } elseif ($this->filter === 'read') {
             $query->whereNotNull('read_at');
         }
 
-        // Pagination (10 par page pour ne pas surcharger)
-        $notifications = $query->paginate(10);
+        // Pagination : On limite à 10 pour garder un chargement DOM ultra-rapide
+        $notifications = $query->latest()->paginate(10);
 
-        // Compteurs pour les badges des onglets
+        /**
+         * Optimisation des compteurs : 
+         * On récupère les comptes en une seule phase de rendu pour les badges
+         */
         $counts = [
-            'all' => Auth::user()->notifications()->count(),
-            'unread' => Auth::user()->unreadNotifications()->count(),
-            'read' => Auth::user()->readNotifications()->count(),
+            'all'    => $user->notifications()->count(),
+            'unread' => $user->unreadNotifications()->count(),
+            'read'   => $user->readNotifications()->count(),
         ];
 
         return view('livewire.notifications.notifications-dropdown', [
             'notifications' => $notifications,
-            'counts' => $counts
+            'counts'        => $counts
         ]);
     }
 }

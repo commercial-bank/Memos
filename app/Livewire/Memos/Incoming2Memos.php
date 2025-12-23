@@ -7,11 +7,8 @@ use App\Models\Memo;
 use App\Models\User;
 use App\Models\Entity;
 use Livewire\Component;
-use App\Models\References;
 use App\Models\Historiques;
-use App\Models\MemoHistory;
 use Illuminate\Support\Str;
-use App\Models\ReplacesUser;
 use App\Models\Destinataires;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
@@ -20,26 +17,26 @@ use Illuminate\Support\Facades\Auth;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Notifications\MemoActionNotification;
 use Livewire\Attributes\Rule;
+use Livewire\WithPagination;
 
 class Incoming2Memos extends Component
 {
+    use WithPagination;
+
     // =========================================================
     // 1. PROPRIÉTÉS DU COMPOSANT
     // =========================================================
 
-    // --- Recherche & UI ---
     public $search = '';
     public $comment = ''; 
     public $date;
 
-    // --- États des Modals ---
-    public $isOpen = false;                 // Aperçu
-    public $isRegistrationModalOpen = false; // Enregistrement (Secrétaire)
-    public $isTransModalOpen = false;        // Transmission / Cotation
-    public $isCloseModalOpen = false;        // Clôture
-    public $isOpenTrans = false;             // Transmission standard (éventuelle)
+    public $isOpen = false;                 
+    public $isRegistrationModalOpen = false; 
+    public $isTransModalOpen = false;        
+    public $isCloseModalOpen = false;        
+    public $isOpenTrans = false;             
 
-    // --- Données du Mémo Principal ---
     public $memo_id = null;
     
     #[Rule('required|string|max:255')]
@@ -51,14 +48,12 @@ class Incoming2Memos extends Component
     #[Rule('required|string')]
     public string $content = '';
 
-    // --- Données de l'Utilisateur (Vue) ---
     public $user_service;
     public $user_first_name;
     public $user_last_name;
     public $user_entity_name;
     public $selections = [];
 
-    // --- Logique d'Enregistrement (Secrétariat) ---
     #[Rule('required|string')]
     public $reg_reference = ''; 
     #[Rule('required|string')]
@@ -70,9 +65,8 @@ class Incoming2Memos extends Component
     #[Rule('required|string')]
     public $reg_date = '';
 
-    // --- Logique de Transmission / Cotation ---
     public $memoIdToTrans = null;
-    public $targetRecipients = [];    
+    public $targetRecipients = [];    // Sera une liste d'objets stdClass
     public $selectedRecipients = [];  
     public $targetRoleName = '';      
     public $managerData = null; 
@@ -82,11 +76,9 @@ class Incoming2Memos extends Component
     public $transRecipients = [];
     public $generatedReference = '';
 
-    // --- Logique de Clôture ---
     public $memoIdToClose = null;
     public $closingComment = ''; 
 
-    // --- Logique de Réponse (Parent/Child) ---
     public $isCreatingReply = false; 
     public $parent_id = null;        
     public $new_object = '';
@@ -96,15 +88,26 @@ class Incoming2Memos extends Component
     public $attachments = [];        
     public $newRecipientEntity = '';
     public $newRecipientAction = '';
+    public $allEntities = []; 
     public $actionsList = ['Faire le nécessaire', 'Prendre connaissance', 'Prendre position', 'Décider'];
 
     // =========================================================
-    // 2. INITIALISATION & APERÇU
+    // 2. INITIALISATION & NAVIGATION
     // =========================================================
+
+    public function mount()
+    {
+        $this->allEntities = Entity::select('id', 'name')->orderBy('name')->get();
+    }
+
+    public function updatingSearch()
+    {
+        $this->resetPage();
+    }
 
     public function viewMemo($id)
     {
-        $memo = Memo::with('user')->findOrFail($id);
+        $memo = Memo::with(['user.entity'])->findOrFail($id);
         $this->fillMemoDataView($memo);
         $this->isOpen = true;
     }
@@ -116,20 +119,20 @@ class Incoming2Memos extends Component
         $this->concern = $memo->concern;
         $this->content = $memo->content;
         $this->date = $memo->created_at->format('d/m/Y');
-        $entity = Entity::find($memo->user->entity_id);
-        $this->user_entity_name = $entity->name ?? 'Entité';
+        $this->user_entity_name = $memo->user->entity->name ?? 'Entité';
         $this->user_service = $memo->user->service;
     }
 
-    public function closeModal() { $this->isOpen = false; }
+    public function closeModal() 
+    { 
+        $this->isOpen = false; 
+        $this->reset(['memo_id', 'content', 'object', 'user_entity_name']); 
+    }
 
     // =========================================================
     // 3. LOGIQUE D'ENREGISTREMENT (SECRÉTARIAT)
     // =========================================================
 
-    /**
-     * Point d'entrée pour la transmission (Bouton Avion)
-     */
     public function transMemo($id)
     {
         $this->resetValidation();
@@ -143,19 +146,17 @@ class Incoming2Memos extends Component
         $user = Auth::user();
         $poste = Str::lower(trim($user->poste));
 
-        // Si Secrétaire : Vérification d'enregistrement préalable
         if (Str::contains($poste, 'secretaire')) {
             $dejaEnregistre = BlocEnregistrements::where('memo_id', $id)
                 ->where('user_id', $user->id)
                 ->exists();
 
             if ($dejaEnregistre) {
-                $this->dispatch('notify', message: "Ce mémo est déjà enregistré. Passage direct à la transmission.");
+                $this->dispatch('notify', message: "Dossier déjà enregistré. Cotation...");
                 $this->prepareTransmission($id);
                 return;
             }
 
-            // Pré-remplissage du modal d'enregistrement
             $this->reg_reference = $memo->reference ?? '';
             $this->reg_date = Carbon::now()->format('d/m/Y');
             $this->reg_objet = $memo->object; 
@@ -168,9 +169,6 @@ class Incoming2Memos extends Component
         }
     }
 
-    /**
-     * Sauvegarde l'enregistrement dans le chrono et continue vers la cotation
-     */
     public function saveRegistrationAndContinue()
     {
         $this->validate([
@@ -198,8 +196,6 @@ class Incoming2Memos extends Component
         }
 
         $this->isRegistrationModalOpen = false;
-        $this->dispatch('notify', message: "Enregistrement effectué. Passage à la transmission.");
-
         $this->prepareTransmission($this->memoIdToTrans);
     }
 
@@ -210,23 +206,19 @@ class Incoming2Memos extends Component
     }
 
     // =========================================================
-    // 4. LOGIQUE DE TRANSMISSION ET COTATION
+    // 4. TRANSMISSION ET COTATION (HIÉRARCHIE)
     // =========================================================
 
-    /**
-     * Prépare la liste des destinataires selon la hiérarchie du poste
-     */
     private function prepareTransmission($id)
     {
-        $memo = Memo::find($id);
         $user = Auth::user();
         $poste = Str::lower(trim($user->poste)); 
         
         $query = User::query()
+            ->select('id', 'first_name', 'last_name', 'poste')
             ->where('entity_id', $user->entity_id)
             ->where('id', '!=', $user->id);
 
-        // --- Détermination des cibles selon le poste ---
         if (Str::contains($poste, 'secretaire')) {
             $this->targetRoleName = 'Directeur';
             $query->where('poste', 'like', '%Directeur%')->where('poste', 'not like', '%Sous-Directeur%');
@@ -236,12 +228,12 @@ class Incoming2Memos extends Component
             $query->where('poste', 'like', '%Sous-Directeur%');
         }
         elseif (Str::contains($poste, 'sous-directeur')) {
-            $this->targetRoleName = 'Collaborateurs (Chefs de Dép. & autres)';
+            $this->targetRoleName = 'Collaborateurs (Dép/Svc)';
             if ($user->sous_direction_id) $query->where('sous_direction_id', $user->sous_direction_id);
-            $query->where(fn($q) => $q->where('poste', 'not like', '%Directeur%')->where('poste', 'not like', '%Sous-Directeur%')->where('poste', 'not like', '%Secretaire%'));
+            $query->where(fn($q) => $q->where('poste', 'not like', '%Directeur%')->where('poste', 'not like', '%Secretaire%'));
         }
         elseif (Str::contains($poste, 'chef-departement')) {
-            $this->targetRoleName = 'Collaborateurs (Chefs de Svc. & autres)';
+            $this->targetRoleName = 'Chefs de Service & Collaborateurs';
             $query->where('departement', $user->departement)
                   ->where(fn($q) => $q->where('poste', 'not like', '%Directeur%')->where('poste', 'not like', '%Chef-Departement%')->where('poste', 'not like', '%Secretaire%'));
         }
@@ -251,88 +243,65 @@ class Incoming2Memos extends Component
                   ->where(fn($q) => $q->where('poste', 'not like', '%Directeur%')->where('poste', 'not like', '%Chef-Departement%')->where('poste', 'not like', '%Chef-Service%')->where('poste', 'not like', '%Secretaire%'));
         }
         else {
-            $this->dispatch('notify', message: "Votre poste ne permet pas la transmission automatique.");
+            $this->dispatch('notify', message: "Transmission automatique indisponible pour ce poste.");
             return;
         }
 
-        $this->targetRecipients = $query->orderBy('poste', 'asc')->orderBy('first_name', 'asc')->get();
+        // CORRECTIF : On convertit en liste d'objets stdClass pour supporter la syntaxe $recipient->id dans le Blade
+        $this->targetRecipients = $query->orderBy('first_name')->get()->map(function($u) {
+            return (object) $u->toArray();
+        })->all();
 
-        if ($this->targetRecipients->isEmpty()) {
-            $this->dispatch('notify', message: "Aucun destinataire éligible trouvé pour le groupe : {$this->targetRoleName}.");
+        if (empty($this->targetRecipients)) {
+            $this->dispatch('notify', message: "Aucun destinataire éligible trouvé.");
             return;
         }
 
-        if ($this->targetRecipients->count() === 1) {
-            $this->selectedRecipients[] = $this->targetRecipients->first()->id;
+        if (count($this->targetRecipients) === 1) {
+            $this->selectedRecipients[] = $this->targetRecipients[0]->id;
         }
 
         $this->isTransModalOpen = true;
     }
 
-    /**
-     * Valide et exécute la transmission (Cotation)
-     */
     public function confirmTransmission()
     {
-        $this->validate([
-            'selectedRecipients' => 'required|array|min:1',
-        ], ['selectedRecipients.required' => 'Veuillez sélectionner au moins un destinataire.']);
+        $this->validate(['selectedRecipients' => 'required|array|min:1']);
 
-        $memo = Memo::find($this->memoIdToTrans);
-        if (!$memo) {
-            $this->dispatch('notify', message: "Erreur : Mémo introuvable.");
-            $this->closeTransModal();
-            return;
-        }
-
-        $senderId = Auth::id();
-        $senderUser = Auth::user(); 
-        $holders = $memo->current_holders;
+        $memo = Memo::findOrFail($this->memo_id ?? $this->memoIdToTrans);
+        $user = Auth::user(); 
         
-        // Normalisation JSON
-        if (is_null($holders)) $holders = [];
-        elseif (is_string($holders)) $holders = json_decode($holders, true) ?? [];
+        $holders = is_array($memo->current_holders) ? $memo->current_holders : (json_decode($memo->current_holders, true) ?? []);
 
-        // Retrait de l'expéditeur et ajout des nouveaux détenteurs
-        $holders = array_values(array_diff($holders, [$senderId]));
-        foreach ($this->selectedRecipients as $recipientId) {
-            $rId = (int) $recipientId;
-            if (!in_array($rId, $holders)) $holders[] = $rId;
-        }
+        $holders = array_values(array_unique(array_merge(array_diff($holders, [$user->id]), array_map('intval', $this->selectedRecipients))));
 
-        $memo->current_holders = $holders;
-        $memo->save();
+        $memo->update(['current_holders' => $holders]);
 
-        // Historique et Notifications
-        $nextHolders = User::whereIn('id', $this->selectedRecipients)->get();
-        foreach ($nextHolders as $recipient) {
+        $recipients = User::whereIn('id', $this->selectedRecipients)->get();
+        foreach ($recipients as $recipient) {
             Historiques::create([
-                'user_id' => $senderId,
+                'user_id' => $user->id,
                 'memo_id' => $memo->id,
                 'visa'    => 'Coté / Transmis', 
-                'workflow_comment' => $this->comment . " (Pour: " . $recipient->first_name . " " . $recipient->last_name . ")"
+                'workflow_comment' => $this->comment . " (Assigné à: " . $recipient->full_name . ")"
             ]);
-
-            try {
-                $recipient->notify(new MemoActionNotification($memo, 'cotation', $senderUser));
+            try { 
+                $recipient->notify(new MemoActionNotification($memo, 'cotation', $user)); 
             } catch (\Exception $e) {}
         }
 
-        $this->dispatch('notify', message: "Mémo coté et transmis avec succès.");
+        $this->dispatch('notify', message: "Mémo transmis avec succès.");
         $this->closeTransModal();
     }
 
     public function closeTransModal()
     {
         $this->isTransModalOpen = false;
-        $this->selectedRecipients = [];
-        $this->comment = '';
-        $this->memoIdToTrans = null;
-        $this->targetRecipients = [];
+        $this->reset(['selectedRecipients', 'comment', 'memoIdToTrans', 'targetRecipients']);
     }
 
     // =========================================================
-    // 5. GESTION DE LA CLÔTURE (FIN DE TRAITEMENT)
+    // 5. GESTION DE LA CLÔTURE
     // =========================================================
 
     public function openCloseModal($id)
@@ -345,106 +314,93 @@ class Incoming2Memos extends Component
     public function cancelCloseModal()
     {
         $this->isCloseModalOpen = false;
-        $this->memoIdToClose = null;
-        $this->closingComment = '';
+        $this->reset(['memoIdToClose', 'closingComment']);
     }
     
-    /**
-     * Confirme le traitement local pour l'entité de l'utilisateur
-     */
     public function confirmCloseMemo()
     {
-        $errorMessage = $this->checkDecisionBlock($this->memoIdToClose);
-        if ($errorMessage) {
+        if ($errorMessage = $this->checkDecisionBlock($this->memoIdToClose)) {
             $this->dispatch('notify', message: $errorMessage);
             $this->cancelCloseModal();
             return;
         }
 
-        $memo = Memo::find($this->memoIdToClose);
         $user = Auth::user();
-        
-        $myDestinataireRecord = Destinataires::where('memo_id', $memo->id)
+        $myDestinataireRecord = Destinataires::where('memo_id', $this->memoIdToClose)
             ->where('entity_id', $user->entity_id)
             ->first();
 
         if (!$myDestinataireRecord) {
-            $this->dispatch('notify', message: "Erreur : Votre entité n'est pas destinataire.");
+            $this->dispatch('notify', message: "Erreur : Entité non destinataire.");
             return;
         }
 
-        // Mise à jour locale
         $myDestinataireRecord->update([
             'processing_status' => 'traiter',
             'completed_at' => now()
         ]);
 
-        
-
-        // Historique
         Historiques::create([
             'user_id' => $user->id,
-            'memo_id' => $memo->id,
+            'memo_id' => $this->memoIdToClose,
             'visa'    => 'Terminé (Entité)',
-            'workflow_comment' => $this->closingComment ?: "Traitement terminé pour " . $user->entity->name
+            'workflow_comment' => $this->closingComment ?: "Traitement finalisé par l'entité."
         ]);
 
-         // 3. LOGIQUE CRUCIALE : Vérification globale
-        // On compte combien d'entités n'ont PAS encore fini (ni traiter, ni decision_prise, ni repondu)
-        $pendingEntities = Destinataires::where('memo_id', $memo->id)
+        $pending = Destinataires::where('memo_id', $this->memoIdToClose)
             ->whereNotIn('processing_status', ['traiter', 'decision_prise', 'repondu'])
-            ->count();
+            ->exists();
 
-        if ($pendingEntities === 0) {
-            $memo->workflow_direction = "terminer";
+        if (!$pending) {
+            Memo::where('id', $this->memoIdToClose)->update(['workflow_direction' => 'terminer']);
         }
 
-        $memo->save();
-        $this->dispatch('notify', message: "Dossier traité pour votre entité.");
+        $this->dispatch('notify', message: "Dossier traité.");
         $this->cancelCloseModal();
     }
 
-    /**
-     * Action spécifique pour les entités ayant l'action "Décider"
-     */
     public function submitDecision($id, $decision) 
     {
-        $memo = Memo::find($id);
         $user = Auth::user();
-
-        $destRecord = Destinataires::where('memo_id', $memo->id)
+        $destRecord = Destinataires::where('memo_id', $id)
             ->where('entity_id', $user->entity_id)
             ->where('action', 'like', '%Décider%')
             ->first();
 
         if (!$destRecord) return;
 
-        $destRecord->update([
-            'processing_status' => 'decision_prise', 
-            'completed_at' => now()
-        ]);
-
-        $memo->save();
-
-        Historiques::create([
-            'user_id' => $user->id,
-            'memo_id' => $memo->id,
-            'visa'    => 'DÉCISION RENDUE',
-            'workflow_comment' => "Décision : " . strtoupper($decision)
-        ]);
-
-        $this->dispatch('notify', message: "Décision enregistrée. Les autres entités peuvent maintenant clôturer.");
+        if ($decision === 'refus') {
+            DB::transaction(function () use ($id, $user) {
+                Destinataires::where('memo_id', $id)->update(['processing_status' => 'traiter', 'completed_at' => now()]);
+                Memo::where('id', $id)->update(['workflow_direction' => 'terminer']);
+                Historiques::create([
+                    'user_id' => $user->id,
+                    'memo_id' => $id,
+                    'visa'    => 'REFUS DÉCISIF',
+                    'workflow_comment' => "Le dossier a été refusé par " . $user->entity->name
+                ]);
+            });
+            $this->dispatch('notify', message: "Mémo refusé.");
+        } else {
+            $destRecord->update(['processing_status' => 'decision_prise', 'completed_at' => now()]);
+            Historiques::create([
+                'user_id' => $user->id,
+                'memo_id' => $id,
+                'visa'    => 'DÉCISION RENDUE',
+                'workflow_comment' => "DÉCISION : " . strtoupper($decision)
+            ]);
+            $this->dispatch('notify', message: "Décision enregistrée.");
+        }
     }
 
     // =========================================================
-    // 6. LOGIQUE DE RÉPONSE (CRÉATION D'UN NOUVEAU MÉMO LIÉ)
+    // 6. GESTION DES RÉPONSES
     // =========================================================
 
     public function replyMemo($id)
     {
-        $errorMessage = $this->checkDecisionBlock($id);
-        if ($errorMessage) {
-            $this->dispatch('notify', message: $errorMessage);
+        if ($error = $this->checkDecisionBlock($id)) {
+            $this->dispatch('notify', message: $error);
             return; 
         }
 
@@ -453,8 +409,7 @@ class Incoming2Memos extends Component
 
         $this->parent_id = $id;
         $this->new_object = "RE: " . $parent->object;
-        $this->new_concern = "Réponse au mémo réf: " . ($parent->reference ?? 'N/A');
-        $this->new_content = ""; 
+        $this->new_concern = "Réponse à réf: " . ($parent->reference ?? 'N/A');
         
         $this->recipients = [];
         if($parent->user && $parent->user->entity_id) {
@@ -464,7 +419,6 @@ class Incoming2Memos extends Component
                 'action' => 'Faire le nécessaire'
             ];
         }
-
         $this->isCreatingReply = true; 
     }
 
@@ -477,113 +431,48 @@ class Incoming2Memos extends Component
             'recipients'  => 'required|array|min:1',
         ]);
 
-        if (!$this->parent_id) {
-            $this->dispatch('notify', message: "Erreur de lien parent.");
-            return;
-        }
+        $user = Auth::user();
+        $targetId = Str::contains(Str::lower($user->poste), 'directeur') 
+            ? (User::where('entity_id', $user->entity_id)->where('poste', 'like', '%secretaire%')->value('id') ?? $user->manager_id)
+            : $user->manager_id;
 
-        $currentUser = Auth::user();
-        $poste = Str::lower(trim($currentUser->poste));
-        $targetId = null;
-        $targetType = ""; 
+        if (!$targetId) return;
 
-        // Détermination du circuit de validation (ton code existant)
-        if (Str::contains($poste, 'directeur') && !Str::contains($poste, 'sous-directeur')) {
-            $secretary = User::where('entity_id', $currentUser->entity_id)->where('poste', 'like', '%secretaire%')->where('is_active', true)->first();
-            $targetId = $secretary ? $secretary->id : $currentUser->manager_id;
-            $targetType = $secretary ? "au Secrétariat" : "au Manager";
-        } else {
-            $targetId = $currentUser->manager_id;
-            $targetType = "au Manager pour validation";
-        }
+        DB::transaction(function () use ($user, $targetId) {
+            Destinataires::where('memo_id', $this->parent_id)
+                ->where('entity_id', $user->entity_id)
+                ->update(['processing_status' => 'repondu', 'completed_at' => now()]);
 
-        if (!$targetId) {
-            $this->dispatch('notify', message: "Aucun destinataire de validation trouvé.");
-            return;
-        }
-
-        $newMemo = null;
-
-        DB::transaction(function () use (&$newMemo, $currentUser, $targetId, $targetType) {
-            
-            // =========================================================
-            // 1. MISE À JOUR DU MÉMO PARENT (STATUS DE L'ENTITÉ)
-            // =========================================================
-            $parentMemo = Memo::find($this->parent_id);
-            
-            if ($parentMemo) {
-                // ON CHERCHE LA LIGNE DESTINATAIRE DU PARENT POUR TON ENTITÉ
-                $myParentDestRecord = Destinataires::where('memo_id', $parentMemo->id)
-                    ->where('entity_id', $currentUser->entity_id)
-                    ->first();
-
-                if ($myParentDestRecord) {
-                    // MISE À JOUR DU STATUS DE TRAITEMENT À "REPONDU"
-                    $myParentDestRecord->update([
-                        'processing_status' => 'repondu',
-                        'completed_at' => now()
-                    ]);
-                }
-
-               
-
-                // VÉRIFICATION GLOBALE : Clôturer le parent si TOUT LE MONDE a fini
-                $pendingEntities = Destinataires::where('memo_id', $parentMemo->id)
-                    ->whereNotIn('processing_status', ['traiter', 'decision_prise', 'repondu'])
-                    ->count();
-
-                if ($pendingEntities === 0) {
-                    $parentMemo->workflow_direction = 'terminer';
-                }
-
-                $parentMemo->save();
-
-                // Historique sur le parent pour dire qu'on a répondu
-                Historiques::create([
-                    'user_id' => $currentUser->id, 
-                    'memo_id' => $parentMemo->id,
-                    'visa' => 'RÉPONDU', 
-                    'workflow_comment' => "Réponse émise par " . ($currentUser->entity->name ?? 'l\'entité')
-                ]);
-            }
-
-            // =========================================================
-            // 2. CRÉATION DU NOUVEAU MÉMO (LA RÉPONSE)
-            // =========================================================
             $newMemo = Memo::create([
-                'object'             => $this->new_object,
-                'concern'            => $this->new_concern,
-                'content'            => $this->new_content,
-                'user_id'            => $currentUser->id,
-                'parent_id'          => $this->parent_id,
+                'object' => $this->new_object,
+                'concern' => $this->new_concern,
+                'content' => $this->new_content,
+                'user_id' => $user->id,
+                'parent_id' => $this->parent_id,
                 'workflow_direction' => 'sortant',        
-                'status'             => 'envoyer',       
-                'current_holders'    => [$targetId], 
+                'status' => 'envoyer',       
+                'current_holders' => [$targetId], 
             ]);
 
-            foreach ($this->recipients as $item) {
-                Destinataires::create([
-                    'memo_id' => $newMemo->id, 
-                    'entity_id' => $item['entity_id'],
-                    'action' => $item['action'], 
-                    'processing_status' => 'en_cours' // La réponse est "en cours" pour les nouveaux destinataires
-                ]);
-            }
+            $destData = array_map(fn($r) => [
+                'memo_id' => $newMemo->id,
+                'entity_id' => $r['entity_id'],
+                'action' => $r['action'],
+                'processing_status' => 'en_cours',
+                'created_at' => now(),
+                'updated_at' => now()
+            ], $this->recipients);
+            Destinataires::insert($destData);
 
             Historiques::create([
-                'user_id' => $currentUser->id, 
-                'memo_id' => $newMemo->id,
-                'visa' => 'CRÉATION RÉPONSE', 
-                'workflow_comment' => "Réponse au mémo #{$this->parent_id} transmise {$targetType}."
+                'user_id' => $user->id, 
+                'memo_id' => $this->parent_id,
+                'visa' => 'RÉPONDU', 
+                'workflow_comment' => "Émission d'une réponse."
             ]);
         });
 
-        if ($newMemo && $targetId) {
-            $tUser = User::find($targetId);
-            if ($tUser) $tUser->notify(new MemoActionNotification($newMemo, 'envoyer', $currentUser));
-        }
-
-        $this->dispatch('notify', message: "Réponse transmise avec succès.");
+        $this->dispatch('notify', message: "Réponse transmise.");
         $this->cancelReply();
     }
 
@@ -593,76 +482,51 @@ class Incoming2Memos extends Component
         $this->reset(['new_object', 'new_concern', 'new_content', 'recipients', 'parent_id']);
     }
 
-    public function addRecipient()
-    {
-        $this->validate(['newRecipientEntity' => 'required', 'newRecipientAction' => 'required']);
-        $entity = Entity::find($this->newRecipientEntity);
-        $this->recipients[] = ['entity_id' => $entity->id, 'entity_name' => $entity->name, 'action' => $this->newRecipientAction];
-        $this->reset(['newRecipientEntity', 'newRecipientAction']);
-    }
-
-    private function resetReplyForm() {
-        $this->reset(['isCreatingReply', 'parent_id', 'new_object', 'new_concern', 'new_content', 'recipients']);
-    }
-
     // =========================================================
-    // 7. FONCTIONS OUTILS ET HELPERS
+    // 7. FONCTIONS OUTILS & EXPORT
     // =========================================================
 
-    /**
-     * Vérifie si l'entité peut traiter le mémo ou si elle est bloquée par un décideur
-     */
     private function checkDecisionBlock($memoId)
     {
         $user = Auth::user();
-        $decisionMakers = Destinataires::where('memo_id', $memoId)
+        $block = Destinataires::where('memo_id', $memoId)
             ->where('action', 'like', '%Décider%')
             ->where('entity_id', '!=', $user->entity_id)
-            ->get();
+            ->where('processing_status', '!=', 'decision_prise')
+            ->with('entity')
+            ->first();
 
-        foreach ($decisionMakers as $maker) {
-            if ($maker->processing_status !== 'decision_prise') {
-                $eName = $maker->entity->name ?? "l'entité responsable";
-                return "Action impossible : Vous devez attendre la décision de {$eName}.";
-            }
-        }
-        return null; 
-    }
-
-    public function toggleFavorite($memoId)
-    {
-        $userId = Auth::id();
-        $existing = \App\Models\Favoris::where('user_id', $userId)->where('memo_id', $memoId)->first();
-
-        if ($existing) {
-            $existing->delete();
-            $this->dispatch('notify', message: "Retiré des favoris.");
-        } else {
-            \App\Models\Favoris::create(['user_id' => $userId, 'memo_id' => $memoId]);
-            $this->dispatch('notify', message: "Ajouté aux favoris !");
-        }
+        return $block ? "En attente de décision : " . $block->entity->name : null;
     }
 
     public function downloadMemoPDF()
     {
         $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
-        $recipientsByAction = $memo->destinataires->groupBy('action');
-
-        $pathLogo = public_path('images/logo.jpg');
-        $logoBase64 = file_exists($pathLogo) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($pathLogo)) : null;
-
-        $qrCodeBase64 = null;
+        $logo = file_exists(public_path('images/logo.jpg')) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents(public_path('images/logo.jpg'))) : null;
+        
+        $qrCode = null;
         if ($memo->qr_code) {
-            $qrImage = QrCode::format('svg')->size(100)->generate(route('memo.verify', $memo->qr_code));
-            $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($qrImage);
+            $qrImg = QrCode::format('png')->size(100)->margin(1)->generate(route('memo.verify', $memo->qr_code));
+            $qrCode = 'data:image/png;base64,' . base64_encode($qrImg);
         }
 
         $pdf = Pdf::loadView('pdf.memo-layout', [
-            'memo' => $memo, 'recipientsByAction' => $recipientsByAction,
-            'logo' => $logoBase64, 'qrCode' => $qrCodeBase64, 'date' => $memo->created_at->format('d/m/Y'),
+            'memo' => $memo, 
+            'recipientsByAction' => $memo->destinataires->groupBy('action'),
+            'logo' => $logo, 
+            'qrCode' => $qrCode, 
+            'date' => $memo->created_at->format('d/m/Y'),
         ])->setPaper('a4', 'portrait');
 
-        return response()->streamDownload(fn() => print($pdf->output()), 'Memo_' . $memo->id . '.pdf');
+        return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
+    }
+
+    public function addRecipient()
+    {
+        $this->validate(['newRecipientEntity' => 'required', 'newRecipientAction' => 'required']);
+        $entity = $this->allEntities->firstWhere('id', $this->newRecipientEntity);
+        $this->recipients[] = ['entity_id' => $entity->id, 'entity_name' => $entity->name, 'action' => $this->newRecipientAction];
+        $this->reset(['newRecipientEntity', 'newRecipientAction']);
     }
 
     public function removeRecipient($index)
@@ -672,16 +536,17 @@ class Incoming2Memos extends Component
     }
 
     // =========================================================
-    // 8. RENDU
+    // 8. RENDU FINAL
     // =========================================================
 
     public function render()
     {
-        $userId = Auth::id(); 
         $memos = Memo::with(['user', 'destinataires.entity'])
             ->where('workflow_direction', 'entrant')
-            ->whereJsonContains('current_holders', $userId)
-            ->where(fn($q) => $q->where('object', 'like', '%'.$this->search.'%')->orWhere('concern', 'like', '%'.$this->search.'%'))
+            ->whereJsonContains('current_holders', Auth::id())
+            ->when($this->search, function($q) {
+                $q->where(fn($sub) => $sub->where('object', 'like', '%'.$this->search.'%')->orWhere('concern', 'like', '%'.$this->search.'%'));
+            })
             ->orderBy('updated_at', 'desc')
             ->paginate(9);
 

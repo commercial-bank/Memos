@@ -12,112 +12,117 @@ use Illuminate\Support\Facades\Auth;
 
 class Profil extends Component
 {
+    // Instance de l'utilisateur connecté
     public $user;
 
-    // Listes pour les menus déroulants (Select)
+    // Listes pour les menus déroulants (chargées une seule fois)
     public $entites;
     public $sd;
     public $user_all;
 
-    // Variables pour l'affichage initial (optionnel si on utilise directement les IDs)
+    // Variables pour l'affichage initial
     public $user_entity;
     public $user_sd;
     public $user_manager;
 
-    // --- CHAMPS DU FORMULAIRE (Liés via wire:model) ---
+    // --- CHAMPS DU FORMULAIRE (wire:model) ---
     public $poste;
     public $departement;
     public $service;
-    
-    // Ces variables doivent correspondre aux wire:model de votre vue
     public $entity_id; 
     public $sous_direction_id;
     public $manager_id;
 
-    // Dans App\Livewire\Setting\Profil.php
-
+    /**
+     * Initialisation du composant
+     */
     public function mount()
     {
-        // On charge l'utilisateur avec ses relations de remplacement
-        // 'replacements.substitute' = récupérer les infos des gens qui me remplacent
-        // 'replacing.user' = récupérer les infos des gens que je remplace
+        // OPTIMISATION : Eager loading des relations pour éviter le problème N+1
+        // On ne sélectionne que l'essentiel pour l'utilisateur
         $this->user = Auth::user()->load(['replacements.substitute', 'replacing.user']);
 
-        // ... Le reste de votre code mount existant (entites, sd, etc.) ...
-        $this->entites = Entity::all();
-        $this->sd = SousDirection::all();
-        $this->user_all = User::where('id', '!=', $this->user->id)->get();
+        // OPTIMISATION : On récupère uniquement les colonnes nécessaires pour alléger la RAM
+        $this->entites = Entity::select('id', 'name', 'ref')->orderBy('name')->get();
+        $this->sd = SousDirection::select('id', 'name')->orderBy('name')->get();
         
-        // ... initialisation des variables ...
-        $this->user_entity = Entity::find($this->user->entity_id);
-        $this->user_sd = SousDirection::find($this->user->sous_direction_id);
-        $this->user_manager = User::find($this->user->manager_id);
+        // OPTIMISATION : On récupère uniquement ID et Noms pour la liste des managers
+        $this->user_all = User::select('id', 'first_name', 'last_name')
+            ->where('id', '!=', $this->user->id)
+            ->orderBy('last_name')
+            ->get();
+        
+        // Initialisation des objets de visualisation (Eager loading manuel pour la rapidité)
+        $this->user_entity = $this->entites->firstWhere('id', $this->user->entity_id);
+        $this->user_sd = $this->sd->firstWhere('id', $this->user->sous_direction_id);
+        $this->user_manager = $this->user_all->firstWhere('id', $this->user->manager_id);
 
+        // Hydratation des champs du formulaire
         $this->poste = $this->user->poste;
         $this->departement = $this->user->departement;
         $this->service = $this->user->service;
-        
         $this->entity_id = $this->user->entity_id;
         $this->sous_direction_id = $this->user->sous_direction_id;
         $this->manager_id = $this->user->manager_id;
     }
 
+    /**
+     * Enregistrement des modifications
+     */
     public function save()
     {
-        // 1. Validation des données
-        $validatedData = $this->validate([
-            'poste' => ['required','string', 'max:255'],
-            'departement' => ['nullable', 'string', 'max:255', new ProperDepartmentCase()],
-            'service' =>  ['nullable', 'string', 'max:255', new ProperDepartmentCase()],
-            // Validation des clés étrangères
-            'entity_id' => ['required','exists:entities,id'], // Assurez-vous que la table s'appelle 'entities'
+        // 1. Validation des données avec messages personnalisés
+        $this->validate([
+            'poste'             => ['required', 'string', 'max:255'],
+            'departement'       => ['nullable', 'string', 'max:255', new ProperDepartmentCase()],
+            'service'           => ['nullable', 'string', 'max:255', new ProperDepartmentCase()],
+            'entity_id'         => ['required', 'exists:entities,id'],
             'sous_direction_id' => ['nullable', 'exists:sous_direction,id'],
-            'manager_id' => ['nullable', 'exists:users,id'],
-        ],[
-        // Messages d'erreur personnalisés pour une meilleure expérience utilisateur
-        'poste.required'             => 'Le champ Poste est obligatoire.',
-        'entity_id.required'         => 'Veuillez sélectionner une Entité.',
-    ]);
+            'manager_id'        => ['nullable', 'exists:users,id'],
+        ], [
+            'poste.required'     => 'Le champ Poste est obligatoire.',
+            'entity_id.required' => 'Veuillez sélectionner une Entité.',
+        ]);
 
-        // 2. Logique pour récupérer le sigle de l'entité (si nécessaire dans votre DB)
-        // Si vous stockez le nom ou le sigle en dur dans la table users :
-        $entitySigle = null;
+        // 2. Récupération optimisée des métadonnées de l'entité
         $entityName = null;
+        $entitySigle = null;
         
         if ($this->entity_id) {
-            $selectedEntity = Entity::find($this->entity_id);
+            // Utilisation de la collection déjà chargée en mémoire au lieu d'une requête SQL
+            $selectedEntity = $this->entites->firstWhere('id', $this->entity_id);
             if ($selectedEntity) {
-                $entitySigle = $selectedEntity->sigle ?? null; // Si la colonne sigle existe
-                $entityName = $selectedEntity->name ?? null;
+                $entitySigle = $selectedEntity->sigle;
+                $entityName  = $selectedEntity->name;
             }
         }
 
-        // 3. Mise à jour dans la base de données
-        // J'utilise $this->manager_id car wire:model="manager_id" dans la vue
+        // 3. Mise à jour de la base de données
+        // L'utilisation de update() sur l'instance permet de ne modifier que ce qui a changé
         $this->user->update([
-            'poste' => $this->poste,
-            'departement' => $this->departement,
-            'service' => $this->service,
-            
-            // Mise à jour des clés étrangères (IDs)
-            'entity_id' => $this->entity_id,
+            'poste'             => $this->poste,
+            'departement'       => $this->departement,
+            'service'           => $this->service,
+            'entity_id'         => $this->entity_id,
             'sous_direction_id' => $this->sous_direction_id,
-            'manager_id' => $this->manager_id ?? null,
+            'manager_id'        => $this->manager_id ?? null,
             
-            // Si votre base de données utilise d'autres noms de colonnes (comme dans votre ancien code)
-            // décommentez et adaptez les lignes ci-dessous :
-            // 'entity' => $entityName,       // Si vous stockez le nom texte
-            // 'entity_sigle' => $entitySigle,// Si vous stockez le sigle
-            // 'n1' => $this->manager_id,     // Si la colonne s'appelle 'n1' au lieu de manager_id
+            // Note: Décommentez si vous utilisez des colonnes de déduplication de texte
+            // 'entity'         => $entityName, 
+            // 'entity_sigle'   => $entitySigle,
         ]);
 
-        // 4. Message de succès
+        // Mise à jour des variables d'affichage pour refléter les changements sans recharger la page
+        $this->user_entity = $this->entites->firstWhere('id', $this->entity_id);
+        $this->user_manager = $this->user_all->firstWhere('id', $this->manager_id);
+
+        // 4. Notification flash via browser event
         $this->dispatch('notify', message: "Profil mis à jour avec succès !");
-        
-        // Optionnel : Rafraîchir l'utilisateur pour voir les changements immédiatement s'ils sont affichés ailleurs
-        // $this->user->refresh(); 
     }
 
+    /**
+     * Rendu de la vue
+     */
     public function render()
     {
         return view('livewire.setting.profil');

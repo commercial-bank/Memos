@@ -7,14 +7,14 @@
          ========================================================= -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vérification Officielle - {{ $memo->numero_ref }}</title>
+    <title>{{ config('app.name', 'CBC_WorkFlow_Docs') }}</title>
 
     <!-- SCRIPTS EXTERNES -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- FONTS & ICONS -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Merriweather:wght@300;400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- FAVICON -->
+    <link rel="icon" href="{{ asset('images/lo.png') }}?v=3" type="image/jpg">
+    <link rel="apple-touch-icon" href="{{ asset('images/logo.png') }}">
 
     <!-- =========================================================
          STYLES PERSONNALISÉS (CSS)

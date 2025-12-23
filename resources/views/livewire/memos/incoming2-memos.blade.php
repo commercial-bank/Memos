@@ -283,9 +283,7 @@
 
                                                 @if($isManager)
                                                     <div class="h-4 w-px bg-gray-300 mx-1"></div>
-                                                    <!-- RÉPONDRE -->
-                                                    <button wire:click="replyMemo({{ $memo->id }})" class="text-gray-400 hover:text-purple-600 transition-colors" title="Répondre"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg></button>
-
+                                                   
                                                     @php
                                                         $myAction = $monStatutDest->action ?? '';
                                                         $isDeciderEntity = Str::contains($myAction, 'Décider');
@@ -296,6 +294,9 @@
                                                         <button wire:click="submitDecision({{ $memo->id }}, 'accord')" wire:confirm="Confirmez-vous votre ACCORD ?" class="text-gray-400 hover:text-green-600 transition-colors" title="Donner Accord"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
                                                         <button wire:click="submitDecision({{ $memo->id }}, 'refus')" wire:confirm="Confirmez-vous le REFUS ?" class="text-gray-400 hover:text-red-600 transition-colors" title="Refuser"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                                                     @else
+                                                        <!-- RÉPONDRE -->
+                                                        <button wire:click="replyMemo({{ $memo->id }})" class="text-gray-400 hover:text-purple-600 transition-colors" title="Répondre"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg></button>
+
                                                         <!-- TERMINER -->
                                                         <button wire:click="openCloseModal({{ $memo->id }})" class="text-gray-400 hover:text-green-600 transition-colors" title="Terminer le traitement"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></button>
                                                     @endif

@@ -4,27 +4,26 @@ namespace App\Livewire\Memos;
 
 use App\Models\Memo;
 use Livewire\Component;
-use App\Models\Destinataire;
 use App\Models\Destinataires;
 use Livewire\Attributes\Rule;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Entity; // Assurez-vous d'avoir ce modèle
+use Illuminate\Support\Facades\DB;
+use App\Models\Entity;
 
 class Memos extends Component
 {
     use WithFileUploads;
 
-    
-    // État de la vue
+    // --- État de la vue ---
     public $isCreating = false;
     public $activeTab = 'incoming';
 
-    // Champs du Mémo
+    // --- Champs du Mémo ---
     #[Rule('required|min:5')]
     public string $object = '';
 
-    #[Rule('min:3')]
+    #[Rule('nullable|min:3')]
     public string $concern = '';
 
     #[Rule('required')]
@@ -32,22 +31,18 @@ class Memos extends Component
 
     public $memoId = null;
 
-    // NOUVEAU : Variable pour les fichiers uploadés (temporaire)
-    // Validation : Max 10Mo, types classiques
+    // --- Gestion des Pièces Jointes ---
     #[Rule(['attachments.*' => 'nullable|file|max:10240'])] 
     public $attachments = []; 
 
-    // NOUVEAU : Variable pour conserver les fichiers existants si on édite
     public $existingAttachments = []; 
 
-    // --- GESTION DES DESTINATAIRES ---
-    public $recipients = []; // Liste temporaire : [['entity_id' => 1, 'name' => 'RH', 'action' => '...']]
-    
-    // Champs pour le formulaire d'ajout de destinataire
+    // --- Gestion des Destinataires ---
+    public $recipients = []; 
     public $newRecipientEntity = ''; 
     public $newRecipientAction = '';
 
-    // Liste des actions possibles (Constante ou dynamique)
+    // Liste des actions possibles
     public $actionsList = [
         'Faire le nécessaire',
         'Prendre connaissance',
@@ -55,7 +50,9 @@ class Memos extends Component
         'Décider'
     ];
 
-    // --- NAVIGATION ---
+    // =========================================================
+    // 1. NAVIGATION
+    // =========================================================
 
     public function selectTab(string $tab)
     {
@@ -63,23 +60,38 @@ class Memos extends Component
         $this->isCreating = false;
     }
 
+    /**
+     * Initialise le formulaire de création
+     */
     public function createMemo()
     {
-        $this->reset(['object', 'content', 'concern', 'memoId', 'recipients', 'newRecipientEntity', 'newRecipientAction','attachments', 'existingAttachments']);
+        $this->reset([
+            'object', 'content', 'concern', 'memoId', 'recipients', 
+            'newRecipientEntity', 'newRecipientAction', 'attachments', 'existingAttachments'
+        ]);
         $this->resetValidation();
         $this->isCreating = true;
     }
 
+    /**
+     * Annule et réinitialise le formulaire
+     */
     public function cancelCreation()
     {
         $this->isCreating = false;
-        $this->reset(['object', 'content', 'concern', 'memoId', 'recipients','attachments', 'existingAttachments']);
+        $this->reset([
+            'object', 'content', 'concern', 'memoId', 'recipients', 
+            'attachments', 'existingAttachments'
+        ]);
     }
 
-    
+    // =========================================================
+    // 2. LOGIQUE DESTINATAIRES
+    // =========================================================
 
-    // --- LOGIQUE DESTINATAIRES ---
-
+    /**
+     * Ajoute un destinataire à la liste temporaire
+     */
     public function addRecipient()
     {
         $this->validate([
@@ -90,117 +102,119 @@ class Memos extends Component
             'newRecipientAction.required' => 'Veuillez sélectionner une action.'
         ]);
 
-        // Vérifier les doublons
-        foreach ($this->recipients as $recipient) {
-            if ($recipient['entity_id'] == $this->newRecipientEntity) {
-                $this->addError('newRecipientEntity', 'Cette entité est déjà dans la liste.');
-                return;
-            }
+        // Vérification des doublons de manière performante
+        if (collect($this->recipients)->contains('entity_id', $this->newRecipientEntity)) {
+            $this->addError('newRecipientEntity', 'Cette entité est déjà dans la liste.');
+            return;
         }
 
-        // Récupérer le nom de l'entité pour l'affichage
+        // Récupération de l'entité
         $entityModel = Entity::find($this->newRecipientEntity);
 
-        $this->recipients[] = [
-            'entity_id' => $entityModel->id,
-            'entity_name' => $entityModel->name, // ou $entityModel->ref selon votre préférence
-            'action' => $this->newRecipientAction
-        ];
+        if ($entityModel) {
+            $this->recipients[] = [
+                'entity_id'   => $entityModel->id,
+                'entity_name' => $entityModel->name,
+                'action'      => $this->newRecipientAction
+            ];
+        }
 
-        // Reset des champs d'ajout
-        $this->newRecipientEntity = '';
-        $this->newRecipientAction = '';
+        // Reset des champs de saisie uniquement
+        $this->reset(['newRecipientEntity', 'newRecipientAction']);
     }
 
+    /**
+     * Retire un destinataire de la liste temporaire
+     */
     public function removeRecipient($index)
     {
         unset($this->recipients[$index]);
-        $this->recipients = array_values($this->recipients); // Réindexer le tableau
+        $this->recipients = array_values($this->recipients); // Réindexation
     }
 
-     // NOUVEAU : Supprimer un fichier de la liste d'upload (avant sauvegarde)
+    /**
+     * Supprime un fichier de la liste d'upload
+     */
     public function removeAttachment($index)
     {
         array_splice($this->attachments, $index, 1);
     }
 
-    // --- SAUVEGARDE ---
+    // =========================================================
+    // 3. SAUVEGARDE ET PERSISTENCE
+    // =========================================================
 
     public function save()
     {
-        // On passe les messages personnalisés en deuxième argument
         $this->validate([
-            'object' => 'required|min:5',
-            'concern' => 'min:3',
-            'content' => 'required',
+            'object'     => 'required|min:5',
+            'content'    => 'required',
             'recipients' => 'required|array|min:1',
-            // ... vos autres règles
-        ], [
-            // MESSAGES PERSONNALISÉS
-            'object.required' => "L'objet du mémo est obligatoire.",
-            'object.min' => "L'objet doit contenir au moins 5 caractères.",
-            'content.required' => "Le corps du document ne peut pas être vide.",
-            'concern.min' => "Le champ concerné est trop court.",
-                // MESSAGES POUR LES DESTINATAIRES
-            'recipients.required' => "La liste de distribution ne peut pas être vide.",
-            'recipients.min' => "Veuillez ajouter au moins un destinataire dans la liste.",
         ]);
 
-        // 1. Traitement des Pièces Jointes
-        $finalAttachments = $this->existingAttachments; // On commence avec ceux qui existent déjà (si edit)
+        // OPTIMISATION : On détermine l'action AVANT de modifier le memoId
+        $isUpdate = !empty($this->memoId);
+        $textAction = $isUpdate ? 'modifié' : 'créé';
 
-        if ($this->attachments) {
-            foreach ($this->attachments as $file) {
-                // Enregistrement physique dans 'storage/app/public/memos_attachments'
-                $path = $file->store('memos_attachments', 'public');
-                
-                // Construction de la donnée JSON
-                $finalAttachments[] = [
-                    'name' => $file->getClientOriginalName(), // Nom d'origine (ex: contrat.pdf)
-                    'path' => $path,                          // Chemin stockage
-                    'mime' => $file->getMimeType(),           // Type (pour l'icône)
-                    'size' => $file->getSize()                // Taille
-                ];
+        DB::transaction(function () {
+            $finalAttachments = $this->existingAttachments;
+
+            if (!empty($this->attachments)) {
+                foreach ($this->attachments as $file) {
+                    $path = $file->store('memos_attachments', 'public');
+                    $finalAttachments[] = [
+                        'name' => $file->getClientOriginalName(),
+                        'path' => $path,
+                        'mime' => $file->getMimeType(),
+                        'size' => $file->getSize()
+                    ];
+                }
             }
-        }
 
-     
+            $memo = Memo::updateOrCreate(
+                ['id' => $this->memoId],
+                [
+                    'object'         => $this->object,
+                    'concern'        => $this->concern,
+                    'content'        => $this->content,
+                    'pieces_jointes' => $finalAttachments,
+                    'user_id'        => Auth::id()
+                ]
+            );
 
-        $memo = Memo::updateOrCreate(
-            ['id' => $this->memoId],
-            [
-                'object' => $this->object,
-                'concern' => $this->concern,
-                'content' => $this->content,
-                'pieces_jointes' => $finalAttachments,
-                'user_id' => Auth::id()
-            ]
-        );
+            // Sync Destinataires
+            Destinataires::where('memo_id', $memo->id)->delete();
+            
+            $dataToInsert = array_map(function($recipient) use ($memo) {
+                return [
+                    'memo_id'    => $memo->id,
+                    'entity_id'  => $recipient['entity_id'],
+                    'action'     => $recipient['action'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }, $this->recipients);
 
-        // 2. Sauvegarde des Destinataires
-        // Si c'est une modification, on supprime les anciens pour remettre les nouveaux (méthode simple)
-        if ($this->memoId) {
-            Destinataire::where('memo_id', $memo->id)->delete();
-        }
+            Destinataires::insert($dataToInsert);
+            
+            // On met à jour l'ID pour le composant
+            $this->memoId = $memo->id;
+        });
 
-        foreach ($this->recipients as $recipient) {
-            Destinataires::create([
-                'memo_id' => $memo->id,
-                'entity_id' => $recipient['entity_id'],
-                'action' => $recipient['action']
-            ]);
-        }
-
-        $action = $this->memoId ? 'modifié' : 'créé';
         $this->isCreating = false;
+        $this->dispatch('notify', message: "Mémo $textAction avec succès !");
         
-        $this->dispatch('notify', message: "Mémo $action avec succès !");
+        $this->reset(['object', 'content', 'concern', 'memoId', 'recipients', 'attachments']);
     }
+
+    // =========================================================
+    // 4. RENDU
+    // =========================================================
 
     public function render()
     {
-        // On récupère les entités pour le select
-        $entities = Entity::orderBy('name')->get();
+        // On récupère les entités triées pour le formulaire
+        $entities = Entity::orderBy('name', 'asc')->get();
 
         return view('livewire.memos.memos', [
             'entities' => $entities

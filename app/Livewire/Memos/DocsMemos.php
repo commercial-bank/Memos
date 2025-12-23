@@ -15,28 +15,28 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Rule;
 use Livewire\Component;
+use Livewire\WithPagination;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class DocsMemos extends Component
 {
+    use WithPagination;
+
     // =========================================================
     // 1. PROPRIÉTÉS DU COMPOSANT
     // =========================================================
 
-    // --- Recherche & UI ---
     public $search = '';
-
-    //afficher le formulaire d'edition
     public $isEditing = false;
 
-    // --- États des Modals (Booleans) ---
-    public $isOpen = false;        // Aperçu
-    public $isOpen2 = false;       // Édition
-    public $isOpen3 = false;       // Assignation / Envoi
-    public $isOpenHistory = false; // Historique
-    public $isOpenReject = false;  // Rejet
+    // --- États des Modals ---
+    public $isOpen = false;        
+    public $isOpen2 = false;       
+    public $isOpen3 = false;       
+    public $isOpenHistory = false; 
+    public $isOpenReject = false;  
 
-    // --- Données du Mémo (Formulaire & DB) ---
+    // --- Données du Mémo ---
     public $memo_id = null;
     public $memoHistory = [];
 
@@ -49,16 +49,16 @@ class DocsMemos extends Component
     #[Rule('required|string')]
     public string $content = '';
 
-    // --- Gestion des Destinataires (Tableau Dynamique) ---
-    public $recipients = []; // ['entity_id', 'entity_name', 'action']
+    // --- Destinataires ---
+    public $recipients = []; 
     public $newRecipientEntity = '';
     public $newRecipientAction = '';
-    public $allEntities = []; // Liste pour les selects
+    public $allEntities = []; 
     public $actionsList = ['Faire le nécessaire', 'Prendre connaissance', 'Prendre position', 'Décider'];
 
-    // --- Gestion des Pièces Jointes ---
-    public $newAttachments = [];      // Fichiers temporaires (Livewire)
-    public $existingAttachments = []; // JSON existant en base
+    // --- Pièces Jointes ---
+    public $newAttachments = [];      
+    public $existingAttachments = []; 
 
     // --- Données pour l'Aperçu ---
     public $date;
@@ -68,9 +68,9 @@ class DocsMemos extends Component
     public $user_entity_name;
 
     // --- Workflow & Assignation ---
-    public $memo_type = 'standard'; // 'standard' ou 'projet'
-    public $managerData = null;     // ['original', 'effective', 'is_replaced']
-    public $projectUsersList = [];  // Users éligibles mode projet
+    public $memo_type = 'standard'; 
+    public $managerData = null;     
+    public $projectUsersList = [];  
     public $selected_project_users = [];
     public $workflow_comment = '';
     public $selected_visa = ''; 
@@ -78,12 +78,17 @@ class DocsMemos extends Component
     public $reject_comment = '';
 
     // =========================================================
-    // 2. INITIALISATION ET CYCLE DE VIE
+    // 2. INITIALISATION
     // =========================================================
 
     public function mount()
     {
         $this->allEntities = Entity::orderBy('name')->get();
+    }
+
+    public function updatingSearch()
+    {
+        $this->resetPage();
     }
 
     // =========================================================
@@ -92,14 +97,11 @@ class DocsMemos extends Component
 
     public function viewMemo($id)
     {
-        $memo = Memo::with('user')->findOrFail($id);
+        $memo = Memo::with(['user.entity'])->findOrFail($id);
         $this->fillMemoDataView($memo);
         $this->isOpen = true;
     }
 
-    /**
-     * Remplit les données nécessaires à la vue de lecture seule
-     */
     private function fillMemoDataView($memo)
     {
         $this->memo_id          = $memo->id;
@@ -107,21 +109,18 @@ class DocsMemos extends Component
         $this->concern          = $memo->concern;
         $this->content          = $memo->content;
         $this->date             = $memo->created_at->format('d/m/Y');
-        $entity                 = Entity::find($memo->user->entity_id);
-        $this->user_entity_name = $entity->name ?? 'Entité';
+        $this->user_entity_name = $memo->user->entity->name ?? 'Entité';
         $this->user_service     = $memo->user->service;
     }
 
-    /**
-     * Charge l'historique complet d'un mémo (incluant les réponses)
-     */
     public function viewHistory($id)
     {
         $this->memo_id = $id;
         
-        // Récupération des IDs liés (parent + enfants/réponses)
-        $childrenIds = Memo::where('parent_id', $id)->pluck('id')->toArray();
-        $allRelatedMemoIds = array_merge([$id], $childrenIds);
+        $allRelatedMemoIds = Memo::where('parent_id', $id)
+            ->orWhere('id', $id)
+            ->pluck('id')
+            ->toArray();
 
         $this->memoHistory = Historiques::with(['user', 'memo'])
             ->whereIn('memo_id', $allRelatedMemoIds)
@@ -132,7 +131,7 @@ class DocsMemos extends Component
     }
 
     // =========================================================
-    // 4. LOGIQUE D'ASSIGNATION ET WORKFLOW (ENVOI)
+    // 4. LOGIQUE D'ASSIGNATION ET WORKFLOW
     // =========================================================
 
     public function assignMemo($id)
@@ -142,25 +141,29 @@ class DocsMemos extends Component
         $this->memo_type = 'standard';
 
         $currentUser = Auth::user();
+        $today = Carbon::now()->format('Y-m-d');
 
-        // Gestion du N+1 (Manager)
+        // Optimisation : une seule requête pour tous les remplacements
+        $activeReplacements = ReplacesUser::where('date_begin_replace', '<=', $today)
+            ->where('date_end_replace', '>=', $today)
+            ->get()
+            ->keyBy('user_id');
+
         if ($currentUser->manager_id) {
             $manager = User::find($currentUser->manager_id);
-            $this->managerData = $this->resolveUserAvailability($manager);
+            // On garde la structure attendue par le Blade : $managerData['effective']->...
+            $this->managerData = $this->resolveUserAvailability($manager, $activeReplacements);
         } else {
             $this->managerData = null;
         }
 
-        // Préparation de la liste projet (Excluant Soi-même et le Manager)
-        $excludeIds = [$currentUser->id];
-        if ($this->managerData) {
-            $excludeIds[] = $this->managerData['original']->id;
-        }
+        $excludeIds = array_filter([$currentUser->id, $currentUser->manager_id]);
 
+        // IMPORTANT : projectUsersList doit rester une Collection pour le ->first() du Blade
         $this->projectUsersList = User::whereNotIn('id', $excludeIds)
             ->orderBy('last_name')
             ->get()
-            ->map(fn($user) => $this->resolveUserAvailability($user));
+            ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
 
         $this->isOpen3 = true;
     }
@@ -171,33 +174,27 @@ class DocsMemos extends Component
             'selected_visa'          => 'required',
             'workflow_comment'       => 'nullable|string|max:1000',
             'selected_project_users' => 'required_if:memo_type,projet|array',
-        ], [
-            'selected_project_users.required_if' => 'En mode projet, veuillez sélectionner au moins un collaborateur.'
         ]);
 
-        $memo = Memo::find($this->memo_id);
+        $memo = Memo::findOrFail($this->memo_id);
         $currentUser = Auth::user();
         $nextHolders = [];
+        $today = Carbon::now()->format('Y-m-d');
+        
+        $activeReplacements = ReplacesUser::where('date_begin_replace', '<=', $today)
+            ->where('date_end_replace', '>=', $today)
+            ->get()
+            ->keyBy('user_id');
 
-        // Scénario A : Standard (Vers N+1 ou remplaçant)
-        if ($this->memo_type === 'standard') {
-            if ($this->managerData) {
-                $nextHolders[] = $this->managerData['effective']->id;
-            } else {
-                $this->addError('general', "Vous n'avez pas de supérieur hiérarchique défini.");
-                return;
-            }
+        if ($this->memo_type === 'standard' && $this->managerData) {
+            $nextHolders[] = $this->managerData['effective']->id;
         }
 
-        // Scénario B : Projet (Vers liste collaborateurs)
         if ($this->memo_type === 'projet') {
-            foreach ($this->selected_project_users as $userId) {
-                $targetUser   = User::find($userId);
-                $availability = $this->resolveUserAvailability($targetUser);
-                
-                if ($availability['effective']) {
-                    $nextHolders[] = $availability['effective']->id;
-                }
+            $users = User::whereIn('id', $this->selected_project_users)->get();
+            foreach ($users as $u) {
+                $avail = $this->resolveUserAvailability($u, $activeReplacements);
+                $nextHolders[] = $avail['effective']->id;
             }
         }
 
@@ -206,14 +203,13 @@ class DocsMemos extends Component
             return;
         }
 
-        // Sauvegarde de l'état du workflow
-        $memo->previous_holders = [$currentUser->id];
-        $memo->current_holders  = array_unique($nextHolders);
-        $memo->status           = 'envoyer'; 
-        $memo->workflow_comment = $this->workflow_comment; 
-        $memo->save();
+        $memo->update([
+            'previous_holders' => [$currentUser->id],
+            'current_holders'  => array_unique($nextHolders),
+            'status'           => 'envoyer',
+            'workflow_comment' => $this->workflow_comment
+        ]);
 
-        // Enregistrement de l'historique
         Historiques::create([
             'user_id'          => $currentUser->id,
             'memo_id'          => $memo->id,
@@ -221,52 +217,43 @@ class DocsMemos extends Component
             'workflow_comment' => $this->workflow_comment ?? 'R.A.S',
         ]);
 
-        // Notifications aux nouveaux détenteurs
-        $usersToNotify = User::whereIn('id', $nextHolders)->get();
-        foreach ($usersToNotify as $user) {
-            try {
-                $user->notify(new MemoActionNotification($memo, 'envoyer', $currentUser));
-            } catch (\Exception $e) { /* Log error if necessary */ }
+        foreach (User::whereIn('id', $nextHolders)->get() as $u) {
+            try { $u->notify(new MemoActionNotification($memo, 'envoyer', $currentUser)); } catch (\Exception $e) {}
         }
 
         $this->closeModalTrois();
-        $this->dispatch('notify', message: "Le mémo ($this->memo_type) a été envoyé avec succès.");
+        $this->dispatch('notify', message: "Mémo envoyé avec succès.");
     }
 
     // =========================================================
-    // 5. LOGIQUE D'ÉDITION (MODAL 2)
+    // 5. LOGIQUE D'ÉDITION
     // =========================================================
 
     public function editMemo($id)
     {
-        $memo = Memo::with(['user', 'destinataires.entity'])->findOrFail($id);
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
         
         $this->memo_id = $memo->id;
         $this->object  = $memo->object;
         $this->concern = $memo->concern ?? '';
         $this->content = $memo->content;
         
-        // Chargement des pièces jointes
         $pj = $memo->pieces_jointes;
         if (is_string($pj)) { $pj = json_decode($pj, true); }
         $this->existingAttachments = is_array($pj) ? $pj : [];
         $this->newAttachments      = [];
 
-        // Chargement des destinataires
         $this->recipients = $memo->destinataires->map(fn($dest) => [
             'entity_id'   => $dest->entity_id,
             'entity_name' => $dest->entity->name ?? 'Inconnu',
             'action'      => $dest->action
         ])->toArray();
 
-        // Data pour l'aperçu
         $this->date = $memo->created_at->format('d/m/Y');   
-        $entity = Entity::find($memo->user->entity_id);
-        $this->user_entity_name = $entity->name ?? 'Entité';
+        $this->user_entity_name = $memo->user->entity->name ?? 'Entité';
 
         $this->resetValidation();
-        $this->isEditing = true; // On active la vue édition
-        $this->isOpen2 = false;  // Sécurité
+        $this->isEditing = true; 
     }
 
     public function cancelEdit()
@@ -279,39 +266,28 @@ class DocsMemos extends Component
     {
         $this->validate(['newRecipientEntity' => 'required', 'newRecipientAction' => 'required']);
 
-        $entity = $this->allEntities->firstWhere('id', $this->newRecipientEntity);
-
-        // Vérifier doublon
-        foreach ($this->recipients as $r) {
-            if ($r['entity_id'] == $this->newRecipientEntity) {
-                $this->addError('newRecipientEntity', 'Ce destinataire est déjà ajouté.');
-                return;
-            }
+        if (collect($this->recipients)->contains('entity_id', $this->newRecipientEntity)) {
+            $this->addError('newRecipientEntity', 'Déjà ajouté.'); return;
         }
 
+        $entity = $this->allEntities->firstWhere('id', $this->newRecipientEntity);
         $this->recipients[] = [
             'entity_id'   => $entity->id,
             'entity_name' => $entity->name,
             'action'      => $this->newRecipientAction
         ];
-
         $this->reset(['newRecipientEntity', 'newRecipientAction']);
     }
 
-    public function removeRecipient($index)
-    {
-        unset($this->recipients[$index]);
-        $this->recipients = array_values($this->recipients);
+    public function removeRecipient($index) {
+        unset($this->recipients[$index]); $this->recipients = array_values($this->recipients);
     }
 
-    public function removeExistingAttachment($index)
-    {
-        unset($this->existingAttachments[$index]);
-        $this->existingAttachments = array_values($this->existingAttachments);
+    public function removeExistingAttachment($index) {
+        unset($this->existingAttachments[$index]); $this->existingAttachments = array_values($this->existingAttachments);
     }
 
-    public function removeNewAttachment($index)
-    {
+    public function removeNewAttachment($index) {
         array_splice($this->newAttachments, $index, 1);
     }
 
@@ -320,14 +296,10 @@ class DocsMemos extends Component
         $this->validate();
 
         $finalAttachments = $this->existingAttachments;
-
-        // Stockage des nouveaux fichiers
         foreach ($this->newAttachments as $file) {
-            $path = $file->store('attachments/memos', 'public');
-            $finalAttachments[] = $path;
+            $finalAttachments[] = $file->store('attachments/memos', 'public');
         }
 
-        // Mise à jour du mémo
         $memo = Memo::updateOrCreate(
             ['id' => $this->memo_id],
             [
@@ -339,15 +311,15 @@ class DocsMemos extends Component
             ]
         );
 
-        // Synchro des destinataires
         Destinataires::where('memo_id', $memo->id)->delete();
-        foreach ($this->recipients as $recipient) {
-            Destinataires::create([
-                'memo_id'   => $memo->id,
-                'entity_id' => $recipient['entity_id'],
-                'action'    => $recipient['action']
-            ]);
-        }
+        $recipientData = array_map(fn($r) => [
+            'memo_id'   => $memo->id,
+            'entity_id' => $r['entity_id'],
+            'action'    => $r['action'],
+            'created_at' => now(),
+            'updated_at' => now()
+        ], $this->recipients);
+        Destinataires::insert($recipientData);
 
         $this->closeModalDeux();
         $this->isEditing = false;
@@ -355,103 +327,96 @@ class DocsMemos extends Component
     }
 
     // =========================================================
-    // 6. GÉNÉRATION PDF ET EXPORT
+    // 6. GÉNÉRATION PDF
     // =========================================================
 
     public function downloadMemoPDF()
     {
         $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
-        
         $recipientsByAction = $memo->destinataires->groupBy('action');
 
-        // Assets en Base64 pour DomPDF
-        $pathLogo   = public_path('images/logo.jpg');
-        $logoBase64 = file_exists($pathLogo) 
-            ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($pathLogo)) 
-            : null;
+        $pathLogo = public_path('images/logo.jpg');
+        $logoBase64 = file_exists($pathLogo) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($pathLogo)) : null;
 
         $qrCodeBase64 = null;
         if ($memo->qr_code) {
-            $qrImage      = QrCode::format('svg')->size(100)->generate(route('memo.verify', $memo->qr_code));
+            $qrImage = QrCode::format('png')->size(100)->margin(1)->generate(route('memo.verify', $memo->qr_code));
             $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($qrImage);
         }
 
         $pdf = Pdf::loadView('pdf.memo-layout', [
-            'memo'               => $memo,
-            'recipientsByAction' => $recipientsByAction,
-            'logo'               => $logoBase64,
-            'qrCode'             => $qrCodeBase64,
-            'date'               => $memo->created_at->format('d/m/Y'),
-        ]);
+            'memo' => $memo, 'recipientsByAction' => $recipientsByAction,
+            'logo' => $logoBase64, 'qrCode' => $qrCodeBase64, 'date' => $memo->created_at->format('d/m/Y'),
+        ])->setPaper('a4', 'portrait');
 
-        $pdf->setPaper('a4', 'portrait');
-
-        return response()->streamDownload(fn() => print($pdf->output()), 'Memo_' . $memo->id . '.pdf');
+        return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
     }
 
     // =========================================================
-    // 7. HELPERS ET MÉTHODES PRIVÉES
+    // 7. HELPERS (Fixé pour supporter $data['original']->id)
     // =========================================================
 
-    /**
-     * Vérifie si un utilisateur est actuellement remplacé
-     */
-    private function resolveUserAvailability($user)
+    private function resolveUserAvailability($user, $activeReplacements)
     {
         if (!$user) return null;
 
-        $today = Carbon::now()->format('Y-m-d'); 
-        $replacement = ReplacesUser::where('user_id', $user->id)
-            ->where('date_begin_replace', '<=', $today)
-            ->where('date_end_replace', '>=', $today)
-            ->first();
+        $replacement = $activeReplacements->get($user->id);
 
+        // STRUCTURE CRUCIALE : Un tableau contenant des objets stdClass
         if ($replacement) {
             $replacingUser = User::find($replacement->user_id_replace);
             if ($replacingUser) {
                 return [
-                    'original'    => $user,
-                    'effective'   => $replacingUser,
+                    'original'    => (object) $user->only(['id', 'first_name', 'last_name', 'poste', 'departement']),
+                    'effective'   => (object) $replacingUser->only(['id', 'first_name', 'last_name', 'poste', 'departement']),
                     'is_replaced' => true
                 ];
             }
         }
 
         return [
-            'original'    => $user,
-            'effective'   => $user,
+            'original'    => (object) $user->only(['id', 'first_name', 'last_name', 'poste', 'departement']),
+            'effective'   => (object) $user->only(['id', 'first_name', 'last_name', 'poste', 'departement']),
             'is_replaced' => false
         ];
     }
 
-    // --- Gestion de la fermeture des Modals ---
-    public function closeModal() { $this->isOpen = false; }
+    public function closeModal() { 
+        $this->isOpen = false; $this->reset(['memo_id', 'content', 'object']);
+    }
+
     public function closeModalDeux() { 
         $this->isOpen2 = false; 
         $this->reset(['object', 'concern', 'content', 'recipients', 'newAttachments', 'existingAttachments']); 
     }
-    public function closeModalTrois() { $this->isOpen3 = false; }
-    public function closeHistoryModal() { $this->isOpenHistory = false; $this->memoHistory = []; }
+
+    public function closeModalTrois() { 
+        $this->isOpen3 = false; $this->reset(['projectUsersList', 'managerData', 'workflow_comment']);
+    }
+
+    public function closeHistoryModal() { 
+        $this->isOpenHistory = false; $this->memoHistory = []; 
+    }
 
     // =========================================================
-    // 8. RENDU DE LA VUE
+    // 8. RENDU
     // =========================================================
 
     public function render()
     {
-        $memos = Memo::with(['destinataires.entity'])
+        $memos = Memo::query()
+            ->with(['destinataires.entity'])
             ->where('user_id', Auth::id())
             ->whereIn('status', ['envoyer', 'rejeter', 'transmis', 'coter', 'repondu', 'terminer', 'traiter']) 
-            ->where(function($query) {
-                $query->where('object', 'like', '%'.$this->search.'%')
-                      ->orWhere('concern', 'like', '%'.$this->search.'%');
+            ->when($this->search, function($query) {
+                $term = '%'.$this->search.'%';
+                $query->where(function($q) use ($term) {
+                    $q->where('object', 'like', $term)->orWhere('concern', 'like', $term);
+                });
             })
             ->orderBy('created_at', 'desc')
             ->paginate(9);
 
-        return view('livewire.memos.docs-memos', [
-            'memos'    => $memos,
-            'entities' => $this->allEntities
-        ]);
+        return view('livewire.memos.docs-memos', ['memos' => $memos, 'entities' => $this->allEntities]);
     }
 }

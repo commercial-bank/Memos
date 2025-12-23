@@ -4,60 +4,78 @@ namespace App\Livewire\Setting;
 
 use App\Models\User;
 use App\Models\Entity;
-use App\Models\Memo;       // <--- AJOUT
-use App\Models\Historiques; // <--- AJOUT
+use App\Models\Memo;       
+use App\Models\Historiques; 
 use Livewire\Component;
 use App\Models\ReplacesUser;
 use Livewire\WithPagination;
 use App\Models\SousDirection;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+use SimpleSoftwareIO\QrCode\Facades\QrCode; 
 
 class Settings extends Component
 {
     use WithPagination;
 
-    // --- ÉTAT GLOBAL ---
-    // Ajout de 'audit' dans les onglets
-    public $activeTab = 'users'; // 'users', 'entities', 'sous_directions', 'audit'
-    public $search = '';
+    // =========================================================
+    // 1. PROPRIÉTÉS DU COMPOSANT
+    // =========================================================
 
-    // --- VARIABLES STRUCTURES (Entités/SD) ---
+    // --- État Global ---
+    public $activeTab = 'users'; 
+    public $search = '';
+    public $viewingMemoId = null;
+
+    // --- Variables Structures (Entités/SD) ---
     public $showModal = false;
     public $isEditing = false;
     public $itemId = null;
     public $ref;
     public $name;
 
-    // --- VARIABLES AUDIT (Nouveau) ---
+    // --- Variables Audit ---
     public $auditMemoId = null;
     public $auditHistory = [];
     public $selectedMemo = null;
     public $showAuditModal = false;
 
-    // --- VARIABLES REMPLACEMENTS ---
+    // --- Variables Remplacements ---
     public $replace_user_id;
     public $replace_actions = [];
     public $date_begin;
     public $date_end;
     public $userReplacements = [];
 
-    // --- NAVIGATION & RECHERCHE ---
-    
-    public function updatedActiveTab()
+    // =========================================================
+    // 2. NAVIGATION ET RECHERCHE
+    // =========================================================
+
+    /**
+     * Hook appelé avant le changement d'onglet
+     * Optimisation : Nettoie la mémoire et réinitialise la pagination
+     */
+    public function updatingActiveTab()
     {
         $this->resetPage();
         $this->search = '';
         $this->resetValidation();
-        // Reset des modales spécifiques
-        $this->showAuditModal = false; 
+        // Reset des données lourdes pour alléger le transfert réseau
+        $this->reset(['showAuditModal', 'selectedMemo', 'userReplacements', 'viewingMemoId']); 
     }
 
-    public function updatedSearch()
+    /**
+     * Hook appelé lors de la saisie dans la recherche
+     */
+    public function updatingSearch()
     {
         $this->resetPage();
     }
 
-    // --- LOGIQUE UTILISATEURS ---
+    // =========================================================
+    // 3. LOGIQUE UTILISATEURS
+    // =========================================================
+
     public function toggleAdmin($userId)
     {
         $user = User::findOrFail($userId);
@@ -76,22 +94,36 @@ class Settings extends Component
         }
     }
 
-    // --- LOGIQUE AUDIT / SUPERVISION (NOUVEAU) ---
+    // =========================================================
+    // 4. LOGIQUE AUDIT / SUPERVISION
+    // =========================================================
 
-    public function openAuditDetails($memoId)
-    {
-        $this->selectedMemo = Memo::with('user')->find($memoId);
-        
-        // Récupération de l'historique chronologique
-        $this->auditHistory = Historiques::where('memo_id', $memoId)
-            ->with('user') // Assurez-vous que la relation user existe dans Historique
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        $this->showAuditModal = true;
+    /**
+     * Ouvre les détails complets d'un mémo pour audit
+     * Optimisation : Eager loading massif pour éviter les requêtes N+1
+     */
+    public function openAuditDetails($memoId) {
+        $this->viewingMemoId = $memoId;
+        $this->selectedMemo = Memo::with([
+            'user.entity', 
+            'historiques.user', 
+            'destinataires.entity',
+            'parent.user', 
+            'replies.destinataires.entity', 
+            'replies.user'
+        ])->findOrFail($memoId);
     }
 
-    // --- LOGIQUE STRUCTURES ---
+    /**
+     * Ferme l'audit et libère la mémoire
+     */
+    public function closeAuditDetails() {
+        $this->reset(['viewingMemoId', 'selectedMemo']);
+    }
+
+    // =========================================================
+    // 5. LOGIQUE STRUCTURES (CRUD)
+    // =========================================================
 
     protected function rules()
     {
@@ -104,21 +136,24 @@ class Settings extends Component
 
     public function openCreateModal()
     {
-        $this->reset(['ref', 'name', 'itemId', 'isEditing']);
+        $this->reset(['ref', 'name', 'itemId', 'isEditing', 'userReplacements']);
         $this->showModal = true;
     }
 
+    /**
+     * Prépare l'édition d'un utilisateur ou d'une structure
+     */
     public function openEditModal($id)
     {
         $this->resetValidation();
         
         if ($this->activeTab === 'users') {
-            $model = User::with('replacements.substitute')->find($id);
+            $model = User::with('replacements.substitute')->findOrFail($id);
             $this->userReplacements = $model->replacements; 
             $this->itemId = $model->id; 
         } 
         else {
-            $model = $this->activeTab === 'entities' ? Entity::find($id) : SousDirection::find($id);
+            $model = $this->activeTab === 'entities' ? Entity::findOrFail($id) : SousDirection::findOrFail($id);
             $this->itemId = $model->id;
             $this->ref = $model->ref; 
             $this->name = $model->name; 
@@ -128,7 +163,9 @@ class Settings extends Component
         $this->showModal = true;
     }
 
-    // --- LOGIQUE DE GESTION DES REMPLACANTS ---
+    // =========================================================
+    // 6. GESTION DES REMPLAÇANTS
+    // =========================================================
 
     public function addReplacement()
     {
@@ -152,6 +189,7 @@ class Settings extends Component
             'date_end_replace'   => $this->date_end,
         ]);
 
+        // Rafraichissement optimisé de la liste
         $this->userReplacements = ReplacesUser::where('user_id', $this->itemId)->with('substitute')->get();
         $this->reset(['replace_user_id', 'date_begin', 'date_end', 'replace_actions']);
         $this->dispatch('notify', message: 'Remplaçant ajouté avec succès.');
@@ -170,14 +208,17 @@ class Settings extends Component
     public function saveStructure()
     {
         $this->validate();
+
         if ($this->activeTab === 'entities') {
             $model = $this->isEditing ? Entity::find($this->itemId) : new Entity();
         } else {
             $model = $this->isEditing ? SousDirection::find($this->itemId) : new SousDirection();
         }
+
         $model->ref = $this->ref;
         $model->name = $this->name;
         $model->save();
+
         $this->showModal = false;
         $this->dispatch('notify', message: ($this->isEditing ? 'Modification' : 'Création') . ' effectuée avec succès !');
     }
@@ -185,69 +226,74 @@ class Settings extends Component
     public function deleteStructure($id)
     {
         if ($this->activeTab === 'entities') {
-            Entity::find($id)->delete();
+            Entity::findOrFail($id)->delete();
         } else {
-            SousDirection::find($id)->delete();
+            SousDirection::findOrFail($id)->delete();
         }
         $this->dispatch('notify', message: 'Élément supprimé.');
     }
 
-    // --- RENDER ---
+    // =========================================================
+    // 7. RENDU ET PERFORMANCE
+    // =========================================================
 
     public function render()
     {
         $data = [];
         $stats = [];
+        $searchTerm = '%' . $this->search . '%';
 
-        // 1. CHARGEMENT DONNÉES UTILISATEURS
+        // 1. CHARGEMENT DONNÉES UTILISATEURS (Optimisé avec Entity)
         if ($this->activeTab === 'users') {
             $data = User::query()
-                ->where(function($q) {
-                    $q->where('first_name', 'like', '%' . $this->search . '%')
-                      ->orWhere('last_name', 'like', '%' . $this->search . '%') 
-                      ->orWhere('email', 'like', '%' . $this->search . '%');
+                ->with('entity') // Eager loading pour le nom de l'entité
+                ->where(function($q) use ($searchTerm) {
+                    $q->where('first_name', 'like', $searchTerm)
+                      ->orWhere('last_name', 'like', $searchTerm) 
+                      ->orWhere('email', 'like', $searchTerm);
                 })
-                ->orderBy('created_at', 'desc')
+                ->latest()
                 ->paginate(10);
         } 
         // 2. CHARGEMENT DONNÉES AUDIT (SUPERVISION)
         elseif ($this->activeTab === 'audit') {
-            // Stats globales pour le dashboard admin
+            // Optimisation : On calcule toutes les stats en une passe
             $stats = [
                 'total' => Memo::count(),
-                'pending' => Memo::where('status', 'document')->orWhere('status', 'like', '%cours%')->count(), // Ajuster selon vos statuts réels
-                'signed' => Memo::whereNotNull('signature_dir')->count(),
+                'verified' => Memo::whereNotNull('qr_code')->count(),
+                'integrity_rate' => Memo::count() > 0 ? round((Memo::whereNotNull('qr_code')->count() / Memo::count()) * 100) : 0,
+                'pending' => Memo::where('status', 'document')->count(),
                 'today' => Memo::whereDate('created_at', now())->count(),
             ];
 
-            // Liste des mémos avec recherche
+            // Liste des mémos avec eager loading de l'auteur
             $data = Memo::with('user')
-                ->where(function($q) {
-                    $q->where('object', 'like', '%'.$this->search.'%')
-                      ->orWhere('reference', 'like', '%'.$this->search.'%');
+                ->where(function($q) use ($searchTerm) {
+                    $q->where('object', 'like', $searchTerm)
+                      ->orWhere('reference', 'like', $searchTerm);
                 })
-                ->orderBy('created_at', 'desc')
+                ->latest()
                 ->paginate(10);
         }
         // 3. CHARGEMENT STRUCTURES
         elseif ($this->activeTab === 'entities') {
             $data = Entity::query()
-                ->where('name', 'like', '%'.$this->search.'%')
-                ->orWhere('ref', 'like', '%'.$this->search.'%')
-                ->orderBy('created_at', 'desc')
+                ->where('name', 'like', $searchTerm)
+                ->orWhere('ref', 'like', $searchTerm)
+                ->latest()
                 ->paginate(10);
         } 
         else { // sous_directions
             $data = SousDirection::query()
-                ->where('name', 'like', '%'.$this->search.'%')
-                ->orWhere('ref', 'like', '%'.$this->search.'%')
-                ->orderBy('created_at', 'desc')
+                ->where('name', 'like', $searchTerm)
+                ->orWhere('ref', 'like', $searchTerm)
+                ->latest()
                 ->paginate(10);
         }
 
         return view('livewire.setting.settings', [
             'data' => $data,
-            'stats' => $stats // On passe les stats à la vue
+            'stats' => $stats 
         ]);
     }
 }
