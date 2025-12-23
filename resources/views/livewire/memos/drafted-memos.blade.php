@@ -392,53 +392,129 @@
 
                         <!-- ÉDITEUR QUILL (Type Word) -->
                         <div class="pt-2">
-                            <label class="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-3 flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                Corps du Document
-                            </label>
+                        <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2" style="color: var(--c-grey);">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Corps du Document
+                        </label>
 
-                            <div wire:ignore 
-                                class="flex flex-col items-center bg-gray-50 rounded-lg p-4 border border-gray-200"
-                                x-data="{
-                                    content: @entangle('content'),
-                                    quill: null,
-                                    initQuill() {
-                                        const Font = Quill.import('formats/font');
-                                        Font.whitelist = ['helvetica', 'arial', 'tahoma', 'roboto', 'timesnewroman', 'georgia', 'inter', 'aptos'];
-                                        Quill.register(Font, true);
-
-                                        const Size = Quill.import('attributors/style/size');
-                                        Size.whitelist = ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '32px'];
-                                        Quill.register(Size, true);
-
-                                        this.quill = new Quill(this.$refs.quillEditor, {
-                                            theme: 'snow',
-                                            placeholder: 'Rédigez le contenu ici...',
-                                            modules: { toolbar: '#toolbar-container-edit' }
-                                        });
-                                        if (this.content) { this.quill.root.innerHTML = this.content; }
-                                        this.quill.on('text-change', () => { this.content = this.quill.root.innerHTML; });
-                                    },
-                                    askCustomSize() {
-                                        let size = prompt('Taille (ex: 17px) :', '16px');
-                                        if (size) { this.quill.focus(); this.quill.format('size', size.includes('px') ? size : size + 'px'); }
-                                    }
-                                }" x-init="initQuill()">
+                        <div wire:ignore 
+                            class="flex flex-col items-center bg-gray-50 rounded-lg p-4 border border-gray-200"
+                            x-data="{
+                                content: @entangle('content'),
+                                quill: null,
                                 
-                                <!-- Toolbar Quill -->
-                                <div id="toolbar-container-edit" class="w-full max-w-4xl mb-4 !border-0 bg-white rounded-lg shadow-sm flex flex-wrap items-center justify-center gap-x-2 p-2 border border-gray-200">
-                                    <span class="ql-formats"><select class="ql-header"><option value="1">T1</option><option value="2">T2</option><option selected>Texte</option></select></span>
-                                    <span class="ql-formats"><select class="ql-font"><option value="arial" selected>Arial</option><option value="tahoma">Tahoma</option><option value="timesnewroman">Times New Roman</option></select></span>
-                                    <span class="ql-formats"><select class="ql-size"><option value="12px">12px</option><option value="14px" selected>14px</option><option value="16px">16px</option><option value="18px">18px</option></select></span>
-                                    <span class="ql-formats"><button class="ql-bold"></button><button class="ql-italic"></button><button class="ql-underline"></button><select class="ql-color"></select></span>
-                                    <span class="ql-formats"><button class="ql-align" value=""></button><button class="ql-align" value="center"></button><button class="ql-align" value="justify"></button></span>
-                                    <span class="ql-formats"><button class="ql-list" value="ordered"></button><button class="ql-list" value="bullet"></button><button class="ql-clean"></button></span>
-                                </div>
+                                initQuill() {
+                                    // 1. Enregistrement des Polices (Ajout de Tahoma)
+                                    const Font = Quill.import('formats/font');
+                                    Font.whitelist = [
+                                        'helvetica', 'arial', 'roboto', 'calibri', 'opensans', 'futura', 
+                                        'timesnewroman', 'georgia', 'garamond', 'playfair', 
+                                        'inter', 'aptos', 'tahoma'
+                                    ];
+                                    Quill.register(Font, true);
 
-                                <!-- Papier A4 Virtuel -->
-                                <div class="w-full max-w-[21cm] shadow-xl ring-1 ring-gray-200">
-                                    <div x-ref="quillEditor" class="bg-white text-gray-900 leading-relaxed min-h-[500px]"></div>
-                                </div>
+                                    // 2. Configuration Taille (Style Inline pour tailles personnalisées)
+                                    const Size = Quill.import('attributors/style/size');
+                                    Size.whitelist = ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '32px', '48px'];
+                                    Quill.register(Size, true);
+
+                                    // 3. Initialisation de l'éditeur
+                                    this.quill = new Quill(this.$refs.quillEditor, {
+                                        theme: 'snow',
+                                        placeholder: ' Rédigez votre mémo ici...',
+                                        modules: {
+                                            toolbar: '#toolbar-container'
+                                        }
+                                    });
+
+                                    if (this.content) {
+                                        this.quill.root.innerHTML = this.content;
+                                    }
+                                    
+                                    this.quill.on('text-change', () => {
+                                        this.content = this.quill.root.innerHTML;
+                                    });
+                                },
+
+                    
+                            }"
+                            x-init="initQuill()">
+                            
+                            <!-- BARRE D'OUTILS -->
+                            <div id="toolbar-container" class="w-full max-w-4xl mb-4 !border-0 bg-white rounded-lg shadow-sm flex flex-wrap items-center justify-center gap-x-2 border border-gray-200 p-2">
+                                
+                                <!-- H1-H6 -->
+                                <span class="ql-formats">
+                                    <select class="ql-header">
+                                        <option value="1">Titre 1</option>
+                                        <option value="2">Titre 2</option>
+                                        <option value="3">Titre 3</option>
+                                        <option value="4">Titre 4</option>
+                                        <option value="5">Titre 5</option>
+                                        <option value="6">Titre 6</option>
+                                        <option selected>Texte</option>
+                                    </select>
+                                </span>
+
+                                <!-- Polices (Tahoma ajoutée) -->
+                                <span class="ql-formats">
+                                    <select class="ql-font">
+                                        <option value="helvetica">Helvetica</option>
+                                        <option value="arial">Arial</option>
+                                        <option value="tahoma" selected>Tahoma</option>
+                                        <option value="roboto">Roboto</option>
+                                        <option value="calibri">Calibri</option>
+                                        <option value="opensans">Open Sans</option>
+                                        <option value="futura">Futura</option>
+                                        <option value="timesnewroman">Times New Roman</option>
+                                        <option value="georgia">Georgia</option>
+                                        <option value="garamond">Garamond</option>
+                                        <option value="playfair">Playfair Display</option>
+                                        <option value="inter">Inter</option>
+                                        <option value="aptos">Aptos</option>
+                                    </select>
+                                </span>
+
+                                <!-- Tailles -->
+                                <span class="ql-formats flex items-center border-r pr-2">
+                                    <select class="ql-size">
+                                        <option value="10pt">10pt</option>
+                                        <option value="12pt">12pt</option>
+                                        <option value="14pt" selected>14pt</option>
+                                        <option value="16pt">16pt</option>
+                                        <option value="18pt">18pt</option>
+                                        <option value="20pt">20pt</option>
+                                        <option value="24pt">24pt</option>
+                                        <option value="32pt">32pt</option>
+                                    </select>
+                                    <button type="button" @click.prevent="askCustomSize()" class="ml-1 p-1 hover:bg-gray-100 rounded text-xs font-bold" title="Taille libre">px+</button>
+                                </span>
+
+                                <!-- Styles & Alignement -->
+                                <span class="ql-formats">
+                                    <button class="ql-bold"></button>
+                                    <button class="ql-italic"></button>
+                                    <button class="ql-underline"></button>
+                                    <select class="ql-color"></select>
+                                    <button class="ql-align" value=""></button>
+                                    <button class="ql-align" value="center"></button>
+                                    <button class="ql-align" value="right"></button>
+                                    <button class="ql-align" value="justify"></button>
+                                </span>
+
+                             
+
+                                <!-- Formes -->
+                                <span class="ql-formats border-l pl-2">
+                                    <button class="ql-clean"></button>
+                                </span>
+                            </div>
+
+                            <!-- ZONE D'ÉDITION -->
+                            <div class="w-full max-w-[21cm] shadow-xl ring-1 ring-gray-900/5">
+                                <div x-ref="quillEditor" class="bg-white text-gray-900 leading-relaxed h-auto" style="min-height: 29.7cm;"></div>
                             </div>
                         </div>
 
@@ -859,40 +935,131 @@
                         </div>
 
                         <!-- C. Éditeur Quill -->
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Contenu</label>
-                            <div wire:ignore 
-                                    class="flex flex-col bg-white rounded-lg border border-gray-300 shadow-sm transition-all focus-within:ring-1 focus-within:ring-yellow-500"
-                                    x-data="{
-                                    content: @entangle('content'),
-                                    quill: null,
-                                    initQuill() {
-                                        if(this.quill) return;
-                                        this.quill = new Quill(this.$refs.quillEditor, {
-                                            theme: 'snow',
-                                            placeholder: 'Saisissez le corps du mémorandum ici...',
-                                            modules: {
-                                                toolbar: [
-                                                    [{ 'header': [1, 2, 3, false] }],
-                                                    ['bold', 'italic', 'underline', 'strike'],
-                                                    [{ 'color': [] }, { 'background': [] }],
-                                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                                                    [{ 'align': [] }],
-                                                    ['clean']
-                                                ]
-                                            }
-                                        });
-                                        if (this.content) { this.quill.root.innerHTML = this.content; }
-                                        this.quill.on('text-change', () => {
-                                            this.content = this.quill.root.innerHTML;
-                                        });
+                        <div class="pt-2">
+                        <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2" style="color: var(--c-grey);">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Corps du Document
+                        </label>
+
+                        <div wire:ignore 
+                            class="flex flex-col items-center bg-gray-50 rounded-lg p-4 border border-gray-200"
+                            x-data="{
+                                content: @entangle('content'),
+                                quill: null,
+                                
+                                initQuill() {
+                                    // 1. Enregistrement des Polices (Ajout de Tahoma)
+                                    const Font = Quill.import('formats/font');
+                                    Font.whitelist = [
+                                        'helvetica', 'arial', 'roboto', 'calibri', 'opensans', 'futura', 
+                                        'timesnewroman', 'georgia', 'garamond', 'playfair', 
+                                        'inter', 'aptos', 'tahoma'
+                                    ];
+                                    Quill.register(Font, true);
+
+                                    // 2. Configuration Taille (Style Inline pour tailles personnalisées)
+                                    const Size = Quill.import('attributors/style/size');
+                                    Size.whitelist = ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '32px', '48px'];
+                                    Quill.register(Size, true);
+
+                                    // 3. Initialisation de l'éditeur
+                                    this.quill = new Quill(this.$refs.quillEditor, {
+                                        theme: 'snow',
+                                        placeholder: ' Rédigez votre mémo ici...',
+                                        modules: {
+                                            toolbar: '#toolbar-container'
+                                        }
+                                    });
+
+                                    if (this.content) {
+                                        this.quill.root.innerHTML = this.content;
                                     }
-                                    }"
-                                    x-init="setTimeout(() => initQuill(), 50)"
-                            >
-                                <div x-ref="quillEditor" class="min-h-[400px] font-serif text-base text-gray-800"></div>
+                                    
+                                    this.quill.on('text-change', () => {
+                                        this.content = this.quill.root.innerHTML;
+                                    });
+                                },
+
+                    
+                            }"
+                            x-init="initQuill()">
+                            
+                            <!-- BARRE D'OUTILS -->
+                            <div id="toolbar-container" class="w-full max-w-4xl mb-4 !border-0 bg-white rounded-lg shadow-sm flex flex-wrap items-center justify-center gap-x-2 border border-gray-200 p-2">
+                                
+                                <!-- H1-H6 -->
+                                <span class="ql-formats">
+                                    <select class="ql-header">
+                                        <option value="1">Titre 1</option>
+                                        <option value="2">Titre 2</option>
+                                        <option value="3">Titre 3</option>
+                                        <option value="4">Titre 4</option>
+                                        <option value="5">Titre 5</option>
+                                        <option value="6">Titre 6</option>
+                                        <option selected>Texte</option>
+                                    </select>
+                                </span>
+
+                                <!-- Polices (Tahoma ajoutée) -->
+                                <span class="ql-formats">
+                                    <select class="ql-font">
+                                        <option value="helvetica">Helvetica</option>
+                                        <option value="arial">Arial</option>
+                                        <option value="tahoma" selected>Tahoma</option>
+                                        <option value="roboto">Roboto</option>
+                                        <option value="calibri">Calibri</option>
+                                        <option value="opensans">Open Sans</option>
+                                        <option value="futura">Futura</option>
+                                        <option value="timesnewroman">Times New Roman</option>
+                                        <option value="georgia">Georgia</option>
+                                        <option value="garamond">Garamond</option>
+                                        <option value="playfair">Playfair Display</option>
+                                        <option value="inter">Inter</option>
+                                        <option value="aptos">Aptos</option>
+                                    </select>
+                                </span>
+
+                                <!-- Tailles -->
+                                <span class="ql-formats flex items-center border-r pr-2">
+                                    <select class="ql-size">
+                                        <option value="10pt">10pt</option>
+                                        <option value="12pt">12pt</option>
+                                        <option value="14pt" selected>14pt</option>
+                                        <option value="16pt">16pt</option>
+                                        <option value="18pt">18pt</option>
+                                        <option value="20pt">20pt</option>
+                                        <option value="24pt">24pt</option>
+                                        <option value="32pt">32pt</option>
+                                    </select>
+                                    <button type="button" @click.prevent="askCustomSize()" class="ml-1 p-1 hover:bg-gray-100 rounded text-xs font-bold" title="Taille libre">px+</button>
+                                </span>
+
+                                <!-- Styles & Alignement -->
+                                <span class="ql-formats">
+                                    <button class="ql-bold"></button>
+                                    <button class="ql-italic"></button>
+                                    <button class="ql-underline"></button>
+                                    <select class="ql-color"></select>
+                                    <button class="ql-align" value=""></button>
+                                    <button class="ql-align" value="center"></button>
+                                    <button class="ql-align" value="right"></button>
+                                    <button class="ql-align" value="justify"></button>
+                                </span>
+
+                             
+
+                                <!-- Formes -->
+                                <span class="ql-formats border-l pl-2">
+                                    <button class="ql-clean"></button>
+                                </span>
                             </div>
-                            @error('content') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+
+                            <!-- ZONE D'ÉDITION -->
+                            <div class="w-full max-w-[21cm] shadow-xl ring-1 ring-gray-900/5">
+                                <div x-ref="quillEditor" class="bg-white text-gray-900 leading-relaxed h-auto" style="min-height: 29.7cm;"></div>
+                            </div>
                         </div>
 
                         <!-- D. Pièces Jointes -->
