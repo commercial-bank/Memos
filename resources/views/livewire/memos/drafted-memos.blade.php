@@ -392,190 +392,155 @@
 
                         <!-- ÉDITEUR QUILL (Type Word) -->
                         <div class="pt-2">
-                        <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2" style="color: var(--c-grey);">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Corps du Document
-                        </label>
-
-                        <div wire:ignore 
-                            class="flex flex-col items-center bg-gray-50 rounded-lg p-4 border border-gray-200"
-                            x-data="{
-                                content: @entangle('content'),
-                                quill: null,
-                                
-                                initQuill() {
-                                    // 1. Enregistrement des Polices (Ajout de Tahoma)
-                                    const Font = Quill.import('formats/font');
-                                    Font.whitelist = [
-                                        'helvetica', 'arial', 'roboto', 'calibri', 'opensans', 'futura', 
-                                        'timesnewroman', 'georgia', 'garamond', 'playfair', 
-                                        'inter', 'aptos', 'tahoma'
-                                    ];
-                                    Quill.register(Font, true);
-
-                                    // 2. Configuration Taille (Style Inline pour tailles personnalisées)
-                                    const Size = Quill.import('attributors/style/size');
-                                    Size.whitelist = ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '32px', '48px'];
-                                    Quill.register(Size, true);
-
-                                    // 3. Initialisation de l'éditeur
-                                    this.quill = new Quill(this.$refs.quillEditor, {
-                                        theme: 'snow',
-                                        placeholder: ' Rédigez votre mémo ici...',
-                                        modules: {
-                                            toolbar: '#toolbar-container'
-                                        }
-                                    });
-
-                                    if (this.content) {
-                                        this.quill.root.innerHTML = this.content;
-                                    }
-                                    
-                                    this.quill.on('text-change', () => {
-                                        this.content = this.quill.root.innerHTML;
-                                    });
-                                },
-
-                    
-                            }"
-                            x-init="initQuill()">
-                            
-                            <!-- BARRE D'OUTILS -->
-                            <div id="toolbar-container" class="w-full max-w-4xl mb-4 !border-0 bg-white rounded-lg shadow-sm flex flex-wrap items-center justify-center gap-x-2 border border-gray-200 p-2">
-                                
-                                <!-- H1-H6 -->
-                                <span class="ql-formats">
-                                    <select class="ql-header">
-                                        <option value="1">Titre 1</option>
-                                        <option value="2">Titre 2</option>
-                                        <option value="3">Titre 3</option>
-                                        <option value="4">Titre 4</option>
-                                        <option value="5">Titre 5</option>
-                                        <option value="6">Titre 6</option>
-                                        <option selected>Texte</option>
-                                    </select>
+                            <!-- Label avec info utilisateur -->
+                            <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex justify-between items-center text-gray-500">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Corps du Document
                                 </span>
-
-                                <!-- Polices (Tahoma ajoutée) -->
-                                <span class="ql-formats">
-                                    <select class="ql-font">
-                                        <option value="helvetica">Helvetica</option>
-                                        <option value="arial">Arial</option>
-                                        <option value="tahoma" selected>Tahoma</option>
-                                        <option value="roboto">Roboto</option>
-                                        <option value="calibri">Calibri</option>
-                                        <option value="opensans">Open Sans</option>
-                                        <option value="futura">Futura</option>
-                                        <option value="timesnewroman">Times New Roman</option>
-                                        <option value="georgia">Georgia</option>
-                                        <option value="garamond">Garamond</option>
-                                        <option value="playfair">Playfair Display</option>
-                                        <option value="inter">Inter</option>
-                                        <option value="aptos">Aptos</option>
-                                    </select>
+                                <span class="text-[10px] font-normal normal-case italic opacity-60">
+                                    Les lignes rouges indiquent les sauts de page (Format A4)
                                 </span>
-
-                                <!-- Tailles -->
-                                <span class="ql-formats flex items-center border-r pr-2">
-                                    <select class="ql-size">
-                                        <option value="10pt">10pt</option>
-                                        <option value="12pt">12pt</option>
-                                        <option value="14pt" selected>14pt</option>
-                                        <option value="16pt">16pt</option>
-                                        <option value="18pt">18pt</option>
-                                        <option value="20pt">20pt</option>
-                                        <option value="24pt">24pt</option>
-                                        <option value="32pt">32pt</option>
-                                    </select>
-                                    <button type="button" @click.prevent="askCustomSize()" class="ml-1 p-1 hover:bg-gray-100 rounded text-xs font-bold" title="Taille libre">px+</button>
-                                </span>
-
-                                <!-- Styles & Alignement -->
-                                <span class="ql-formats">
-                                    <button class="ql-bold"></button>
-                                    <button class="ql-italic"></button>
-                                    <button class="ql-underline"></button>
-                                    <select class="ql-color"></select>
-                                    <button class="ql-align" value=""></button>
-                                    <button class="ql-align" value="center"></button>
-                                    <button class="ql-align" value="right"></button>
-                                    <button class="ql-align" value="justify"></button>
-                                </span>
-
-                             
-
-                                <!-- Formes -->
-                                <span class="ql-formats border-l pl-2">
-                                    <button class="ql-clean"></button>
-                                </span>
-                            </div>
-
-                            <!-- ZONE D'ÉDITION -->
-                            <div class="w-full max-w-[21cm] shadow-xl ring-1 ring-gray-900/5">
-                                <div x-ref="quillEditor" class="bg-white text-gray-900 leading-relaxed h-auto" style="min-height: 29.7cm;"></div>
-                            </div>
-                        </div>
-
-                        <!-- PIÈCES JOINTES -->
-                        <div class="mt-8 border-t border-gray-100 pt-6">
-                            <label class="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-3 flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                                Pièces Jointes (P.J.)
                             </label>
 
-                            <div class="space-y-4">
-                                <!-- Zone d'Upload -->
-                                <div class="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-[#daaf2c] hover:bg-yellow-50/10 transition-colors relative">
-                                    <div class="space-y-1 text-center">
-                                        <svg class="mx-auto h-12 w-12 text-gray-300" stroke="currentColor" fill="none" viewBox="0 0 48 48"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-                                        <div class="flex text-sm text-gray-600">
-                                            <label for="edit-upload" class="relative cursor-pointer bg-white rounded-md font-bold text-[#daaf2c] hover:text-yellow-600 focus-within:outline-none">
-                                                <span>Téléverser de nouveaux fichiers</span>
-                                                <input id="edit-upload" wire:model="newAttachments" type="file" class="sr-only" multiple>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <!-- Loader Upload -->
-                                    <div wire:loading wire:target="newAttachments" class="absolute inset-0 bg-white/80 flex items-center justify-center rounded-md">
-                                        <div class="flex items-center text-[#daaf2c] font-bold">
-                                            <svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                            Téléchargement...
-                                        </div>
-                                    </div>
+                            <div wire:ignore 
+                                class="flex flex-col items-center bg-gray-100 rounded-xl p-4 border border-gray-200 shadow-inner"
+                                x-data="{
+                                    content: @entangle('content'),
+                                    quill: null,
+                                    initQuill() {
+                                        // Enregistrement des Polices
+                                        const Font = Quill.import('formats/font');
+                                        Font.whitelist = ['helvetica', 'arial', 'roboto', 'tahoma', 'timesnewroman', 'georgia', 'inter'];
+                                        Quill.register(Font, true);
+
+                                        // Configuration Tailles
+                                        const Size = Quill.import('attributors/style/size');
+                                        Size.whitelist = ['10px', '12px', '14px', '16px', '18px', '20px', '24px'];
+                                        Quill.register(Size, true);
+
+                                        this.quill = new Quill(this.$refs.quillEditor, {
+                                            theme: 'snow',
+                                            placeholder: 'Commencez à rédiger votre mémorandum...',
+                                            modules: { toolbar: '#toolbar-container' }
+                                        });
+
+                                        if (this.content) { this.quill.root.innerHTML = this.content; }
+                                        this.quill.on('text-change', () => { this.content = this.quill.root.innerHTML; });
+                                    }
+                                }"
+                                x-init="initQuill()">
+                                
+                                <!-- BARRE D'OUTILS TAILWIND -->
+                                <div id="toolbar-container" class="w-full max-w-4xl mb-6 bg-white rounded-t-lg shadow-sm flex flex-wrap items-center justify-center gap-1 border border-gray-200 p-2 z-20 sticky top-0">
+                                    <span class="ql-formats">
+                                        <select class="ql-font">
+                                            <option value="tahoma" selected>Tahoma</option>
+                                            <option value="arial">Arial</option>
+                                            <option value="timesnewroman">Times New Roman</option>
+                                        </select>
+                                        <select class="ql-size">
+                                            <option value="12px">12px</option>
+                                            <option value="14px" selected>14px</option>
+                                            <option value="16px">16px</option>
+                                            <option value="18px">18px</option>
+                                        </select>
+                                    </span>
+                                    <span class="ql-formats border-l border-gray-200 pl-2">
+                                        <button class="ql-bold"></button>
+                                        <button class="ql-italic"></button>
+                                        <button class="ql-underline"></button>
+                                        <select class="ql-color"></select>
+                                    </span>
+                                    <span class="ql-formats border-l border-gray-200 pl-2">
+                                        <button class="ql-align" value=""></button>
+                                        <button class="ql-align" value="center"></button>
+                                        <button class="ql-align" value="justify"></button>
+                                    </span>
+                                    <span class="ql-formats border-l border-gray-200 pl-2">
+                                        <button class="ql-list" value="ordered"></button>
+                                        <button class="ql-list" value="bullet"></button>
+                                    </span>
                                 </div>
 
-                                <!-- Liste des fichiers (Existants + Nouveaux) -->
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <!-- Fichiers déjà en base -->
-                                    @foreach($existingAttachments as $idx => $fileData)
-                                        @php $fileName = basename(is_array($fileData) ? ($fileData['path'] ?? reset($fileData)) : $fileData); @endphp
-                                        <div class="flex items-center p-2 bg-blue-50 border border-blue-100 rounded-lg group">
-                                            <div class="h-8 w-8 flex-shrink-0 bg-blue-100 text-blue-600 rounded flex items-center justify-center font-bold text-[10px]">FIX</div>
-                                            <span class="ml-3 text-xs text-blue-900 truncate flex-1">{{ $fileName }}</span>
-                                            <button wire:click="removeExistingAttachment({{ $idx }})" class="text-blue-300 hover:text-red-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                                <!-- ZONE D'ÉDITION (FEUILLE A4) -->
+                                <div class="relative w-full max-w-[21cm] bg-white shadow-2xl border border-gray-300 transition-all duration-300">
+                                    
+                                    <!-- CALQUE DES LIGNES DE SAUT DE PAGE (Tailwind) -->
+                                    <!-- 1080px est une estimation de la hauteur utile A4 en tenant compte des marges -->
+                                    <div class="absolute inset-0 pointer-events-none z-10 overflow-hidden" aria-hidden="true">
+                                        
+                                        <!-- Page 1 -> 2 -->
+                                        <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 1080px;">
+                                            <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase tracking-wider shadow-md rounded-bl-md">
+                                                Début Page 2
+                                            </span>
                                         </div>
-                                    @endforeach
 
-                                    <!-- Nouveaux fichiers ajoutés -->
-                                    @foreach($newAttachments as $idx => $file)
-                                        <div class="flex items-center p-2 bg-yellow-50 border border-yellow-100 rounded-lg">
-                                            <div class="h-8 w-8 flex-shrink-0 bg-yellow-100 text-yellow-600 rounded flex items-center justify-center font-bold text-[10px]">NEW</div>
-                                            <span class="ml-3 text-xs text-yellow-900 truncate flex-1">{{ $file->getClientOriginalName() }}</span>
-                                            <button wire:click="removeNewAttachment({{ $idx }})" class="text-yellow-300 hover:text-red-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                                        <!-- Page 2 -> 3 -->
+                                        <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 2160px;">
+                                            <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase shadow-md rounded-bl-md">
+                                                Début Page 3
+                                            </span>
                                         </div>
-                                    @endforeach
+
+                                        <!-- Page 3 -> 4 -->
+                                        <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 3240px;">
+                                            <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase shadow-md rounded-bl-md">
+                                                Début Page 4
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- ÉDITEUR RÉEL -->
+                                    <div x-ref="quillEditor" class="text-gray-900 min-h-[29.7cm]"></div>
+                                </div>
+
+                                <!-- Footer Info -->
+                                <div class="w-full max-w-[21cm] mt-4 flex justify-between text-[10px] text-gray-400 font-medium px-2">
+                                    <span>Format : A4 Portrait (210 x 297 mm)</span>
+                                    <span>Police recommandée : Tahoma / 11-12pt</span>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Footer de la feuille -->
-                    <div class="bg-gray-50 px-8 py-4 border-t border-gray-200 flex justify-between items-center text-[10px] text-gray-400 uppercase tracking-widest">
-                        <span>Édition en cours par : {{ Auth::user()->first_name }} {{ Auth::user()->last_name }}</span>
-                        <span>Système de Gestion des Mémos</span>
-                    </div>
+                        <style>
+                            /* Intégration fine des styles Quill non gérables par Tailwind */
+                            .ql-container.ql-snow {
+                                border: none !important;
+                            }
+                            
+                            .ql-editor {
+                                padding: 50px 70px !important; /* Marges type Word */
+                                min-height: 29.7cm;
+                                font-family: 'Tahoma', sans-serif;
+                                line-height: 1.5;
+                                font-size: 14px;
+                            }
+
+                            /* Support des polices personnalisées dans la barre Quill */
+                            .ql-font-tahoma { font-family: 'Tahoma', sans-serif !important; }
+                            .ql-font-timesnewroman { font-family: 'Times New Roman', serif !important; }
+                            .ql-font-arial { font-family: 'Arial', sans-serif !important; }
+
+                            /* Forcer l'affichage des noms de tailles dans la barre d'outils */
+                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="12px"]::before,
+                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="12px"]::before { content: '12px'; }
+                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="14px"]::before,
+                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="14px"]::before { content: '14px'; }
+                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="16px"]::before,
+                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="16px"]::before { content: '16px'; }
+                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="18px"]::before,
+                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="18px"]::before { content: '18px'; }
+                        </style>
+
+                        <!-- Footer de la feuille -->
+                        <div class="bg-gray-50 px-8 py-4 border-t border-gray-200 flex justify-between items-center text-[10px] text-gray-400 uppercase tracking-widest">
+                            <span>Édition en cours par : {{ Auth::user()->first_name }} {{ Auth::user()->last_name }}</span>
+                            <span>Système de Gestion des Mémos</span>
+                        </div>
                 </div>
             </div>
 
