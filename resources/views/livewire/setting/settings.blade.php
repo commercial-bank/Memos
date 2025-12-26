@@ -181,17 +181,22 @@
                                         <p class="text-[10px] font-mono text-[#707173] uppercase tracking-tighter">{{ $user->email }}</p>
                                     </div>
                                 </td>
+
                                 <td class="px-6 py-4 text-xs font-medium text-[#707173] uppercase italic">{{ $user->poste ?? 'Non défini' }}</td>
+
                                 <td class="px-6 py-4 text-center">
                                     <button wire:click="toggleAdmin({{ $user->id }})" class="transition-all {{ $user->is_admin ? 'text-[#daaf2c]' : 'text-gray-200 hover:text-[#707173]' }}">
                                         <i class="fas fa-crown fa-lg"></i>
                                     </button>
                                 </td>
+
                                 <td class="px-6 py-4 text-center">
-                                    <button wire:click="toggleStatus({{ $user->id }})" class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border {{ $user->is_active ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-600 border-red-200' }}">
+                                    <button wire:click="confirmToggleStatus({{ $user->id }})" 
+                                            class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border {{ $user->is_active ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-600 border-red-200' }}">
                                         {{ $user->is_active ? 'Actif' : 'Inactif' }}
                                     </button>
                                 </td>
+
                                 <td class="px-6 py-4 text-right">
                                     <button wire:click="openEditModal({{ $user->id }})" class="text-[#707173] hover:text-gray-900 bg-gray-50 p-2 rounded-lg"><i class="fas fa-user-shield"></i></button>
                                 </td>
@@ -400,6 +405,47 @@
                     <div class="bg-gray-50 px-8 py-6 sm:px-10 flex flex-row-reverse gap-3">
                         @if($activeTab !== 'users') <button type="button" wire:click="saveStructure" class="px-8 py-3 bg-[#daaf2c] text-black rounded-full text-xs font-black uppercase tracking-widest shadow-lg hover:bg-yellow-500 transition-all">Valider</button> @endif
                         <button type="button" wire:click="$set('showModal', false)" class="px-8 py-3 bg-white text-[#707173] rounded-full text-xs font-black uppercase tracking-widest border border-gray-200 hover:bg-gray-50">Fermer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- MODAL DE MOTIF DE BLOCAGE -->
+    @if($showDeactivationModal)
+        <div class="fixed inset-0 z-[300] overflow-y-auto">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="fixed inset-0 bg-gray-900/90 backdrop-blur-sm transition-opacity" wire:click="$set('showDeactivationModal', false)"></div>
+
+                <div class="relative bg-white rounded-[2rem] shadow-2xl max-w-md w-full p-8 border-t-4 border-red-500 overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4">
+                        <button wire:click="$set('showDeactivationModal', false)" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="text-center mb-6">
+                        <div class="h-16 w-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-user-slash fa-2x"></i>
+                        </div>
+                        <h3 class="text-xl font-black text-gray-900 uppercase">Suspension de Compte</h3>
+                        <p class="text-xs text-gray-500 font-bold mt-1 uppercase tracking-tighter">Veuillez justifier cette action</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-black text-[#707173] uppercase mb-2">Motif du blocage (Visible par l'utilisateur)</label>
+                            <textarea wire:model="blocking_reason" 
+                                      rows="4" 
+                                      placeholder="Ex: Fin de contrat, Violation des règles de sécurité..."
+                                      class="w-full bg-gray-50 border-gray-200 rounded-2xl p-4 text-sm font-medium focus:ring-red-500 focus:border-red-500 @error('blocking_reason') border-red-500 @enderror"></textarea>
+                            @error('blocking_reason') <span class="text-[10px] text-red-500 font-bold uppercase">{{ $message }}</span> @enderror
+                        </div>
+
+                        <button wire:click="processDeactivation" 
+                                class="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg">
+                            Confirmer le blocage
+                        </button>
                     </div>
                 </div>
             </div>

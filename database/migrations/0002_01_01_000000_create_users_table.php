@@ -39,6 +39,7 @@ return new class extends Migration
                 $table->string('service')->nullable();
                 $table->boolean('is_admin')->default(false);
                 $table->boolean('is_active')->default(true);
+                $table->text('blocking_reason')->nullable();
                 $table->unsignedBigInteger('manager_id')->nullable();
     
                 $table->rememberToken();

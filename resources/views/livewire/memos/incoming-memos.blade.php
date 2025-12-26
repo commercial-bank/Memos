@@ -1,317 +1,367 @@
 <div class="min-h-screen bg-gray-50 py-8 font-sans">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                @if($isViewingPdf)
+                    <!-- ========================================== -->
+                    <!-- VUE 3 : APERÇU RÉEL PDF (DOMPDF)           -->
+                    <!-- ========================================== -->
+                    <div class="animate-fade-in">
+                        <!-- BARRE D'ACTIONS (Header style original) -->
+                        <div class="mb-8 bg-white border border-gray-100 rounded-xl shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all duration-300">
+                            <button wire:click="closePdfView" type="button" class="group flex items-center text-gray-500 hover:text-black transition-colors focus:outline-none">
+                                <div class="mr-3 h-10 w-10 rounded-full bg-gray-100 group-hover:bg-[#daaf2c]/20 group-hover:text-[#daaf2c] flex items-center justify-center transition-colors duration-200">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex flex-col items-start text-left">
+                                    <span class="font-bold text-base text-black">Retour</span>
+                                    <span class="text-xs font-normal text-gray-400">Revenir à la liste</span>
+                                </div>
+                            </button>
+                            
+                            <div class="flex items-center justify-end space-x-3 w-full sm:w-auto">
+                                <button wire:click="downloadMemoPDF" type="button" 
+                                    class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-lg shadow-md text-white transform hover:-translate-y-0.5 transition-all duration-200"
+                                    style="background-color: #ef4444;">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                    </svg>
+                                    Télécharger PDF
+                                </button>
+                            </div>
+                        </div>
 
+                        <!-- ZONE VISIONNEUSE (Style Papier) -->
+                        <div class="bg-gray-200 rounded-lg shadow-inner p-4 md:p-8 flex justify-center min-h-[80vh]">
+                            <div class="w-full max-w-5xl bg-white shadow-2xl">
+                                @if($pdfBase64)
+                                    <iframe 
+                                        src="data:application/pdf;base64,{{ $pdfBase64 }}#view=FitH" 
+                                        class="w-full h-[100vh] border-none">
+                                    </iframe>
+                                @else
+                                    <div class="flex flex-col items-center justify-center py-20">
+                                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#daaf2c]"></div>
+                                        <p class="mt-4 text-gray-500 font-bold">Génération du rendu final DomPDF...</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                @else
         
 
-        <!-- TABLEAU MODERNE -->
-        <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-200">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Objet & Concerne</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destinataires</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pièces Jointes</th>
-                            <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @forelse ($memos as $memo)
-                            <tr class="hover:bg-gray-50 transition-colors duration-150 group">
-                                
-                                <!-- 1. DATE -->
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <div class="flex flex-col">
-                                        <span class="font-medium text-gray-900">{{ $memo->created_at->format('d/m/Y') }}</span>
-                                        <span class="text-xs">{{ $memo->created_at->format('H:i') }}</span>
-                                    </div>
-                                </td>
-
-                                <!-- 2. OBJET -->
-                                <td class="px-6 py-4">
-                                    <div class="flex flex-col max-w-xs sm:max-w-sm md:max-w-md">
-                                        <span class="text-sm font-bold text-gray-800 truncate" title="{{ $memo->object }}">{{ $memo->object }}</span>
-                                        <span class="text-xs text-gray-500 truncate mt-1">Concerne: {{ $memo->concern }}</span>
-                                    </div>
-                                </td>
-
-                               <!-- 3. DESTINATAIRES (Badges avec Action) -->
-                                <td class="px-6 py-4">
-                                    <div class="flex flex-wrap gap-2">
-                                        @php 
-                                            // Récupération de la relation chargée dans le contrôleur
-                                            $destinataires = $memo->destinataires; 
-                                            $count = $destinataires->count();
-                                            $displayLimit = 3; // Augmenté un peu pour la lisibilité
-                                        @endphp
-
-                                        @if($count > 0)
-                                            @foreach($destinataires->take($displayLimit) as $dest)
-                                                @php
-                                                    // Logique de couleur selon l'action
-                                                    $isActionRequired = Str::contains(Str::lower($dest->action), 'nécessaire');
-                                                    $badgeClasses = $isActionRequired 
-                                                        ? 'bg-orange-100 text-orange-800 border border-orange-200' 
-                                                        : 'bg-blue-100 text-blue-800 border border-blue-200';
-                                                @endphp
-
-                                                <div class="inline-flex flex-col items-start justify-center px-2.5 py-1 rounded-md text-xs font-medium {{ $badgeClasses }}" 
-                                                    title="Action attendue : {{ $dest->action }}">
-                                                    
-                                                    <!-- Nom de l'entité (REF ou Nom tronqué) -->
-                                                    <span class="font-bold">
-                                                        {{ $dest->entity->ref ?? Str::limit($dest->entity->name, 15) }}
-                                                    </span>
-                                                    
-                                                    <!-- L'action affichée en tout petit en dessous -->
-                                                    <span class="text-[10px] opacity-80 leading-tight">
-                                                        {{ Str::limit($dest->action, 20) }}
-                                                    </span>
-                                                </div>
-                                            @endforeach
-
-                                            @if($count > $displayLimit)
-                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200" title="Et {{ $count - $displayLimit }} autres...">
-                                                    +{{ $count - $displayLimit }}
-                                                </span>
-                                            @endif
-                                        @else
-                                            <span class="text-xs text-gray-400 italic flex items-center gap-1">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                Non assigné
-                                            </span>
-                                        @endif
-                                    </div>
-                                </td>
-
-                                <!-- COLONNE PIÈCES JOINTES -->
-                                <td class="px-6 py-4 whitespace-nowrap" x-data="{ openFiles: false }">
-                                    @php
-                                        $pj = $memo->pieces_jointes;
-                                        if (is_string($pj)) { $pj = json_decode($pj, true); }
-                                        $pj = is_array($pj) ? $pj : [];
-                                        $countPj = count($pj);
-                                    @endphp
-
-                                    @if($countPj > 0)
-                                        <!-- 1. Le bouton Trombone (Déclencheur) -->
-                                        <button 
-                                            @click="openFiles = true" 
-                                            type="button"
-                                            class="flex items-center space-x-1 text-gray-600 hover:text-blue-600 transition-colors focus:outline-none">
+                    <!-- TABLEAU MODERNE -->
+                    <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-200">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Objet & Concerne</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destinataires</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pièces Jointes</th>
+                                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    @forelse ($memos as $memo)
+                                        <tr class="hover:bg-gray-50 transition-colors duration-150 group">
                                             
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                                            <span class="text-sm font-bold">{{ $countPj }}</span>
-                                        </button>
-
-                                        <!-- 2. Le Mini-Modal (S'affiche par dessus TOUT le site) -->
-                                        <div 
-                                            x-show="openFiles" 
-                                            style="display: none;"
-                                            class="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm"
-                                            @click.self="openFiles = false"
-                                            x-transition:enter="transition ease-out duration-200"
-                                            x-transition:enter-start="opacity-0"
-                                            x-transition:enter-end="opacity-100"
-                                            x-transition:leave="transition ease-in duration-150"
-                                            x-transition:leave-start="opacity-100"
-                                            x-transition:leave-end="opacity-0">
-                                            
-                                            <!-- Contenu du Popup -->
-                                            <div class="bg-white rounded-lg shadow-2xl w-80 max-w-sm mx-4 overflow-hidden border border-gray-100">
-                                                
-                                                <!-- En-tête Popup -->
-                                                <div class="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-                                                    <h3 class="text-sm font-bold text-gray-700">Pièces Jointes ({{ $countPj }})</h3>
-                                                    <button @click="openFiles = false" class="text-gray-400 hover:text-gray-600">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                                    </button>
+                                            <!-- 1. DATE -->
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <div class="flex flex-col">
+                                                    <span class="font-medium text-gray-900">{{ $memo->created_at->format('d/m/Y') }}</span>
+                                                    <span class="text-xs">{{ $memo->created_at->format('H:i') }}</span>
                                                 </div>
+                                            </td>
 
-                                                <!-- Liste des fichiers (Scrollable) -->
-                                                <div class="max-h-64 overflow-y-auto p-2">
-                                                    <ul class="space-y-1">
-                                                        @foreach($pj as $file)
+                                            <!-- 2. OBJET -->
+                                            <td class="px-6 py-4">
+                                                <div class="flex flex-col max-w-xs sm:max-w-sm md:max-w-md">
+                                                    <span class="text-sm font-bold text-gray-800 truncate" title="{{ $memo->object }}">{{ $memo->object }}</span>
+                                                    <span class="text-xs text-gray-500 truncate mt-1">Concerne: {{ $memo->concern }}</span>
+                                                </div>
+                                            </td>
+
+                                        <!-- 3. DESTINATAIRES (Badges avec Action) -->
+                                            <td class="px-6 py-4">
+                                                <div class="flex flex-wrap gap-2">
+                                                    @php 
+                                                        // Récupération de la relation chargée dans le contrôleur
+                                                        $destinataires = $memo->destinataires; 
+                                                        $count = $destinataires->count();
+                                                        $displayLimit = 3; // Augmenté un peu pour la lisibilité
+                                                    @endphp
+
+                                                    @if($count > 0)
+                                                        @foreach($destinataires->take($displayLimit) as $dest)
                                                             @php
-                                                                $filePath = is_string($file) ? $file : ($file['path'] ?? $file['url'] ?? $file[0] ?? '');
-                                                                $fileName = is_string($file) ? basename($file) : ($file['original_name'] ?? $file['name'] ?? basename($filePath));
+                                                                // Logique de couleur selon l'action
+                                                                $isActionRequired = Str::contains(Str::lower($dest->action), 'nécessaire');
+                                                                $badgeClasses = $isActionRequired 
+                                                                    ? 'bg-orange-100 text-orange-800 border border-orange-200' 
+                                                                    : 'bg-blue-100 text-blue-800 border border-blue-200';
                                                             @endphp
 
-                                                            @if($filePath)
-                                                                <li>
-                                                                    <a href="{{ Storage::url($filePath) }}" target="_blank" class="flex items-center p-2 hover:bg-blue-50 rounded-md text-sm text-gray-700 transition-colors group">
-                                                                        <div class="bg-blue-100 p-1.5 rounded-md mr-3 text-blue-600 group-hover:bg-blue-200">
-                                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                                                        </div>
-                                                                        <div class="flex-1 min-w-0">
-                                                                            <p class="truncate font-medium">{{ Str::limit($fileName, 30) }}</p>
-                                                                            <p class="text-[10px] text-gray-400">Cliquez pour ouvrir</p>
-                                                                        </div>
-                                                                        <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                                                                    </a>
-                                                                </li>
-                                                            @endif
+                                                            <div class="inline-flex flex-col items-start justify-center px-2.5 py-1 rounded-md text-xs font-medium {{ $badgeClasses }}" 
+                                                                title="Action attendue : {{ $dest->action }}">
+                                                                
+                                                                <!-- Nom de l'entité (REF ou Nom tronqué) -->
+                                                                <span class="font-bold">
+                                                                    {{ $dest->entity->ref ?? Str::limit($dest->entity->name, 15) }}
+                                                                </span>
+                                                                
+                                                                <!-- L'action affichée en tout petit en dessous -->
+                                                                <span class="text-[10px] opacity-80 leading-tight">
+                                                                    {{ Str::limit($dest->action, 20) }}
+                                                                </span>
+                                                            </div>
                                                         @endforeach
-                                                    </ul>
+
+                                                        @if($count > $displayLimit)
+                                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200" title="Et {{ $count - $displayLimit }} autres...">
+                                                                +{{ $count - $displayLimit }}
+                                                            </span>
+                                                        @endif
+                                                    @else
+                                                        <span class="text-xs text-gray-400 italic flex items-center gap-1">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                            Non assigné
+                                                        </span>
+                                                    @endif
                                                 </div>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <span class="text-gray-300 text-xs">-</span>
-                                    @endif
-                                </td>
+                                            </td>
 
-                                <!-- 4. ACTIONS (Boutons Icones) -->
-                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                    <div class="flex items-center justify-center space-x-3">
-                                        
-                                        <!-- CALCUL DES DROITS POUR CETTE LIGNE -->
-                                        @php
-                                            // On appelle la méthode du composant PHP
-                                            $repRights = $this->getReplacementRights($memo);
-                                            
-                                            // Est-ce un utilisateur standard (titulaire) ?
-                                            $isStandardSD = (auth()->user()->poste == "Sous-Directeur");
-                                            $isStandardDir = (auth()->user()->poste == "Directeur");
-                                            
-                                            // Est-ce un remplaçant ?
-                                            $isRep = ($repRights !== null && $repRights['is_active']);
-                                            
-                                            // Droits spécifiques du remplaçant (tableau simple ex: ['viser', 'signer'])
-                                            $repActions = $isRep ? $repRights['actions_allowed'] : [];
-                                        @endphp
+                                            <!-- COLONNE PIÈCES JOINTES -->
+                                            <td class="px-6 py-4 whitespace-nowrap" x-data="{ openFiles: false }">
+                                                @php
+                                                    $pj = $memo->pieces_jointes;
+                                                    if (is_string($pj)) { $pj = json_decode($pj, true); }
+                                                    $pj = is_array($pj) ? $pj : [];
+                                                    $countPj = count($pj);
+                                                @endphp
 
-                                        <!-- 1. ACTION : VOIR (Toujours dispo) -->
-                                        <button wire:click="viewMemo({{ $memo->id }})" class="text-gray-400 hover:text-blue-600 transition-colors" title="Aperçu">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                        </button>
-
-                                        <!-- FAVORIS -->
-                                        <button 
-                                            wire:click="toggleFavorite({{ $memo->id }})" 
-                                            class="transition-colors duration-200 {{ $memo->is_favorited ? 'text-yellow-400 hover:text-yellow-500' : 'text-gray-300 hover:text-yellow-400' }}" 
-                                            title="{{ $memo->is_favorited ? 'Retirer des favoris' : 'Ajouter aux favoris' }}">
-                                            
-                                            <!-- L'icône change selon l'état -->
-                                            @if($memo->is_favorited)
-                                                <!-- Étoile PLEINE (Solid) -->
-                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                                </svg>
-                                            @else
-                                                <!-- Étoile VIDE (Outline) -->
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
-                                                </svg>
-                                            @endif
-                                        </button>
-
-                                        <!-- 2. ACTIONS : SIGNER / VISER / REJETER -->
-
-                                        {{-- CAS 1 : C'est une SECRÉTAIRE --}}
-                                        @if(auth()->user()->poste == "Secretaire")
-                                            <button 
-                                                wire:click="transMemo({{ $memo->id }})" 
-                                                class="p-2 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 transition" 
-                                                title="Enregistrer">
-                                                
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
-                                                </svg>
-                                            </button>  
-
-                                        {{-- CAS 2 : C'est un MANAGER (SD, DIR ou leur REMPLAÇANT) --}}
-                                        @else
-
-                                            <!-- A. BOUTON ATTRIBUER & ENVOYER (VISER) -->
-                                            <!-- Condition : Si je suis titulaire (pas SD ni Dir qui signent d'abord) OU Si je suis remplaçant avec droit 'viser' -->
-                                            @if( (!$isStandardSD && !$isStandardDir) || ($isRep && in_array('viser', $repActions)) )
-                                                <button wire:click="assignMemo({{ $memo->id }})" class="text-gray-400 hover:text-green-600 transition-colors relative group" title="Attribuer & Envoyer">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                                                    @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-orange-100 text-orange-600 px-1 rounded border border-orange-200">P/O</span>@endif
-                                                </button>
-                                            @endif
-
-                                            <!-- B. BOUTON REJETER -->
-                                            <!-- Condition : Tout le monde peut rejeter SAUF si remplaçant sans droit 'rejeter' -->
-                                            @if( !$isRep || ($isRep && in_array('rejeter', $repActions)) )
-                                                <button wire:click="askReject({{ $memo->id }})" class="text-gray-400 hover:text-red-600 transition-colors relative" title="Rejeter">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                    @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-red-100 text-red-600 px-1 rounded border border-red-200">P/O</span>@endif
-                                                </button>
-                                            @endif
-
-                                            <!-- C. LOGIQUE SIGNATURE SOUS-DIRECTEUR (Titulaire OU Remplaçant d'un SD avec droit signer) -->
-                                            @php
-                                                // Le titulaire est SD OU Je remplace un user qui est SD ET j'ai le droit signer
-                                                $showSignSD = $isStandardSD || ($isRep && in_array('signer', $repActions) && optional($repRights['original_user'])->poste == 'Sous-Directeur');
-                                            @endphp
-
-                                            @if($showSignSD)
-                                                @if($memo->signature_sd != null )
-                                                    <!-- Déjà signé => Bouton Envoyer -->
-                                                    <button wire:click="assignMemo({{ $memo->id }})" class="text-green-500 hover:text-green-700 transition-colors" title="Envoyer (Signé)">
-                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                                @if($countPj > 0)
+                                                    <!-- 1. Le bouton Trombone (Déclencheur) -->
+                                                    <button 
+                                                        @click="openFiles = true" 
+                                                        type="button"
+                                                        class="flex items-center space-x-1 text-gray-600 hover:text-blue-600 transition-colors focus:outline-none">
+                                                        
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                                        <span class="text-sm font-bold">{{ $countPj }}</span>
                                                     </button>
+
+                                                    <!-- 2. Le Mini-Modal (S'affiche par dessus TOUT le site) -->
+                                                    <div 
+                                                        x-show="openFiles" 
+                                                        style="display: none;"
+                                                        class="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm"
+                                                        @click.self="openFiles = false"
+                                                        x-transition:enter="transition ease-out duration-200"
+                                                        x-transition:enter-start="opacity-0"
+                                                        x-transition:enter-end="opacity-100"
+                                                        x-transition:leave="transition ease-in duration-150"
+                                                        x-transition:leave-start="opacity-100"
+                                                        x-transition:leave-end="opacity-0">
+                                                        
+                                                        <!-- Contenu du Popup -->
+                                                        <div class="bg-white rounded-lg shadow-2xl w-80 max-w-sm mx-4 overflow-hidden border border-gray-100">
+                                                            
+                                                            <!-- En-tête Popup -->
+                                                            <div class="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                                                                <h3 class="text-sm font-bold text-gray-700">Pièces Jointes ({{ $countPj }})</h3>
+                                                                <button @click="openFiles = false" class="text-gray-400 hover:text-gray-600">
+                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                                </button>
+                                                            </div>
+
+                                                            <!-- Liste des fichiers (Scrollable) -->
+                                                            <div class="max-h-64 overflow-y-auto p-2">
+                                                                <ul class="space-y-1">
+                                                                    @foreach($pj as $file)
+                                                                        @php
+                                                                            $filePath = is_string($file) ? $file : ($file['path'] ?? $file['url'] ?? $file[0] ?? '');
+                                                                            $fileName = is_string($file) ? basename($file) : ($file['original_name'] ?? $file['name'] ?? basename($filePath));
+                                                                        @endphp
+
+                                                                        @if($filePath)
+                                                                            <li>
+                                                                                <a href="{{ Storage::url($filePath) }}" target="_blank" class="flex items-center p-2 hover:bg-blue-50 rounded-md text-sm text-gray-700 transition-colors group">
+                                                                                    <div class="bg-blue-100 p-1.5 rounded-md mr-3 text-blue-600 group-hover:bg-blue-200">
+                                                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                                                                    </div>
+                                                                                    <div class="flex-1 min-w-0">
+                                                                                        <p class="truncate font-medium">{{ Str::limit($fileName, 30) }}</p>
+                                                                                        <p class="text-[10px] text-gray-400">Cliquez pour ouvrir</p>
+                                                                                    </div>
+                                                                                    <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                                                                </a>
+                                                                            </li>
+                                                                        @endif
+                                                                    @endforeach
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 @else
-                                                    <!-- Pas signé => Bouton Signer -->
-                                                    <button wire:click="sign({{ $memo->id }})" class="text-gray-400 hover:text-blue-600 transition-colors relative" title="Apposer signature SD">
-                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                                        @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-blue-100 text-blue-600 px-1 rounded border border-blue-200 font-bold">P/O</span>@endif
-                                                    </button>
+                                                    <span class="text-gray-300 text-xs">-</span>
                                                 @endif
-                                            @endif
+                                            </td>
 
+                                            <!-- 4. ACTIONS (Boutons Icones) -->
+                                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                                <div class="flex items-center justify-center space-x-3">
+                                                    
+                                                    <!-- CALCUL DES DROITS POUR CETTE LIGNE -->
+                                                    @php
+                                                        // On appelle la méthode du composant PHP
+                                                        $repRights = $this->getReplacementRights($memo);
+                                                        
+                                                        // Est-ce un utilisateur standard (titulaire) ?
+                                                        $isStandardSD = (auth()->user()->poste == "Sous-Directeur");
+                                                        $isStandardDir = (auth()->user()->poste == "Directeur");
+                                                        
+                                                        // Est-ce un remplaçant ?
+                                                        $isRep = ($repRights !== null && $repRights['is_active']);
+                                                        
+                                                        // Droits spécifiques du remplaçant (tableau simple ex: ['viser', 'signer'])
+                                                        $repActions = $isRep ? $repRights['actions_allowed'] : [];
+                                                    @endphp
 
-                                            <!-- D. LOGIQUE SIGNATURE DIRECTEUR (Titulaire OU Remplaçant d'un DIR avec droit signer) -->
-                                            @php
-                                                $showSignDir = $isStandardDir || ($isRep && in_array('signer', $repActions) && optional($repRights['original_user'])->poste == 'Directeur');
-                                            @endphp
-
-                                            @if($showSignDir)
-                                                @if($memo->signature_dir != null )
-                                                    <!-- Déjà signé => Bouton Envoyer -->
-                                                    <button wire:click="assignMemo({{ $memo->id }})" class="text-green-500 hover:text-green-700 transition-colors" title="Envoyer (Signé)">
-                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                                    <!-- 1. ACTION : VOIR (Toujours dispo) -->
+                                                    <button wire:click="viewMemo({{ $memo->id }})" class="text-gray-400 hover:text-blue-600 transition-colors" title="Aperçu">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                                     </button>
-                                                @else
-                                                    <!-- Pas signé => Bouton Signer -->
-                                                    <button wire:click="sign({{ $memo->id }})" class="text-gray-400 hover:text-purple-600 transition-colors relative" title="Apposer signature DIR">
-                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                                        @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-purple-100 text-purple-600 px-1 rounded border border-purple-200 font-bold">P/O</span>@endif
+
+                                                    <!-- FAVORIS -->
+                                                    <button 
+                                                        wire:click="toggleFavorite({{ $memo->id }})" 
+                                                        class="transition-colors duration-200 {{ $memo->is_favorited ? 'text-yellow-400 hover:text-yellow-500' : 'text-gray-300 hover:text-yellow-400' }}" 
+                                                        title="{{ $memo->is_favorited ? 'Retirer des favoris' : 'Ajouter aux favoris' }}">
+                                                        
+                                                        <!-- L'icône change selon l'état -->
+                                                        @if($memo->is_favorited)
+                                                            <!-- Étoile PLEINE (Solid) -->
+                                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                            </svg>
+                                                        @else
+                                                            <!-- Étoile VIDE (Outline) -->
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                                                            </svg>
+                                                        @endif
                                                     </button>
-                                                @endif
-                                            @endif
 
-                                        @endif <!-- Fin condition Secretaire/Autres -->
+                                                    <!-- 2. ACTIONS : SIGNER / VISER / REJETER -->
 
-                                        <!-- FAVORIS (Commun) -->
-                                        <!-- ... code favoris existant ... -->
+                                                    {{-- CAS 1 : C'est une SECRÉTAIRE --}}
+                                                    @if(auth()->user()->poste == "Secretaire")
+                                                        <button 
+                                                            wire:click="transMemo({{ $memo->id }})" 
+                                                            class="p-2 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 transition" 
+                                                            title="Enregistrer">
+                                                            
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                                                            </svg>
+                                                        </button>  
 
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" class="px-6 py-12 text-center">
-                                    <div class="flex flex-col items-center justify-center text-gray-500">
-                                        <svg class="h-12 w-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                        <p class="text-lg font-medium text-gray-900">Aucun Mémo sortant de votre entité pour le moment</p>
-                                        <p class="text-sm">Les mémos sortants de votre entité et qui vous ont été envoyés s'afficheront ici..</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                                                    {{-- CAS 2 : C'est un MANAGER (SD, DIR ou leur REMPLAÇANT) --}}
+                                                    @else
 
-            <!-- PAGINATION -->
-            <div class="px-6 py-4 border-t border-gray-200">
-                {{ $memos->links() }} 
-            </div>
-        </div>
+                                                        <!-- A. BOUTON ATTRIBUER & ENVOYER (VISER) -->
+                                                        <!-- Condition : Si je suis titulaire (pas SD ni Dir qui signent d'abord) OU Si je suis remplaçant avec droit 'viser' -->
+                                                        @if( (!$isStandardSD && !$isStandardDir) || ($isRep && in_array('viser', $repActions)) )
+                                                            <button wire:click="assignMemo({{ $memo->id }})" class="text-gray-400 hover:text-green-600 transition-colors relative group" title="Attribuer & Envoyer">
+                                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                                                @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-orange-100 text-orange-600 px-1 rounded border border-orange-200">P/O</span>@endif
+                                                            </button>
+                                                        @endif
+
+                                                        <!-- B. BOUTON REJETER -->
+                                                        <!-- Condition : Tout le monde peut rejeter SAUF si remplaçant sans droit 'rejeter' -->
+                                                        @if( !$isRep || ($isRep && in_array('rejeter', $repActions)) )
+                                                            <button wire:click="askReject({{ $memo->id }})" class="text-gray-400 hover:text-red-600 transition-colors relative" title="Rejeter">
+                                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                                @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-red-100 text-red-600 px-1 rounded border border-red-200">P/O</span>@endif
+                                                            </button>
+                                                        @endif
+
+                                                        <!-- C. LOGIQUE SIGNATURE SOUS-DIRECTEUR (Titulaire OU Remplaçant d'un SD avec droit signer) -->
+                                                        @php
+                                                            // Le titulaire est SD OU Je remplace un user qui est SD ET j'ai le droit signer
+                                                            $showSignSD = $isStandardSD || ($isRep && in_array('signer', $repActions) && optional($repRights['original_user'])->poste == 'Sous-Directeur');
+                                                        @endphp
+
+                                                        @if($showSignSD)
+                                                            @if($memo->signature_sd != null )
+                                                                <!-- Déjà signé => Bouton Envoyer -->
+                                                                <button wire:click="assignMemo({{ $memo->id }})" class="text-green-500 hover:text-green-700 transition-colors" title="Envoyer (Signé)">
+                                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                                                </button>
+                                                            @else
+                                                                <!-- Pas signé => Bouton Signer -->
+                                                                <button wire:click="sign({{ $memo->id }})" class="text-gray-400 hover:text-blue-600 transition-colors relative" title="Apposer signature SD">
+                                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                                                    @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-blue-100 text-blue-600 px-1 rounded border border-blue-200 font-bold">P/O</span>@endif
+                                                                </button>
+                                                            @endif
+                                                        @endif
+
+
+                                                        <!-- D. LOGIQUE SIGNATURE DIRECTEUR (Titulaire OU Remplaçant d'un DIR avec droit signer) -->
+                                                        @php
+                                                            $showSignDir = $isStandardDir || ($isRep && in_array('signer', $repActions) && optional($repRights['original_user'])->poste == 'Directeur');
+                                                        @endphp
+
+                                                        @if($showSignDir)
+                                                            @if($memo->signature_dir != null )
+                                                                <!-- Déjà signé => Bouton Envoyer -->
+                                                                <button wire:click="assignMemo({{ $memo->id }})" class="text-green-500 hover:text-green-700 transition-colors" title="Envoyer (Signé)">
+                                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                                                </button>
+                                                            @else
+                                                                <!-- Pas signé => Bouton Signer -->
+                                                                <button wire:click="sign({{ $memo->id }})" class="text-gray-400 hover:text-purple-600 transition-colors relative" title="Apposer signature DIR">
+                                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                                                    @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-purple-100 text-purple-600 px-1 rounded border border-purple-200 font-bold">P/O</span>@endif
+                                                                </button>
+                                                            @endif
+                                                        @endif
+
+                                                    @endif <!-- Fin condition Secretaire/Autres -->
+
+                                                    <!-- FAVORIS (Commun) -->
+                                                    <!-- ... code favoris existant ... -->
+
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="4" class="px-6 py-12 text-center">
+                                                <div class="flex flex-col items-center justify-center text-gray-500">
+                                                    <svg class="h-12 w-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                                    <p class="text-lg font-medium text-gray-900">Aucun Mémo Sortant de votre entité pour le moment</p>
+                                                    <p class="text-sm">Les mémos sortants de votre entité et qui vous ont été envoyés s'afficheront ici..</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- PAGINATION -->
+                        <div class="px-6 py-4 border-t border-gray-200">
+                            {{ $memos->links() }} 
+                        </div>
+                    </div>
+                @endif
 
     </div>
 

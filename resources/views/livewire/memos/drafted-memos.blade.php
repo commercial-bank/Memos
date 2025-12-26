@@ -1,251 +1,14 @@
 <div class="min-h-screen bg-gray-50 py-8 font-sans">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        @if(!$isEditing)
-
-
-                <!-- EN-TÊTE & RECHERCHE -->
-                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-800">Mes Mémos</h2>
-                        <p class="text-sm text-gray-500">Gérez vos mémos en attente d'envoi.</p>
-                    </div>
-
-                    <div class="relative w-full md:w-96">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                        </div>
-                        <input 
-                            wire:model.live.debounce.300ms="search" 
-                            type="text" 
-                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out shadow-sm" 
-                            placeholder="Rechercher par objet, concerné..."
-                        >
-                        <!-- Spinner de chargement -->
-                        <div wire:loading wire:target="search" class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                            <svg class="animate-spin h-5 w-5 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TABLEAU MODERNE -->
-                <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-200">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Objet & Concerne</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destinataires</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pièces Jointes</th>
-                                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                @forelse ($memos as $memo)
-                                    <tr class="hover:bg-gray-50 transition-colors duration-150 group">
-                                        
-                                        <!-- 1. DATE -->
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <div class="flex flex-col">
-                                                <span class="font-medium text-gray-900">{{ $memo->created_at->format('d/m/Y') }}</span>
-                                                <span class="text-xs">{{ $memo->created_at->format('H:i') }}</span>
-                                            </div>
-                                        </td>
-
-                                        <!-- 2. OBJET -->
-                                        <td class="px-6 py-4">
-                                            <div class="flex flex-col max-w-xs sm:max-w-sm md:max-w-md">
-                                                <span class="text-sm font-bold text-gray-800 truncate" title="{{ $memo->object }}">{{ $memo->object }}</span>
-                                                <span class="text-xs text-gray-500 truncate mt-1">Concerne: {{ $memo->concern }}</span>
-                                            </div>
-                                        </td>
-
-                                    <!-- 3. DESTINATAIRES (Badges avec Action) -->
-                                        <td class="px-6 py-4">
-                                            <div class="flex flex-wrap gap-2">
-                                                @php 
-                                                    // Récupération de la relation chargée dans le contrôleur
-                                                    $destinataires = $memo->destinataires; 
-                                                    $count = $destinataires->count();
-                                                    $displayLimit = 3; // Augmenté un peu pour la lisibilité
-                                                @endphp
-
-                                                @if($count > 0)
-                                                    @foreach($destinataires->take($displayLimit) as $dest)
-                                                        @php
-                                                            // Logique de couleur selon l'action
-                                                            $isActionRequired = Str::contains(Str::lower($dest->action), 'nécessaire');
-                                                            $badgeClasses = $isActionRequired 
-                                                                ? 'bg-orange-100 text-orange-800 border border-orange-200' 
-                                                                : 'bg-blue-100 text-blue-800 border border-blue-200';
-                                                        @endphp
-
-                                                        <div class="inline-flex flex-col items-start justify-center px-2.5 py-1 rounded-md text-xs font-medium {{ $badgeClasses }}" 
-                                                            title="Action attendue : {{ $dest->action }}">
-                                                            
-                                                            <!-- Nom de l'entité (REF ou Nom tronqué) -->
-                                                            <span class="font-bold">
-                                                                {{ $dest->entity->ref ?? Str::limit($dest->entity->name, 15) }}
-                                                            </span>
-                                                            
-                                                            <!-- L'action affichée en tout petit en dessous -->
-                                                            <span class="text-[10px] opacity-80 leading-tight">
-                                                                {{ Str::limit($dest->action, 20) }}
-                                                            </span>
-                                                        </div>
-                                                    @endforeach
-
-                                                    @if($count > $displayLimit)
-                                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200" title="Et {{ $count - $displayLimit }} autres...">
-                                                            +{{ $count - $displayLimit }}
-                                                        </span>
-                                                    @endif
-                                                @else
-                                                    <span class="text-xs text-gray-400 italic flex items-center gap-1">
-                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                        Non assigné
-                                                    </span>
-                                                @endif
-                                            </div>
-                                        </td>
-
-                                        <!-- COLONNE PIÈCES JOINTES -->
-                                        <td class="px-6 py-4 whitespace-nowrap" x-data="{ openFiles: false }">
-                                            @php
-                                                $pj = $memo->pieces_jointes;
-                                                if (is_string($pj)) { $pj = json_decode($pj, true); }
-                                                $pj = is_array($pj) ? $pj : [];
-                                                $countPj = count($pj);
-                                            @endphp
-
-                                            @if($countPj > 0)
-                                                <!-- 1. Le bouton Trombone (Déclencheur) -->
-                                                <button 
-                                                    @click="openFiles = true" 
-                                                    type="button"
-                                                    class="flex items-center space-x-1 text-gray-600 hover:text-blue-600 transition-colors focus:outline-none">
-                                                    
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                                                    <span class="text-sm font-bold">{{ $countPj }}</span>
-                                                </button>
-
-                                                <!-- 2. Le Mini-Modal (S'affiche par dessus TOUT le site) -->
-                                                <div 
-                                                    x-show="openFiles" 
-                                                    style="display: none;"
-                                                    class="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm"
-                                                    @click.self="openFiles = false"
-                                                    x-transition:enter="transition ease-out duration-200"
-                                                    x-transition:enter-start="opacity-0"
-                                                    x-transition:enter-end="opacity-100"
-                                                    x-transition:leave="transition ease-in duration-150"
-                                                    x-transition:leave-start="opacity-100"
-                                                    x-transition:leave-end="opacity-0">
-                                                    
-                                                    <!-- Contenu du Popup -->
-                                                    <div class="bg-white rounded-lg shadow-2xl w-80 max-w-sm mx-4 overflow-hidden border border-gray-100">
-                                                        
-                                                        <!-- En-tête Popup -->
-                                                        <div class="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-                                                            <h3 class="text-sm font-bold text-gray-700">Pièces Jointes ({{ $countPj }})</h3>
-                                                            <button @click="openFiles = false" class="text-gray-400 hover:text-gray-600">
-                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                                            </button>
-                                                        </div>
-
-                                                        <!-- Liste des fichiers (Scrollable) -->
-                                                        <div class="max-h-64 overflow-y-auto p-2">
-                                                            <ul class="space-y-1">
-                                                                @foreach($pj as $file)
-                                                                    @php
-                                                                        $filePath = is_string($file) ? $file : ($file['path'] ?? $file['url'] ?? $file[0] ?? '');
-                                                                        $fileName = is_string($file) ? basename($file) : ($file['original_name'] ?? $file['name'] ?? basename($filePath));
-                                                                    @endphp
-
-                                                                    @if($filePath)
-                                                                        <li>
-                                                                            <a href="{{ Storage::url($filePath) }}" target="_blank" class="flex items-center p-2 hover:bg-blue-50 rounded-md text-sm text-gray-700 transition-colors group">
-                                                                                <div class="bg-blue-100 p-1.5 rounded-md mr-3 text-blue-600 group-hover:bg-blue-200">
-                                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                                                                </div>
-                                                                                <div class="flex-1 min-w-0">
-                                                                                    <p class="truncate font-medium">{{ Str::limit($fileName, 30) }}</p>
-                                                                                    <p class="text-[10px] text-gray-400">Cliquez pour ouvrir</p>
-                                                                                </div>
-                                                                                <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                                                                            </a>
-                                                                        </li>
-                                                                    @endif
-                                                                @endforeach
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @else
-                                                <span class="text-gray-300 text-xs">-</span>
-                                            @endif
-                                        </td>
-
-                                        <!-- 4. ACTIONS (Boutons Icones) -->
-                                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                            <div class="flex items-center justify-center space-x-3">
-                                                
-                                                <!-- VOIR -->
-                                                <button wire:click="viewMemo({{ $memo->id }})" class="text-gray-400 hover:text-blue-600 transition-colors" title="Aperçu">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                                </button>
-
-                                                <!-- MODIFIER -->
-                                                <button wire:click="editMemo({{ $memo->id }})" class="text-gray-400 hover:text-yellow-600 transition-colors" title="Modifier">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                                </button>
-
-                                                <!-- ENVOYER / ASSIGNER -->
-                                                <button wire:click="assignMemo({{ $memo->id }})" class="text-gray-400 hover:text-green-600 transition-colors" title="Attribuer & Envoyer">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                                                </button>
-
-                                                <!-- SUPPRIMER -->
-                                                <button wire:click="deleteMemo({{ $memo->id }})" class="text-gray-400 hover:text-red-600 transition-colors" title="Supprimer">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                                </button>
-
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="4" class="px-6 py-12 text-center">
-                                            <div class="flex flex-col items-center justify-center text-gray-500">
-                                                <svg class="h-12 w-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                                <p class="text-lg font-medium text-gray-900">Aucun Mémo trouvé</p>
-                                                <p class="text-sm">Commencez par créer un nouveau mémorandum.</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- PAGINATION -->
-                    <div class="px-6 py-4 border-t border-gray-200">
-                        {{ $memos->links() }} 
-                    </div>
-                </div>
-
-            </div>
-        @else
+        @if($isViewingPdf)
             <!-- ========================================== -->
-            <!-- VUE : ÉDITION DU MÉMO (Style Feuille de Papier) -->
+            <!-- VUE 3 : APERÇU RÉEL PDF (DOMPDF)           -->
             <!-- ========================================== -->
-            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
-                
-                <!-- BARRE D'ACTIONS (Header) -->
+            <div class="animate-fade-in">
+                <!-- BARRE D'ACTIONS (Header style original) -->
                 <div class="mb-8 bg-white border border-gray-100 rounded-xl shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all duration-300">
-                    
-                    <button wire:click="cancelEdit" type="button" class="group flex items-center text-gray-500 hover:text-black transition-colors focus:outline-none">
+                    <button wire:click="closePdfView" type="button" class="group flex items-center text-gray-500 hover:text-black transition-colors focus:outline-none">
                         <div class="mr-3 h-10 w-10 rounded-full bg-gray-100 group-hover:bg-[#daaf2c]/20 group-hover:text-[#daaf2c] flex items-center justify-center transition-colors duration-200">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
@@ -253,144 +16,216 @@
                         </div>
                         <div class="flex flex-col items-start text-left">
                             <span class="font-bold text-base text-black">Retour</span>
-                            <span class="text-xs font-normal text-gray-400">Annuler les modifications</span>
+                            <span class="text-xs font-normal text-gray-400">Revenir à la liste</span>
                         </div>
                     </button>
                     
-                    <div class="flex items-center justify-end space-x-3 w-full sm:w-auto border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0">
-                        <button wire:click="cancelEdit" type="button" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50">
-                            Annuler
-                        </button>
-                        
-                        <button wire:click="save" wire:loading.attr="disabled" type="button" 
-                            class="relative inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-lg shadow-md text-white transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50"
-                            style="background-color: #daaf2c;">
-                            
-                            <span wire:loading.remove wire:target="save" class="flex items-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
-                                </svg>
-                                Mettre à jour le Memo
-                            </span>
-
-                            <span wire:loading wire:target="save" class="flex items-center">
-                                <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Enregistrement...
-                            </span>
+                    <div class="flex items-center justify-end space-x-3 w-full sm:w-auto">
+                        <button wire:click="downloadMemoPDF" type="button" 
+                            class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-lg shadow-md text-white transform hover:-translate-y-0.5 transition-all duration-200"
+                            style="background-color: #ef4444;">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            Télécharger PDF
                         </button>
                     </div>
                 </div>
 
-                @if ($errors->any())
-                    <div class="mb-6 rounded-md bg-red-50 p-4 border-l-4 border-red-500 shadow-sm">
-                        <div class="flex">
-                            <div class="flex-shrink-0"><svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg></div>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-medium text-red-800">Des erreurs empêchent l'enregistrement</h3>
-                                <ul class="mt-2 list-disc pl-5 text-sm text-red-700">@foreach ($errors->all() as $error) <li>{{ $error }}</li> @endforeach</ul>
+                <!-- ZONE VISIONNEUSE (Style Papier) -->
+                <div class="bg-gray-200 rounded-lg shadow-inner p-4 md:p-8 flex justify-center min-h-[80vh]">
+                    <div class="w-full max-w-5xl bg-white shadow-2xl">
+                        @if($pdfBase64)
+                            <iframe 
+                                src="data:application/pdf;base64,{{ $pdfBase64 }}#view=FitH" 
+                                class="w-full h-[100vh] border-none">
+                            </iframe>
+                        @else
+                            <div class="flex flex-col items-center justify-center py-20">
+                                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#daaf2c]"></div>
+                                <p class="mt-4 text-gray-500 font-bold">Génération du rendu final DomPDF...</p>
                             </div>
-                        </div>
+                        @endif
                     </div>
-                @endif
+                </div>
+            </div>
 
-                <!-- LA FEUILLE DE PAPIER -->
-                <div class="bg-white rounded-lg shadow-2xl overflow-hidden relative border border-gray-200">
+        @elseif($isEditing)
+            <!-- ========================================== -->
+            <!-- VUE 2 : ÉDITION (TON DESIGN ORIGINAL)      -->
+            <!-- ========================================== -->
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
+            
+            <!-- Barre d'actions -->
+            <div class="mb-8 bg-white border border-gray-100 rounded-xl shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all duration-300">
+                
+                <button wire:click="cancelEdit" type="button" class="group flex items-center text-gray-500 hover:text-black transition-colors">
+                    <div class="mr-3 h-10 w-10 rounded-full bg-gray-100 group-hover:bg-[#daaf2c]/20 group-hover:text-[#daaf2c] flex items-center justify-center transition-colors duration-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </div>
+                    <div class="flex flex-col items-start">
+                        <span class="font-bold text-base text-black">Retour</span>
+                        <span class="text-xs font-normal" style="color: var(--c-grey);">Vers la liste</span>
+                    </div>
+                </button>
+                
+                <div class="flex items-center justify-end space-x-3 w-full sm:w-auto border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0">
+                    <button wire:click="cancelEdit" type="button" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200">
+                        Annuler
+                    </button>
                     
-                    <!-- Entête de la feuille -->
-                    <div class="px-8 py-6 flex justify-between items-center bg-gray-900 text-white border-b-4" style="border-color: #daaf2c;">
-                        <div>
-                            <h2 class="text-2xl font-bold tracking-wider uppercase" style="font-family: 'Times New Roman', serif;">Mémorandum (Édition)</h2>
-                            <p class="text-xs font-bold tracking-widest mt-1 text-yellow-500">DOCUMENT INTERNE / RÉF: #</p>
+                    <button wire:click="save" wire:loading.attr="disabled" type="button" 
+                        class="relative inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-lg shadow-md text-black transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#daaf2c]"
+                        style="background-color: var(--c-gold);">
+                        
+                        <span wire:loading.remove wire:target="save" class="flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                            </svg>
+                            Enregistrer
+                        </span>
+
+                        <span wire:loading wire:target="save" class="flex items-center">
+                            <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Traitement...
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            @if ($errors->any())
+                <div class="mb-6 rounded-md bg-red-50 p-4 border-l-4 border-red-500 shadow-sm">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
                         </div>
-                        <div class="text-right opacity-80">
-                            <p class="text-sm">Créé le : {{ $date ?? now()->format('d/m/Y') }}</p>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">Attention</h3>
+                            <ul class="mt-2 list-disc pl-5 space-y-1">
+                                @foreach ($errors->all() as $error)
+                                    <li class="text-sm text-red-700">{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            <!-- FEUILLE DE PAPIER -->
+            <div class="bg-white rounded-lg shadow-2xl overflow-hidden relative" style="border: 1px solid #e5e7eb;">
+                
+                <div class="px-8 py-6 flex justify-between items-center" 
+                     style="background-color: var(--c-black); color: white; border-bottom: 4px solid var(--c-gold);">
+                    <div>
+                        <h2 class="text-2xl font-bold tracking-wider uppercase" style="font-family: 'Times New Roman', serif;">Mémorandum</h2>
+                        <p class="text-xs font-bold tracking-widest mt-1" style="color: var(--c-gold);">INTERNE / CONFIDENTIEL</p>
+                    </div>
+                    <div class="text-right opacity-80">
+                        <p class="text-sm">Date : {{ now()->format('d/m/Y') }}</p>
+                    </div>
+                </div>
+
+                <div class="p-8 md:p-12 space-y-10">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div class="space-y-2">
+                            <label for="concern" class="block text-xs font-bold uppercase tracking-wide mb-1" style="color: var(--c-grey);">Pour (Concerne)</label>
+                            <input type="text" wire:model="concern" id="concern" 
+                                class="block w-full border-0 border-b-2 border-gray-200 bg-transparent py-2 px-0 text-black placeholder-gray-300 sm:text-lg transition-colors focus:ring-0 focus:border-[#daaf2c]" 
+                                placeholder="Ex: Direction Générale...">
+                            @error('concern') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="object" class="block text-xs font-bold uppercase tracking-wide mb-1" style="color: var(--c-grey);">Objet</label>
+                            <input type="text" wire:model="object" id="object" 
+                                class="block w-full border-0 border-b-2 border-gray-200 bg-transparent py-2 px-0 text-black font-bold placeholder-gray-300 sm:text-lg transition-colors focus:ring-0 focus:border-[#daaf2c]" 
+                                placeholder="Sujet principal...">
+                            @error('object') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
-                    <div class="p-8 md:p-12 space-y-10">
-                        
-                        <!-- CHAMPS CONCERNE / OBJET (Soulignés) -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            <div class="space-y-2">
-                                <label for="concern" class="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-1">Pour (Concerne)</label>
-                                <input type="text" wire:model="concern" id="concern" 
-                                    class="block w-full border-0 border-b-2 border-gray-200 bg-transparent py-2 px-0 text-black placeholder-gray-300 sm:text-lg transition-colors focus:ring-0 focus:border-[#daaf2c]" 
-                                    placeholder="Ex: Direction Générale...">
-                            </div>
+                    <!-- DISTRIBUTION LIST -->
+                    <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                        <h3 class="text-sm font-bold uppercase tracking-wide mb-4 flex items-center" style="color: var(--c-black);">
+                            <svg class="w-4 h-4 mr-2" style="color: var(--c-gold);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                            Liste de Distribution
+                        </h3>
 
-                            <div class="space-y-2">
-                                <label for="object" class="block text-xs font-bold uppercase tracking-wide text-gray-400 mb-1">Objet</label>
-                                <input type="text" wire:model="object" id="object" 
-                                    class="block w-full border-0 border-b-2 border-gray-200 bg-transparent py-2 px-0 text-black font-bold placeholder-gray-300 sm:text-lg transition-colors focus:ring-0 focus:border-[#daaf2c]" 
-                                    placeholder="Sujet principal...">
-                            </div>
-                        </div>
-
-                        <!-- LISTE DE DISTRIBUTION -->
-                        <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                            <h3 class="text-sm font-bold uppercase tracking-wide mb-4 flex items-center text-gray-900">
-                                <svg class="w-4 h-4 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                                </svg>
-                                Liste de Distribution
-                            </h3>
-
-                            <div class="flex flex-col md:flex-row gap-4 mb-4">
-                                <select wire:model="newRecipientEntity" class="flex-1 rounded-md border-gray-300 shadow-sm focus:ring-[#daaf2c] focus:border-[#daaf2c] text-sm">
-                                    <option value="">-- Choisir une entité --</option>
+                        <div class="flex flex-col md:flex-row gap-4 mb-4">
+                            <div class="flex-1">
+                                <select wire:model="newRecipientEntity" class="block w-full rounded-md border-gray-300 shadow-sm focus-gold text-sm">
+                                    <option value="">-- Sélectionner un destinataire --</option>
                                     @foreach($entities as $entity)
                                         <option value="{{ $entity->id }}">{{ $entity->name }}</option>
                                     @endforeach
                                 </select>
+                                @error('newRecipientEntity') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            </div>
 
-                                <select wire:model="newRecipientAction" class="flex-1 rounded-md border-gray-300 shadow-sm focus:ring-[#daaf2c] focus:border-[#daaf2c] text-sm">
+                            <div class="flex-1">
+                                <select wire:model="newRecipientAction" class="block w-full rounded-md border-gray-300 shadow-sm focus-gold text-sm">
                                     <option value="">-- Action requise --</option>
                                     @foreach($actionsList as $action)
                                         <option value="{{ $action }}">{{ $action }}</option>
                                     @endforeach
                                 </select>
-
-                                <button wire:click="addRecipient" type="button" class="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-md hover:bg-black transition-colors">
-                                    Ajouter
-                                </button>
+                                @error('newRecipientAction') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                             </div>
 
-                            @if(count($recipients) > 0)
-                                <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg bg-white">
-                                    <table class="min-w-full divide-y divide-gray-200">
-                                        <thead class="bg-gray-50">
-                                            <tr>
-                                                <th class="py-2 pl-4 text-left text-xs font-semibold text-gray-500 uppercase">Destinataire</th>
-                                                <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Action</th>
-                                                <th class="py-2 pr-4"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-gray-200">
-                                            @foreach($recipients as $index => $recipient)
-                                                <tr>
-                                                    <td class="py-3 pl-4 text-sm font-medium text-gray-900">{{ $recipient['entity_name'] }}</td>
-                                                    <td class="px-3 py-3 text-sm">
-                                                        <span class="inline-flex items-center rounded-full bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-200">
-                                                            {{ $recipient['action'] }}
-                                                        </span>
-                                                    </td>
-                                                    <td class="py-3 pr-4 text-right">
-                                                        <button wire:click="removeRecipient({{ $index }})" class="text-gray-400 hover:text-red-600 transition-colors">
-                                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            @endif
+                            <button wire:click="addRecipient" type="button" 
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none">
+                                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Ajouter
+                            </button>
                         </div>
 
-                        <!-- ÉDITEUR QUILL (Type Word) -->
+                        @if(count($recipients) > 0)
+                            <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+                                <table class="min-w-full divide-y divide-gray-300 bg-white">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="py-2 pl-4 pr-3 text-left text-xs font-semibold text-gray-500 uppercase">Entité</th>
+                                            <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Action</th>
+                                            <th class="relative py-2 pl-3 pr-4 sm:pr-6"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        @foreach($recipients as $index => $recipient)
+                                            <tr>
+                                                <td class="whitespace-nowrap py-3 pl-4 pr-3 text-sm font-medium text-gray-900">{{ $recipient['entity_name'] }}</td>
+                                                <td class="whitespace-nowrap px-3 py-3 text-sm text-gray-500">
+                                                    <span class="inline-flex items-center rounded-full bg-yellow-50 px-2 py-1 text-xs font-medium text-black ring-1 ring-inset ring-[#daaf2c]/50">
+                                                        {{ $recipient['action'] }}
+                                                    </span>
+                                                </td>
+                                                <td class="relative whitespace-nowrap py-3 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                                    <button wire:click="removeRecipient({{ $index }})" class="text-gray-400 hover:text-red-600">
+                                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                        </svg>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+
+                    <!-- ÉDITEUR QUILL (Type Word) -->
                         <div class="pt-2">
                             <!-- Label avec info utilisateur -->
                             <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex justify-between items-center text-gray-500">
@@ -536,566 +371,226 @@
                             .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="18px"]::before { content: '18px'; }
                         </style>
 
-                        <!-- Footer de la feuille -->
-                        <div class="bg-gray-50 px-8 py-4 border-t border-gray-200 flex justify-between items-center text-[10px] text-gray-400 uppercase tracking-widest">
-                            <span>Édition en cours par : {{ Auth::user()->first_name }} {{ Auth::user()->last_name }}</span>
-                            <span>Système de Gestion des Mémos</span>
-                        </div>
-                </div>
-            </div>
 
-            <style>
-                /* Styles spécifiques pour l'éditeur dans le papier A4 */
-                .ql-container.ql-snow { border: none !important; }
-                .ql-editor { 
-                    padding: 2cm !important; 
-                    font-family: 'Arial', sans-serif; 
-                    font-size: 14px;
-                    min-height: 500px;
-                }
-                /* Polices personnalisées Quill */
-                .ql-font-tahoma { font-family: 'Tahoma', sans-serif; }
-                .ql-font-timesnewroman { font-family: 'Times New Roman', serif; }
-            </style>
-        @endif
 
-    {{-- MODALS --}}
-    
-   @if($isOpen)
-        <!-- Modal Aperçu -->
-        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            
-            <!-- Overlay -->
-            <div wire:click="closeModal" class="fixed inset-0 bg-gray-900 bg-opacity-90 transition-opacity backdrop-blur-sm cursor-pointer"></div>
-
-            <!-- Toolbar -->
-            <div class="fixed top-0 left-0 w-full z-50 pointer-events-none p-4 flex justify-between items-start print:hidden">
-                <button wire:click="closeModal" class="pointer-events-auto bg-gray-800 text-white hover:bg-gray-700 px-6 py-2 rounded-full shadow-xl font-bold flex items-center gap-2 border border-gray-600">
-                    <span>&larr; Retour</span>
-                </button>
-            </div>
-
-            <!-- LOGIQUE BACKEND POUR RÉCUPÉRER LES DONNÉES MANQUANTES -->
-            @php
-                // Récupération du mémo complet avec les relations pour l'affichage
-                $currentMemo = \App\Models\Memo::with('destinataires.entity')->find($memo_id);
-                
-                // Groupement des destinataires par leur Action
-                $recipientsByAction = $currentMemo 
-                    ? $currentMemo->destinataires->groupBy('action') 
-                    : collect([]);
-
-                // Helper pour formater la liste des entités (REF ou Nom)
-                $formatRecipients = function($group) {
-                    return $group->map(function($dest) {
-                        // Utilise 'ref' (acronyme) sinon 'name'
-                        return $dest->entity->ref ?? Str::limit($dest->entity->name, 15);
-                    })->join(', ');
-                };
-            @endphp
-
-            <!-- Conteneur Scrollable avec Alpine Data -->
-            <div class="fixed inset-0 z-10 w-screen overflow-y-auto pt-20 pb-10" x-data="memoPagination">
-                <div class="flex min-h-full items-start justify-center p-4 text-center sm:p-0">
-                    
-                    <div class="relative flex flex-col items-center font-sans w-full max-w-[210mm]">
-
-                        <!-- BOUTON TÉLÉCHARGER -->
-                        <button 
-                            wire:click="downloadMemoPDF" 
-                            wire:loading.attr="disabled"
-                            type="button" 
-                            class="mb-4 pointer-events-auto bg-red-600 text-white hover:bg-red-700 px-6 py-2.5 rounded-full shadow-lg font-bold flex items-center gap-3 border border-red-500 transition-transform transform hover:scale-105 disabled:opacity-50">
-                            <span>Télécharger PDF</span>
-                        </button>
-
-                        <!-- 1. SOURCE DE CONTENU CACHÉE (Raw Content) -->
-                        <div x-ref="rawContent" class="hidden">
-                            {!! $content !!}
-                        </div>
-
-                        <!-- 2. CONTENEUR DES PAGES GÉNÉRÉES -->
-                        <div id="export-container" x-ref="pagesContainer" class="flex flex-col gap-8">
-                            <!-- Les pages vont être injectées ici par le JS -->
-                        </div>
-
-                        <!-- 3. TEMPLATE DE LA PAGE (Modèle utilisé par le JS) -->
-                        <template id="page-template">
-                            <!-- PAGE A4 -->
-                            <div class="page-a4 bg-white w-[210mm] h-[297mm] shadow-2xl p-[10mm] text-black 
-                                        font-['Times_New_Roman',_Times,_serif] text-base leading-snug 
-                                        relative text-left mx-auto overflow-hidden">
-                                
-                                <!-- CADRE DORÉ -->
-                                <div class="gold-frame border-[3px] border-[#D4AF37] rounded-tr-[60px] rounded-bl-[60px] p-8 h-full flex flex-col relative">
-
-                                    <!-- EN-TÊTE -->
-                                    <div class="header-section flex flex-col items-center justify-center mb-4 text-center shrink-0">
-                                        <div class="mb-2">
-                                            <div class="w-17 h-16 flex items-center justify-center mx-auto mb-1">
-                                                <img src="{{ asset('images/logo.jpg') }}" alt="logo" class="w-full h-full object-contain">
-                                            </div>
-                                        </div>
-                                        <!-- Le texte de l'entité reste text-xs (12px, plus petit que 12pt) -->
-                                        <h2 class="font-bold text-xs uppercase text-gray-800">{{ $user_entity_name }}</h2>
-                                        <!-- Le titre "Memorandum" reste en Arial 2xl -->
-                                        <h1 class="font-['Arial'] font-extrabold text-2xl uppercase mt-2 italic inline-block">Memorandum</h1>
-                                    </div>
-
-                                    <!-- TABLEAU DESTINATAIRES (Classe 'recipient-section' ajoutée pour le masquage page 2) -->
-                                    <div class="recipient-section mb-6 text-sm w-full shrink-0">
-                                        
-                                        <!-- LIGNE D'ALIGNEMENT -->
-                                        <!-- Le texte ici reste text-[13px] et font-['Arial'] -->
-                                        <div class="flex w-full text-[13px] font-bold font-['Arial'] pb-1 text-black">
-                                            <div class="w-[35%]"></div>
-                                            <div class="w-[30%] text-center">Prière de :</div>
-                                            <div class="w-[35%] pl-8">Destinataires :</div>
-                                        </div>
-                                        
-                                        <!-- TABLEAU COMPLET PHP -->
-                                        <!-- Le tableau lui-même reste en text-[13px] et font-['Arial'] -->
-                                        <table class="w-full border-collapse border border-black text-[13px] font-['Arial'] text-black">
-                                            
-                                            <!-- LIGNES DU TABLEAU -->
-                                            @php $recipients1 = $recipientsByAction['Faire le nécessaire'] ?? collect([]); @endphp
-                                            <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold w-[35%] align-top">
-                                                    Date : {{ $date }}
-                                                </td>
-                                                <td class="border border-black p-1 pl-2 w-[30%]">
-                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients1->count() > 0 ? 'bg-green-600' : '' }}"></span> 
-                                                    <span class="{{ $recipients1->count() > 0 ? 'font-bold' : '' }}">Faire le nécessaire</span>
-                                                </td>
-                                                <td class="border border-black p-1 text-center w-[35%] {{ $recipients1->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    {{ $recipients1->count() > 0 ? $formatRecipients($recipients1) : '' }}
-                                                </td>
-                                            </tr>
-
-                                            @php $recipients2 = $recipientsByAction['Prendre connaissance'] ?? collect([]); @endphp
-                                            <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">
-                                                    N° : {{ $currentMemo->reference ?? 'En attente' }}
-                                                </td>
-                                                <td class="border border-black p-1 pl-2">
-                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients2->count() > 0 ? 'bg-blue-600' : '' }}"></span> 
-                                                    <span class="{{ $recipients2->count() > 0 ? 'font-bold' : '' }}">Prendre connaissance</span>
-                                                </td>
-                                                <td class="border border-black p-1 text-center {{ $recipients2->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    {{ $recipients2->count() > 0 ? $formatRecipients($recipients2) : '' }}
-                                                </td>
-                                            </tr>
-
-                                            @php $recipients3 = $recipientsByAction['Prendre position'] ?? collect([]); @endphp
-                                            <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">
-                                                    Emetteur : #
-                                                </td>
-                                                <td class="border border-black p-1 pl-2">
-                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients3->count() > 0 ? 'bg-orange-500' : '' }}"></span> 
-                                                    <span class="{{ $recipients3->count() > 0 ? 'font-bold' : '' }}">Prendre position</span>
-                                                </td>
-                                                <td class="border border-black p-1 text-center {{ $recipients3->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    {{ $recipients3->count() > 0 ? $formatRecipients($recipients3) : '' }}
-                                                </td>
-                                            </tr>
-
-                                            @php $recipients4 = $recipientsByAction['Décider'] ?? collect([]); @endphp
-                                            <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">
-                                                    Service : {{ $user_service }}
-                                                </td>
-                                                <td class="border border-black p-1 pl-2">
-                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients4->count() > 0 ? 'bg-yellow-400' : '' }}"></span> 
-                                                    <span class="{{ $recipients4->count() > 0 ? 'font-bold' : '' }}">Décider</span>
-                                                </td>
-                                                <td class="border border-black p-1 text-center {{ $recipients4->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    {{ $recipients4->count() > 0 ? $formatRecipients($recipients4) : '' }}
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </div>
-
-                                    <!-- OBJET & CONCERNE (Classe 'object-section' ajoutée pour le masquage page 2) -->
-                                    <div class="object-section mb-4 shrink-0">
-                                        <div class="mb-6">
-                                            <!-- Le texte ici hérite Times New Roman, mais la taille reste 15px pour l'objet -->
-                                            <p class="mb-1">
-                                                <span class="font-bold text-[15px] underline">Objet :</span> 
-                                                <span class="uppercase font-bold"> {{ $object }} </span>
-                                            </p>
-                                        </div>
-                                        <div class="mb-6">
-                                            <p class="mb-1">
-                                                <span class="font-bold text-[15px] underline">Concerne :</span> 
-                                                <span class="lowercase text-gray-800"> {{ $concern }} </span>
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <!-- ZONE DE CONTENU CIBLE -->
-                                    <!-- Cette div hérite désormais la police Times New Roman et la taille 12pt (text-base) du parent .page-a4 -->
-                                    <div class="content-target flex-grow min-h-0 px-2 overflow-hidden mb-4 text-justify space-y-3 
-                                                text-gray-900 break-words w-full">
-                                        <!-- VIDE PAR DÉFAUT -->
-                                    </div>
-
-                                    <!-- PIED DE PAGE -->
-                                    <div class="footer-section mt-auto shrink-0 w-full flex flex-col items-center justify-center pt-2">
-                                        
-                                        <!-- QR Code Section (Classe 'qr-section' pour le masquage page 2) -->
-                                        <div class="qr-section">
-                                            @if($currentMemo && $currentMemo->qr_code)
-                                                <div class="bg-white p-0.5 border border-gray-200 inline-block mb-1">
-                                                    {{-- QR Code en SVG Base64 --}}
-                                                    <img src="data:image/svg+xml;base64,{{ base64_encode(QrCode::format('svg')->size(50)->generate(route('memo.verify', $currentMemo->qr_code))) }}" 
-                                                        width="50" height="50" alt="QR">
-                                                </div>
-                                            @endif
-                                        </div>
-
-                                        <!-- Le texte de référence reste en text-[10px] (plus petit) -->
-                                        <div class="ref-text text-[10px] text-gray-500 italic">{{ $currentMemo->numero_ref }}</div>
-                                    </div>
-
-                                </div> 
-                            </div>
-                        </template>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
-
-   @if($isOpen2)
-    <!-- Modal Édition (Positionné sous la Navbar) -->
-    <!-- z-[100] garantit qu'il est AU-DESSUS de tout le reste de l'interface -->
-    <div class="relative z-[100]" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        
-        <!-- Backdrop (Fond sombre) -->
-        <div 
-            class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm transition-opacity" 
-            wire:click="closeModalDeux">
-        </div>
-
-        <!-- Conteneur de positionnement -->
-        <!-- Changements ici : 
-             1. 'items-start' au lieu de 'items-center' (pour coller en haut)
-             2. 'pt-24' (Padding Top) pour descendre la fenêtre sous la barre de titre 
-             3. 'pb-10' pour laisser une marge en bas -->
-        <div class="fixed inset-0 z-[100] w-screen h-screen overflow-hidden flex items-start justify-center px-4 sm:px-8 pt-24 pb-10">
-            
-            <!-- Le Modal -->
-            <!-- max-h-full permet d'utiliser l'espace défini par les paddings du conteneur parent -->
-            <div class="relative flex flex-col w-full max-w-6xl h-full max-h-full bg-white rounded-xl shadow-2xl ring-1 ring-black/5 overflow-hidden border border-gray-200">
-                
-                <!-- 1. HEADER (Toujours visible) -->
-                <div class="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white z-20">
-                    <div class="flex items-center gap-4">
-                        <span class="flex items-center justify-center w-10 h-10 bg-yellow-100 text-yellow-700 rounded-lg shadow-sm border border-yellow-200">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                        </span>
-                        <div>
-                            <h3 class="text-xl font-bold text-gray-800 leading-tight">Modifier le Brouillon</h3>
-                            <p class="text-xs text-gray-500 font-medium">Mode édition</p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center gap-3">
-                        <button type="button" wire:click="closeModalDeux" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none transition-colors">
-                            Annuler
-                        </button>
-                        
-                        <button type="button" wire:click="save" wire:loading.attr="disabled" class="inline-flex items-center px-5 py-2 border border-transparent text-sm font-bold rounded-lg text-white bg-[#daaf2c] hover:bg-yellow-600 shadow-md focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:opacity-50 transition-all">
-                            <span wire:loading.remove class="flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-                                Enregistrer
-                            </span>
-                            <span wire:loading class="flex items-center gap-2">
-                                <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                ...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 2. BODY (Scrollable) -->
-                <div class="flex-1 overflow-y-auto bg-gray-50/50 custom-scrollbar p-6">
-                    
-                    <!-- Contenu centré -->
-                    <div class="max-w-5xl mx-auto space-y-6 bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
-                        
-                        <!-- A. Méta-données -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="relative group">
-                                <label for="concern" class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Pour (Concerne)</label>
-                                <input type="text" wire:model="concern" id="concern" 
-                                    class="block w-full border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm py-2.5 transition-colors" 
-                                    placeholder="Ex: Direction Générale...">
-                                @error('concern') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-
-                            <div class="relative group">
-                                <label for="object" class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Objet</label>
-                                <input type="text" wire:model="object" id="object" 
-                                    class="block w-full border-gray-300 rounded-lg bg-gray-50 focus:bg-white focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm py-2.5 font-semibold transition-colors" 
-                                    placeholder="Sujet principal...">
-                                @error('object') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-
-                        <!-- B. Gestion des Destinataires -->
-                        <div class="bg-gray-50 rounded-lg p-5 border border-gray-200">
-                            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-                                <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                                Destinataires
-                            </h3>
-
-                            <div class="flex gap-2 mb-4">
-                                <div class="flex-1">
-                                    <select wire:model="newRecipientEntity" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 text-sm">
-                                        <option value="">Entité...</option>
-                                        @foreach($entities as $entity)
-                                            <option value="{{ $entity->id }}">{{ $entity->title ?? $entity->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="w-32">
-                                    <select wire:model="newRecipientAction" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 text-sm">
-                                        <option value="">Action...</option>
-                                        @foreach($actionsList as $act)
-                                            <option value="{{ $act }}">{{ $act }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <button wire:click="addRecipient" type="button" class="inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gray-800 hover:bg-gray-900 transition-colors">
-                                    Ajouter
-                                </button>
-                            </div>
-
-                            @if(count($recipients) > 0)
-                                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                                    <table class="min-w-full divide-y divide-gray-200">
-                                        <tbody class="divide-y divide-gray-200 bg-white">
-                                            @foreach($recipients as $index => $recipient)
-                                                <tr>
-                                                    <td class="px-4 py-2 text-sm font-medium text-gray-900">{{ $recipient['entity_name'] }}</td>
-                                                    <td class="px-4 py-2 text-sm">
-                                                        <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
-                                                            {{ $recipient['action'] }}
-                                                        </span>
-                                                    </td>
-                                                    <td class="px-4 py-2 text-right">
-                                                        <button wire:click="removeRecipient({{ $index }})" class="text-gray-400 hover:text-red-500">
-                                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            @endif
-                        </div>
-
-                        <!-- C. Éditeur Quill -->
-                        <div class="pt-2">
+                    <!-- ATTACHMENTS SECTION -->
+                    <div class="mt-8 border-t border-gray-100 pt-6">
                         <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2" style="color: var(--c-grey);">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
                             </svg>
-                            Corps du Document
+                            Pièces Jointes (P.J.)
                         </label>
 
-                        <div wire:ignore 
-                            class="flex flex-col items-center bg-gray-50 rounded-lg p-4 border border-gray-200"
-                            x-data="{
-                                content: @entangle('content'),
-                                quill: null,
-                                
-                                initQuill() {
-                                    // 1. Enregistrement des Polices (Ajout de Tahoma)
-                                    const Font = Quill.import('formats/font');
-                                    Font.whitelist = [
-                                        'helvetica', 'arial', 'roboto', 'calibri', 'opensans', 'futura', 
-                                        'timesnewroman', 'georgia', 'garamond', 'playfair', 
-                                        'inter', 'aptos', 'tahoma'
-                                    ];
-                                    Quill.register(Font, true);
-
-                                    // 2. Configuration Taille (Style Inline pour tailles personnalisées)
-                                    const Size = Quill.import('attributors/style/size');
-                                    Size.whitelist = ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '32px', '48px'];
-                                    Quill.register(Size, true);
-
-                                    // 3. Initialisation de l'éditeur
-                                    this.quill = new Quill(this.$refs.quillEditor, {
-                                        theme: 'snow',
-                                        placeholder: ' Rédigez votre mémo ici...',
-                                        modules: {
-                                            toolbar: '#toolbar-container'
-                                        }
-                                    });
-
-                                    if (this.content) {
-                                        this.quill.root.innerHTML = this.content;
-                                    }
-                                    
-                                    this.quill.on('text-change', () => {
-                                        this.content = this.quill.root.innerHTML;
-                                    });
-                                },
-
-                    
-                            }"
-                            x-init="initQuill()">
-                            
-                            <!-- BARRE D'OUTILS -->
-                            <div id="toolbar-container" class="w-full max-w-4xl mb-4 !border-0 bg-white rounded-lg shadow-sm flex flex-wrap items-center justify-center gap-x-2 border border-gray-200 p-2">
-                                
-                                <!-- H1-H6 -->
-                                <span class="ql-formats">
-                                    <select class="ql-header">
-                                        <option value="1">Titre 1</option>
-                                        <option value="2">Titre 2</option>
-                                        <option value="3">Titre 3</option>
-                                        <option value="4">Titre 4</option>
-                                        <option value="5">Titre 5</option>
-                                        <option value="6">Titre 6</option>
-                                        <option selected>Texte</option>
-                                    </select>
-                                </span>
-
-                                <!-- Polices (Tahoma ajoutée) -->
-                                <span class="ql-formats">
-                                    <select class="ql-font">
-                                        <option value="helvetica">Helvetica</option>
-                                        <option value="arial">Arial</option>
-                                        <option value="tahoma" selected>Tahoma</option>
-                                        <option value="roboto">Roboto</option>
-                                        <option value="calibri">Calibri</option>
-                                        <option value="opensans">Open Sans</option>
-                                        <option value="futura">Futura</option>
-                                        <option value="timesnewroman">Times New Roman</option>
-                                        <option value="georgia">Georgia</option>
-                                        <option value="garamond">Garamond</option>
-                                        <option value="playfair">Playfair Display</option>
-                                        <option value="inter">Inter</option>
-                                        <option value="aptos">Aptos</option>
-                                    </select>
-                                </span>
-
-                                <!-- Tailles -->
-                                <span class="ql-formats flex items-center border-r pr-2">
-                                    <select class="ql-size">
-                                        <option value="10pt">10pt</option>
-                                        <option value="12pt">12pt</option>
-                                        <option value="14pt" selected>14pt</option>
-                                        <option value="16pt">16pt</option>
-                                        <option value="18pt">18pt</option>
-                                        <option value="20pt">20pt</option>
-                                        <option value="24pt">24pt</option>
-                                        <option value="32pt">32pt</option>
-                                    </select>
-                                    <button type="button" @click.prevent="askCustomSize()" class="ml-1 p-1 hover:bg-gray-100 rounded text-xs font-bold" title="Taille libre">px+</button>
-                                </span>
-
-                                <!-- Styles & Alignement -->
-                                <span class="ql-formats">
-                                    <button class="ql-bold"></button>
-                                    <button class="ql-italic"></button>
-                                    <button class="ql-underline"></button>
-                                    <select class="ql-color"></select>
-                                    <button class="ql-align" value=""></button>
-                                    <button class="ql-align" value="center"></button>
-                                    <button class="ql-align" value="right"></button>
-                                    <button class="ql-align" value="justify"></button>
-                                </span>
-
-                             
-
-                                <!-- Formes -->
-                                <span class="ql-formats border-l pl-2">
-                                    <button class="ql-clean"></button>
-                                </span>
-                            </div>
-
-                            <!-- ZONE D'ÉDITION -->
-                            <div class="w-full max-w-[21cm] shadow-xl ring-1 ring-gray-900/5">
-                                <div x-ref="quillEditor" class="bg-white text-gray-900 leading-relaxed h-auto" style="min-height: 29.7cm;"></div>
-                            </div>
-                        </div>
-
-                        <!-- D. Pièces Jointes -->
-                        <div class="pt-4 border-t border-gray-200">
-                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Pièces Jointes</label>
-                            
-                            <div class="space-y-4">
-                                <div class="group flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:bg-yellow-50/30 hover:border-yellow-400 transition-all relative cursor-pointer">
-                                    <div class="space-y-1 text-center">
-                                        <svg class="mx-auto h-10 w-10 text-gray-400 group-hover:text-yellow-500 transition-colors" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                        </svg>
-                                        <div class="flex text-sm text-gray-600 justify-center">
-                                            <label class="relative cursor-pointer font-bold text-yellow-600 hover:text-yellow-500">
-                                                <span>Cliquez pour téléverser</span>
-                                                <input wire:model="newAttachments" type="file" class="sr-only" multiple>
-                                            </label>
-                                        </div>
+                        <div class="space-y-4">
+                            <!-- Zone de Drop/Upload -->
+                            <div class="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-yellow-50/20 hover:border-[#daaf2c] transition-colors relative">
+                                <div class="space-y-1 text-center">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <div class="flex text-sm text-gray-600 justify-center">
+                                        <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-bold text-charte-gold focus-within:ring-2 focus-within:ring-[#daaf2c]">
+                                            <span>Téléverser des fichiers</span>
+                                            <input id="file-upload" wire:model="attachments" type="file" class="sr-only" multiple>
+                                        </label>
                                     </div>
-                                    <div wire:loading wire:target="newAttachments" class="absolute inset-0 bg-white/90 flex items-center justify-center rounded-lg">
-                                        <span class="text-yellow-600 font-bold flex items-center gap-2">
-                                            <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                            Traitement...
-                                        </span>
-                                    </div>
+                                    <p class="text-xs text-gray-500">PDF, DOCX, PNG, JPG jusqu'à 10MB</p>
                                 </div>
 
-                                <!-- Liste des fichiers -->
-                                @if(count($existingAttachments) > 0 || count($newAttachments) > 0)
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                        <!-- Existants -->
-                                        @foreach($existingAttachments as $idx => $fileData)
-                                            @php
-                                                $filePath = is_array($fileData) ? ($fileData['path'] ?? reset($fileData) ?? '') : $fileData;
-                                                $fileName = $filePath ? basename($filePath) : 'Fichier';
-                                            @endphp
-                                            <div class="flex items-center p-2 bg-white border border-gray-200 rounded-lg shadow-sm">
-                                                <div class="bg-blue-50 p-2 rounded text-blue-600 mr-2 shrink-0">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                                                </div>
-                                                <div class="flex-1 min-w-0">
-                                                    <p class="text-xs font-bold text-gray-700 truncate">{{ Str::limit($fileName, 20) }}</p>
-                                                    <p class="text-[10px] text-gray-400">Existant</p>
-                                                </div>
-                                                <button wire:click="removeExistingAttachment({{ $idx }})" class="text-gray-300 hover:text-red-500 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-                                            </div>
-                                        @endforeach
-
-                                        <!-- Nouveaux -->
-                                        @foreach($newAttachments as $idx => $file)
-                                            <div class="flex items-center p-2 bg-yellow-50 border border-yellow-200 rounded-lg shadow-sm">
-                                                <div class="bg-yellow-100 p-2 rounded text-yellow-600 mr-2 shrink-0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></div>
-                                                <div class="flex-1 min-w-0">
-                                                    <p class="text-xs font-bold text-gray-900 truncate">{{ $file->getClientOriginalName() }}</p>
-                                                    <p class="text-[10px] text-yellow-600">Nouveau</p>
-                                                </div>
-                                                <button wire:click="removeNewAttachment({{ $idx }})" class="text-gray-400 hover:text-red-500 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-                                            </div>
-                                        @endforeach
+                                <div wire:loading wire:target="attachments" class="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+                                    <div class="flex items-center font-semibold text-charte-gold">
+                                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Upload en cours...
                                     </div>
+                                </div>
+                            </div>
+                            @error('attachments.*') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+
+                            <!-- LISTE DES FICHIERS -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                
+                                <!-- 1. AFFICHAGE DES FICHIERS DÉJÀ ENREGISTRÉS (Base de données) -->
+                                @foreach($existingAttachments as $index => $item)
+                                    @php
+                                        // On extrait le chemin (string) que l'item soit une chaîne ou un tableau
+                                        $filePath = is_string($item) ? $item : ($item['path'] ?? '');
+                                        // On récupère l'extension de manière sécurisée
+                                        $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+                                        // On récupère le nom du fichier pour l'affichage
+                                        $fileName = basename($filePath);
+                                    @endphp
+                                    
+                                    <div class="relative flex items-center p-3 border border-blue-200 rounded-lg bg-blue-50/30 group hover:border-blue-400 transition-colors">
+                                        <div class="flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center bg-white border border-blue-100 text-blue-500 font-bold text-[10px] uppercase">
+                                            {{ $extension ?: '?' }}
+                                        </div>
+                                        <div class="ml-4 flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-gray-900 truncate" title="{{ $fileName }}">
+                                                {{ $fileName }}
+                                            </p>
+                                            <p class="text-[10px] text-blue-600 font-bold uppercase tracking-tighter">Fichier déjà enregistré</p>
+                                        </div>
+                                        
+                                        <button type="button" 
+                                            wire:click="removeExistingAttachment({{ $index }})" 
+                                            class="ml-2 inline-flex items-center p-1.5 border border-transparent rounded-full shadow-sm text-white bg-gray-400 hover:bg-red-500 transition-colors">
+                                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                @endforeach
+
+                                <!-- 2. AFFICHAGE DES NOUVEAUX FICHIERS (En cours d'upload) -->
+                                @if($attachments)
+                                    @foreach($attachments as $index => $file)
+                                        <div class="relative flex items-center p-3 border border-yellow-200 rounded-lg bg-yellow-50/30 group hover:border-[#daaf2c] transition-colors">
+                                            <div class="flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center bg-white border border-gray-200 text-gray-500 font-bold text-[10px] uppercase">
+                                                {{ $file->extension() }}
+                                            </div>
+                                            <div class="ml-4 flex-1 min-w-0">
+                                                <p class="text-sm font-medium text-gray-900 truncate">{{ $file->getClientOriginalName() }}</p>
+                                                <p class="text-[10px] text-green-600 font-bold uppercase">Nouveau fichier</p>
+                                            </div>
+                                            <button type="button" wire:click="removeAttachment({{ $index }})" class="ml-2 inline-flex items-center p-1.5 border border-transparent rounded-full shadow-sm text-white bg-gray-300 hover:bg-red-500 transition-colors">
+                                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    @endforeach
                                 @endif
                             </div>
                         </div>
-
                     </div>
                 </div>
+
+                <div class="bg-gray-50 px-8 py-4 border-t border-gray-200 flex justify-between items-center text-xs text-gray-500">
+                    <span>Auteur: <strong class="text-gray-900">{{ Auth::user()->name }}</strong></span>
+                    <span>Document généré par le système</span>
+                </div>
             </div>
-        </div>
+
+        @else
+            <!-- ========================================== -->
+            <!-- VUE 1 : LISTE (TON DESIGN ORIGINAL)        -->
+            <!-- ========================================== -->
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Mes Mémos</h2>
+                    <p class="text-sm text-gray-500">Gérez vos mémos en attente d'envoi.</p>
+                </div>
+                <div class="relative w-full md:w-96">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <input wire:model.live.debounce.300ms="search" type="text" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm shadow-sm" placeholder="Rechercher par objet, concerné...">
+                </div>
+            </div>
+
+            <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-200">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Objet & Concerne</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destinataires</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pièces Jointes</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            @forelse ($memos as $memo)
+                                <tr class="hover:bg-gray-50 transition-colors duration-150 group">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <div class="flex flex-col"><span class="font-medium text-gray-900">{{ $memo->created_at->format('d/m/Y') }}</span><span class="text-xs">{{ $memo->created_at->format('H:i') }}</span></div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col max-w-xs md:max-w-md"><span class="text-sm font-bold text-gray-800 truncate">{{ $memo->object }}</span><span class="text-xs text-gray-500 truncate mt-1">Concerne: {{ $memo->concern }}</span></div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-wrap gap-2">
+                                            @foreach($memo->destinataires->take(3) as $dest)
+                                                @php $badgeClasses = Str::contains(Str::lower($dest->action), 'nécessaire') ? 'bg-orange-100 text-orange-800 border border-orange-200' : 'bg-blue-100 text-blue-800 border border-blue-200'; @endphp
+                                                <div class="inline-flex flex-col items-start px-2.5 py-1 rounded-md text-xs font-medium {{ $badgeClasses }}"><span class="font-bold">{{ $dest->entity->ref ?? 'N/A' }}</span><span class="text-[10px] opacity-80 leading-tight">{{ Str::limit($dest->action, 15) }}</span></div>
+                                            @endforeach
+                                            @if($memo->destinataires->count() > 3) <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">+{{ $memo->destinataires->count() - 3 }}</span> @endif
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap" x-data="{ openFiles: false }">
+                                        @php $pj = is_string($memo->pieces_jointes) ? json_decode($memo->pieces_jointes, true) : ($memo->pieces_jointes ?? []); @endphp
+                                        @if(count($pj) > 0)
+                                            <button @click="openFiles = true" type="button" class="flex items-center space-x-1 text-gray-600 hover:text-blue-600 transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg><span class="text-sm font-bold">{{ count($pj) }}</span></button>
+                                            <div x-show="openFiles" style="display: none;" class="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/50 backdrop-blur-sm" @click.self="openFiles = false">
+                                                <div class="bg-white rounded-lg shadow-2xl w-80 max-w-sm mx-4 overflow-hidden border border-gray-100">
+                                                    <div class="bg-gray-50 px-4 py-3 border-b flex justify-between items-center"><h3 class="text-sm font-bold text-gray-700">Pièces Jointes</h3><button @click="openFiles = false"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>
+                                                    <div class="max-h-64 overflow-y-auto p-2">
+                                                        <ul class="space-y-1">
+                                                            @foreach($pj as $file)
+                                                                <li><a href="{{ Storage::url(is_string($file) ? $file : ($file['path'] ?? '')) }}" target="_blank" class="flex items-center p-2 hover:bg-blue-50 rounded-md text-sm text-gray-700"><div class="bg-blue-100 p-1.5 rounded-md mr-3 text-blue-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></div><div class="flex-1 min-w-0"><p class="truncate font-medium">{{ basename(is_string($file) ? $file : ($file['path'] ?? '')) }}</p></div></a></li>
+                                                            @endforeach
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @else <span class="text-gray-300 text-xs">-</span> @endif
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                        <div class="flex items-center justify-center space-x-3">
+                                            <button wire:click="viewMemo({{ $memo->id }})" class="text-gray-400 hover:text-blue-600" title="Aperçu Réel PDF"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button>
+                                            <button wire:click="editMemo({{ $memo->id }})" class="text-gray-400 hover:text-yellow-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                                            <button wire:click="assignMemo({{ $memo->id }})" class="text-gray-400 hover:text-green-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg></button>
+                                            <button wire:click="deleteMemo({{ $memo->id }})" class="text-gray-400 hover:text-red-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="px-6 py-16 text-center">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <!-- Icône Crayon / Rédaction (Heroicons) -->
+                                            <div class="bg-yellow-50 p-4 rounded-full mb-4">
+                                                <svg class="h-12 w-12 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                </svg>
+                                            </div>
+                                            
+                                            <p class="text-lg font-bold text-gray-800">Aucun Mémo Rédigé</p>
+                                            <p class="text-sm text-gray-500 max-w-xs mx-auto mt-1">
+                                                Vous n'avez pas encore initié de mémo. Les mémos que vous créerez s'afficheront ici.
+                                            </p>
+                                            
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-200">{{ $memos->links() }}</div>
+            </div>
+        @endif
     </div>
-@endif
+
+    <!-- STYLES QUILL & ANIMATIONS -->
+    <style>
+        .ql-container.ql-snow { border: none !important; }
+        .ql-editor { padding: 50px 70px !important; min-height: 29.7cm; font-family: 'Tahoma', sans-serif; font-size: 14px; line-height: 1.5; }
+        .ql-font-tahoma { font-family: 'Tahoma', sans-serif !important; }
+        .ql-font-timesnewroman { font-family: 'Times New Roman', serif !important; }
+        .ql-font-arial { font-family: 'Arial', sans-serif !important; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+
     
+
+    {{-- MODALS (Transmission / Suppression) --}}
     @if($isOpen3)
        <!-- Modal Envoi & Workflow -->
        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -1321,20 +816,16 @@
        </div>
     @endif
 
+
     @if($isOpen4)
-       <!-- Modal Suppression -->
-       <div class="relative z-50" role="dialog" aria-modal="true">
-            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm"></div>
-            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-                <div class="flex min-h-full items-center justify-center p-4 text-center">
-                    <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:w-full sm:max-w-lg border border-gray-200 p-6">
-                        <h3 class="text-lg font-bold text-red-600 mb-2">Supprimer le brouillon ?</h3>
-                        <p class="text-gray-500 mb-6">Cette action est irréversible.</p>
-                        <div class="flex justify-end gap-3">
-                             <button wire:click="closeModalQuatre" class="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200">Annuler</button>
-                             <button wire:click="del" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Supprimer</button>
-                        </div>
-                    </div>
+       <!-- MODAL SUPPRESSION (Garder ton design original) -->
+       <div class="relative z-[150]" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-gray-900/75 backdrop-blur-sm"></div>
+            <div class="fixed inset-0 z-10 flex items-center justify-center p-4 text-center">
+                <div class="relative bg-white rounded-lg shadow-xl sm:w-full sm:max-w-lg p-6">
+                    <h3 class="text-lg font-bold text-red-600 mb-2">Supprimer le brouillon ?</h3>
+                    <p class="text-gray-500 mb-6">Cette action est irréversible.</p>
+                    <div class="flex justify-end gap-3"><button wire:click="closeModalQuatre" class="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200">Annuler</button><button wire:click="del" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-bold">Supprimer</button></div>
                 </div>
             </div>
        </div>

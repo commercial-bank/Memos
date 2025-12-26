@@ -26,6 +26,9 @@ class Settings extends Component
     public $activeTab = 'users'; 
     public $search = '';
     public $viewingMemoId = null;
+    public $showDeactivationModal = false;
+    public $blocking_reason = '';
+    public $userToToggleId = null;
 
     // --- Variables Structures (Entités/SD) ---
     public $showModal = false;
@@ -85,13 +88,45 @@ class Settings extends Component
         }
     }
 
-    public function toggleStatus($userId)
+    public function confirmToggleStatus($userId)
     {
         $user = User::findOrFail($userId);
-        if ($user->id !== auth()->id()) {
-            $user->update(['is_active' => !$user->is_active]);
-            $this->dispatch('notify', message: "Statut du compte mis à jour.");
+        
+        if ($user->id === auth()->id()) {
+            return; // On ne se bloque pas soi-même
         }
+
+        if ($user->is_active) {
+            // Si l'utilisateur est actif, on demande le motif pour le bloquer
+            $this->userToToggleId = $userId;
+            $this->blocking_reason = '';
+            $this->showDeactivationModal = true;
+        } else {
+            // Si l'utilisateur est déjà inactif, on le réactive directement
+            $user->update([
+                'is_active' => true,
+                'blocking_reason' => null
+            ]);
+            $this->dispatch('notify', message: "Compte réactivé avec succès.");
+        }
+    }
+
+    public function processDeactivation()
+    {
+        $this->validate([
+            'blocking_reason' => 'required|min:5|string'
+        ], [
+            'blocking_reason.required' => 'Le motif est obligatoire pour désactiver un compte.'
+        ]);
+
+        $user = User::findOrFail($this->userToToggleId);
+        $user->update([
+            'is_active' => false,
+            'blocking_reason' => $this->blocking_reason
+        ]);
+
+        $this->showDeactivationModal = false;
+        $this->dispatch('notify', message: "Le compte a été suspendu.");
     }
 
     // =========================================================

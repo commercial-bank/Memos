@@ -122,6 +122,10 @@
             margin-top: 30px;
         }
 
+        .content-body .direction {
+            font-size: 12pt;
+        }
+
         .validation-block {
             margin-top: 50px;
             width: 350px;

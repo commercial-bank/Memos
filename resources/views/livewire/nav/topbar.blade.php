@@ -118,24 +118,32 @@
     @auth
         @if(auth()->user()->isInactive())
             <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#000000]/80 backdrop-blur-sm p-4">
-                 <div class="bg-white rounded-2xl p-8 text-center max-w-sm w-full shadow-2xl transform scale-100 transition-transform">
-                     <!-- Icone Danger -->
-                     <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
+                <div class="bg-white rounded-2xl p-8 text-center max-w-sm w-full shadow-2xl border-t-8 border-red-600">
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
                         <svg class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
-                     </div>
-                     
-                     <h2 class="text-2xl font-bold mb-2 text-gray-900">Compte Désactivé</h2>
-                     <p class="mb-6 text-gray-500">Votre accès a été restreint. Veuillez contacter l'administrateur pour plus de détails.</p>
-                     
-                     <form method="GET" action="{{ route('login') }}">
+                    </div>
+                    
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900">Compte Suspendu</h2>
+                    
+                    <!-- AFFICHAGE DU MOTIF ICI -->
+                    <div class="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
+                        <p class="text-[10px] font-black text-red-500 uppercase mb-1">Motif de la restriction :</p>
+                        <p class="text-sm text-gray-700 font-bold italic leading-relaxed">
+                            "{{ auth()->user()->blocking_reason ?? 'Aucun motif spécifique n\'a été fourni par l\'administrateur.' }}"
+                        </p>
+                    </div>
+                    
+                    <p class="mb-6 text-[11px] text-gray-500 uppercase font-bold">Veuillez contacter la Direction Technique pour plus de détails.</p>
+                    
+                    <form method="GET" action="{{ route('login') }}">
                         @csrf
-                        <button class="w-full py-3 px-4 rounded-xl shadow-lg font-bold text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-200 transition-all">
-                            Déconnexion sécurisée
+                        <button class="w-full py-3 px-4 rounded-xl shadow-lg font-bold text-white bg-red-600 hover:bg-red-700 transition-all">
+                            Retour à l'accueil
                         </button>
-                     </form>
-                 </div>
+                    </form>
+                </div>
             </div>
 
         @elseif(auth()->user()->hasIncompleteProfile() && $currentContent !== 'profile-content')

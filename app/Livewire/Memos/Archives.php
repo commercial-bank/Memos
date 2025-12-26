@@ -17,7 +17,16 @@ class Archives extends Component
 
     // Propriétés de recherche et état du modal
     public $search = '';
+    public $isViewingPdf = false;
     public $isOpen = false;
+
+     // --- Données d'Affichage ---
+    public $user_service;
+    public $user_first_name;
+    public $user_last_name;
+    public $user_entity_name;
+    public $pdfBase64 = '';
+    public $memo_id = null;
 
     // Note : Stocker des modèles entiers dans des propriétés publiques 
     // peut ralentir Livewire (sérialisation). 
@@ -40,15 +49,30 @@ class Archives extends Component
      */
     public function viewMemo($id)
     {
-        // On récupère le mémo avec ses relations en une seule requête SQL
-        $this->selectedMemo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
-        
-        // Filtrage en mémoire (Collection) au lieu d'une nouvelle requête SQL
-        $this->myStatusInfo = $this->selectedMemo->destinataires
-            ->where('entity_id', Auth::user()->entity_id)
-            ->first();
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
+        $this->memo_id = $memo->id;
 
-        $this->isOpen = true;
+        $pdf = Pdf::loadView('pdf.memo-layout', [
+            'memo'               => $memo,
+            'recipientsByAction' => $memo->destinataires->groupBy('action'),
+            'date'               => $memo->created_at->format('d/m/Y'),
+            'logo'               => $this->getLogoBase64(),
+        ])->setPaper('a4', 'portrait');
+
+        $this->pdfBase64 = base64_encode($pdf->output());
+        $this->isViewingPdf = true;
+        $this->isEditing = false;
+    }
+
+    public function closePdfView()
+    {
+        $this->isViewingPdf = false;
+        $this->pdfBase64 = '';
+    }
+
+    private function getLogoBase64() {
+        $path = public_path('images/logo.jpg');
+        return file_exists($path) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($path)) : null;
     }
 
     /**
@@ -65,45 +89,16 @@ class Archives extends Component
      * Génération et téléchargement du PDF
      * Optimisation : Traitement du logo et du QR Code
      */
-    public function downloadPdf($id)
+    public function downloadMemoPDF()
     {
-        // Chargement optimisé pour le PDF
-        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
-        
-        // Groupement des destinataires par action pour la vue PDF
-        $recipientsByAction = $memo->destinataires->groupBy('action');
-
-        // Préparation du logo (mise en cache statique possible si le logo est lourd)
-        $pathLogo = public_path('images/logo.jpg');
-        $logoBase64 = null;
-        if (file_exists($pathLogo)) {
-            $logoBase64 = 'data:image/jpg;base64,' . base64_encode(file_get_contents($pathLogo));
-        }
-
-        // Génération rapide du QR Code
-        $qrCodeBase64 = null;
-        if ($memo->qr_code) {
-            $qrImage = QrCode::format('png')
-                ->size(150)
-                ->margin(1)
-                ->generate(route('memo.verify', $memo->qr_code));
-            $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($qrImage);
-        }
-
-        // Création du flux PDF
+        $memo = Memo::findOrFail($this->memo_id);
         $pdf = Pdf::loadView('pdf.memo-layout', [
-            'memo'               => $memo, 
-            'recipientsByAction' => $recipientsByAction,
-            'logo'               => $logoBase64, 
-            'qrCode'             => $qrCodeBase64, 
-            'date'               => $memo->created_at->format('d/m/Y'),
-        ])->setPaper('a4', 'portrait');
-
-        // Utilisation de streamDownload pour réduire la consommation de mémoire serveur
-        return response()->streamDownload(
-            fn() => print($pdf->output()), 
-            "Archive_Memo_{$memo->reference}.pdf"
-        );
+            'memo' => $memo,
+            'recipientsByAction' => $memo->destinataires->groupBy('action'),
+            'date' => $memo->created_at->format('d/m/Y'),
+            'logo' => $this->getLogoBase64(),
+        ]);
+        return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
     }
 
     /**

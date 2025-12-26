@@ -31,6 +31,7 @@ class IncomingMemos extends Component
     // =========================================================
 
     public $search = '';
+    public $isViewingPdf = false;
 
     // --- États des Modals ---
     public $isOpen = false;        
@@ -76,6 +77,10 @@ class IncomingMemos extends Component
     public $user_last_name;
     public $user_entity_name;
 
+    public $pdfBase64 = '';
+
+
+
     // --- Options Statiques ---
     public $visaOptions = [
         'Vu' => 'Vu (Simple transmission)',
@@ -97,18 +102,30 @@ class IncomingMemos extends Component
      */
     public function viewMemo($id)
     {
-        $this->selectedMemo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
-        
-        $this->memo_id = $this->selectedMemo->id;
-        $this->object = $this->selectedMemo->object;
-        $this->concern = $this->selectedMemo->concern;
-        $this->content = $this->selectedMemo->content;
-        $this->date = $this->selectedMemo->created_at->format('d/m/Y');
-        
-        $this->user_entity_name = $this->selectedMemo->user->entity->name ?? 'Entité';
-        $this->user_service = $this->selectedMemo->user->service;
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
+        $this->memo_id = $memo->id;
 
-        $this->isOpen = true;
+        $pdf = Pdf::loadView('pdf.memo-layout', [
+            'memo'               => $memo,
+            'recipientsByAction' => $memo->destinataires->groupBy('action'),
+            'date'               => $memo->created_at->format('d/m/Y'),
+            'logo'               => $this->getLogoBase64(),
+        ])->setPaper('a4', 'portrait');
+
+        $this->pdfBase64 = base64_encode($pdf->output());
+        $this->isViewingPdf = true;
+        $this->isEditing = false;
+    }
+
+    public function closePdfView()
+    {
+        $this->isViewingPdf = false;
+        $this->pdfBase64 = '';
+    }
+
+    private function getLogoBase64() {
+        $path = public_path('images/logo.jpg');
+        return file_exists($path) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($path)) : null;
     }
 
     public function closeModal() 
@@ -354,18 +371,97 @@ class IncomingMemos extends Component
     }
 
     private function generateSmartReference($memo)
-    {
-        $user = Auth::user();
-        $count = BlocEnregistrements::whereYear('created_at', now()->year)
-            ->whereHas('user', fn($q) => $q->where('entity_id', $user->entity_id))
-            ->count() + 1;
-        
-        $creator = User::with(['entity', 'sousDirection'])->find($memo->user_id);
-        $refEntity = $creator->entity->ref ?? 'ENT';
-        $baseNum = sprintf("%04d", $count);
+{
+    $year = now()->year;
+    $memoCreator = \App\Models\User::find($memo->user_id);
 
-        return "{$baseNum}/{$refEntity}/" . now()->year;
+    if (!$memoCreator) return null;
+
+    // 1. CALCUL DU COMPTEUR
+    // On compte les enregistrements dans 'blocs_enregistrements' pour l'entité du créateur cette année
+    $count = \App\Models\BlocEnregistrements::whereYear('created_at', $year)
+        ->whereHas('user', function($q) use ($memoCreator) {
+            $q->where('entity_id', $memoCreator->entity_id);
+        })
+        ->count() + 1;
+
+    $baseNum = sprintf("%04d", $count);
+
+    // 2. RÉCUPÉRATION DE L'HISTORIQUE DES VISAS
+    // On récupère tous les gens qui ont agi sur ce mémo
+    $historiques = \App\Models\Historiques::with(['user.entity', 'user.sousDirection'])
+        ->where('memo_id', $memo->id)
+        ->get();
+
+    // Variables pour construire les segments
+    $entRef      = ""; // Segment Entité (Directeur)
+    $sdRef       = ""; // Segment Sous-Direction (Sous-Directeur)
+    $deptName    = ""; // Segment Département (Chef de Dept)
+    $serviceName = ""; // Segment Service (Chef de Service)
+    $initials    = ""; // Segment Initiales (Employé / Stagiaire)
+
+    foreach ($historiques as $log) {
+        $u = $log->user;
+        if (!$u) continue;
+
+        $poste = \Illuminate\Support\Str::lower($u->poste);
+        $visa  = $log->visa; // Ex: "Vu & Accord"
+        
+        // On considère un accord si le mot "Accord" est présent dans le visa
+        $isAccord = \Illuminate\Support\Str::contains($visa, 'Accord');
+
+        // --- RÈGLE DIRECTEUR ---
+        if (\Illuminate\Support\Str::contains($poste, 'Directeur') && !\Illuminate\Support\Str::contains($poste, 'sous')) {
+            $entRef = $u->entity->ref ?? "";
+        }
+        
+        // --- RÈGLE SOUS-DIRECTEUR ---
+        elseif (\Illuminate\Support\Str::contains($poste, 'Sous-Directeur')) {
+            $sdRef = $u->sousDirection->ref ?? "";
+        }
+
+        // --- RÈGLE CHEF DE DÉPARTEMENT ---
+        elseif (\Illuminate\Support\Str::contains($poste, 'Chef-Departement')) {
+            if ($isAccord) {
+                $deptName = $u->departement;
+            }
+        }
+
+        // --- RÈGLE CHEF DE SERVICE ---
+        elseif (\Illuminate\Support\Str::contains($poste, 'Chef-Service')) {
+            if ($isAccord) {
+                $serviceName = $u->service;
+            }
+        }
+
+        // --- RÈGLE EMPLOYÉ / STAGIAIRE ---
+        elseif (
+            \Illuminate\Support\Str::contains($poste, 'Employer') || 
+            \Illuminate\Support\Str::contains($poste, 'stagiaire') || 
+            \Illuminate\Support\Str::contains($poste, 'professionnel')
+        ) {
+            if ($isAccord) {
+                $first = \Illuminate\Support\Str::substr($u->first_name, 0, 1);
+                $last  = \Illuminate\Support\Str::substr($u->last_name, 0, 1);
+                $initials = \Illuminate\Support\Str::upper($first . $last);
+            }
+        }
     }
+
+    // 3. ASSEMBLAGE DE LA CHAÎNE
+    // On construit le tableau dans l'ordre hiérarchique décroissant
+    $segments = [];
+    $segments[] = $baseNum;
+
+    if (!empty($entRef))      $segments[] = \Illuminate\Support\Str::upper($entRef);
+    if (!empty($sdRef))       $segments[] = \Illuminate\Support\Str::upper($sdRef);
+    if (!empty($deptName))    $segments[] = \Illuminate\Support\Str::upper($deptName);
+    if (!empty($serviceName)) $segments[] = \Illuminate\Support\Str::upper($serviceName);
+    if (!empty($initials))    $segments[] = $initials;
+
+    // Jointure avec des slashes, en filtrant les éléments vides au cas où
+    return implode('/', array_filter($segments));
+}
 
     // =========================================================
     // 6. GESTION DU REJET
@@ -466,24 +562,13 @@ class IncomingMemos extends Component
 
     public function downloadMemoPDF()
     {
-        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
-        $pathLogo = public_path('images/logo.jpg');
-        $logo = file_exists($pathLogo) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($pathLogo)) : null;
-
-        $qrCode = null;
-        if ($memo->qr_code) {
-            $qrImg = QrCode::format('png')->size(100)->margin(1)->generate(route('memo.verify', $memo->qr_code));
-            $qrCode = 'data:image/png;base64,' . base64_encode($qrImg);
-        }
-
+        $memo = Memo::findOrFail($this->memo_id);
         $pdf = Pdf::loadView('pdf.memo-layout', [
             'memo' => $memo,
             'recipientsByAction' => $memo->destinataires->groupBy('action'),
-            'logo' => $logo,
-            'qrCode' => $qrCode,
             'date' => $memo->created_at->format('d/m/Y'),
-        ])->setPaper('a4', 'portrait');
-
+            'logo' => $this->getLogoBase64(),
+        ]);
         return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
     }
 

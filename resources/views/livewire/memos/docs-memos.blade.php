@@ -1,7 +1,55 @@
 <div class="min-h-screen bg-gray-50 py-8 font-sans">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                @if($isViewingPdf)
+                    <!-- ========================================== -->
+                    <!-- VUE 3 : APERÇU RÉEL PDF (DOMPDF)           -->
+                    <!-- ========================================== -->
+                    <div class="animate-fade-in">
+                        <!-- BARRE D'ACTIONS (Header style original) -->
+                        <div class="mb-8 bg-white border border-gray-100 rounded-xl shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all duration-300">
+                            <button wire:click="closePdfView" type="button" class="group flex items-center text-gray-500 hover:text-black transition-colors focus:outline-none">
+                                <div class="mr-3 h-10 w-10 rounded-full bg-gray-100 group-hover:bg-[#daaf2c]/20 group-hover:text-[#daaf2c] flex items-center justify-center transition-colors duration-200">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex flex-col items-start text-left">
+                                    <span class="font-bold text-base text-black">Retour</span>
+                                    <span class="text-xs font-normal text-gray-400">Revenir à la liste</span>
+                                </div>
+                            </button>
+                            
+                            <div class="flex items-center justify-end space-x-3 w-full sm:w-auto">
+                                <button wire:click="downloadMemoPDF" type="button" 
+                                    class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-lg shadow-md text-white transform hover:-translate-y-0.5 transition-all duration-200"
+                                    style="background-color: #ef4444;">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                    </svg>
+                                    Télécharger PDF
+                                </button>
+                            </div>
+                        </div>
 
-        @if(!$isEditing)
+                        <!-- ZONE VISIONNEUSE (Style Papier) -->
+                        <div class="bg-gray-200 rounded-lg shadow-inner p-4 md:p-8 flex justify-center min-h-[80vh]">
+                            <div class="w-full max-w-5xl bg-white shadow-2xl">
+                                @if($pdfBase64)
+                                    <iframe 
+                                        src="data:application/pdf;base64,{{ $pdfBase64 }}#view=FitH" 
+                                        class="w-full h-[100vh] border-none">
+                                    </iframe>
+                                @else
+                                    <div class="flex flex-col items-center justify-center py-20">
+                                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#daaf2c]"></div>
+                                        <p class="mt-4 text-gray-500 font-bold">Génération du rendu final DomPDF...</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                @elseif(!$isEditing)
 
                 <!-- EN-TÊTE & RECHERCHE -->
                 <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -371,11 +419,19 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="px-6 py-12 text-center">
+                                        <td colspan="5" class="px-6 py-16 text-center">
                                             <div class="flex flex-col items-center justify-center text-gray-500">
-                                                <svg class="h-12 w-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                                <p class="text-lg font-medium text-gray-900">Aucun Mémo trouvé</p>
-                                                <p class="text-sm">Commencez par créer un nouveau mémorandum.</p>
+                                                <!-- Icône Avion en papier (Symbole d'envoi) -->
+                                                <div class="bg-yellow-50 p-4 rounded-full mb-4">
+                                                    <svg class="h-12 w-12 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                                    </svg>
+                                                </div>
+                                                
+                                                <p class="text-lg font-bold text-gray-900">Aucun Mémo Envoyé</p>
+                                                <p class="text-sm text-gray-500 max-w-xs mx-auto mt-1">
+                                                    Vous n'avez pas encore rediger de mémo. Les mémos envoyés aux autres entités s'afficheront ici.
+                                                </p>
                                             </div>
                                         </td>
                                     </tr>
@@ -490,161 +546,246 @@
                             @endif
                         </div>
 
-                        <!-- Éditeur Quill (A4 Virtuel) -->
+
+                        <!-- ÉDITEUR QUILL (Type Word) -->
                         <div class="pt-2">
-                        <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2" style="color: var(--c-grey);">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Corps du Document
-                        </label>
+                            <!-- Label avec info utilisateur -->
+                            <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex justify-between items-center text-gray-500">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Corps du Document
+                                </span>
+                                <span class="text-[10px] font-normal normal-case italic opacity-60">
+                                    Les lignes rouges indiquent les sauts de page (Format A4)
+                                </span>
+                            </label>
 
-                        <div wire:ignore 
-                            class="flex flex-col items-center bg-gray-50 rounded-lg p-4 border border-gray-200"
-                            x-data="{
-                                content: @entangle('content'),
-                                quill: null,
-                                
-                                initQuill() {
-                                    // 1. Enregistrement des Polices (Ajout de Tahoma)
-                                    const Font = Quill.import('formats/font');
-                                    Font.whitelist = [
-                                        'helvetica', 'arial', 'roboto', 'calibri', 'opensans', 'futura', 
-                                        'timesnewroman', 'georgia', 'garamond', 'playfair', 
-                                        'inter', 'aptos', 'tahoma'
-                                    ];
-                                    Quill.register(Font, true);
+                            <div wire:ignore 
+                                class="flex flex-col items-center bg-gray-100 rounded-xl p-4 border border-gray-200 shadow-inner"
+                                x-data="{
+                                    content: @entangle('content'),
+                                    quill: null,
+                                    initQuill() {
+                                        // Enregistrement des Polices
+                                        const Font = Quill.import('formats/font');
+                                        Font.whitelist = ['helvetica', 'arial', 'roboto', 'tahoma', 'timesnewroman', 'georgia', 'inter'];
+                                        Quill.register(Font, true);
 
-                                    // 2. Configuration Taille (Style Inline pour tailles personnalisées)
-                                    const Size = Quill.import('attributors/style/size');
-                                    Size.whitelist = ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '32px', '48px'];
-                                    Quill.register(Size, true);
+                                        // Configuration Tailles
+                                        const Size = Quill.import('attributors/style/size');
+                                        Size.whitelist = ['10px', '12px', '14px', '16px', '18px', '20px', '24px'];
+                                        Quill.register(Size, true);
 
-                                    // 3. Initialisation de l'éditeur
-                                    this.quill = new Quill(this.$refs.quillEditor, {
-                                        theme: 'snow',
-                                        placeholder: ' Rédigez votre mémo ici...',
-                                        modules: {
-                                            toolbar: '#toolbar-container'
-                                        }
-                                    });
+                                        this.quill = new Quill(this.$refs.quillEditor, {
+                                            theme: 'snow',
+                                            placeholder: 'Commencez à rédiger votre mémorandum...',
+                                            modules: { toolbar: '#toolbar-container' }
+                                        });
 
-                                    if (this.content) {
-                                        this.quill.root.innerHTML = this.content;
+                                        if (this.content) { this.quill.root.innerHTML = this.content; }
+                                        this.quill.on('text-change', () => { this.content = this.quill.root.innerHTML; });
                                     }
-                                    
-                                    this.quill.on('text-change', () => {
-                                        this.content = this.quill.root.innerHTML;
-                                    });
-                                },
-
-                    
-                            }"
-                            x-init="initQuill()">
-                            
-                            <!-- BARRE D'OUTILS -->
-                            <div id="toolbar-container" class="w-full max-w-4xl mb-4 !border-0 bg-white rounded-lg shadow-sm flex flex-wrap items-center justify-center gap-x-2 border border-gray-200 p-2">
+                                }"
+                                x-init="initQuill()">
                                 
-                                <!-- H1-H6 -->
-                                <span class="ql-formats">
-                                    <select class="ql-header">
-                                        <option value="1">Titre 1</option>
-                                        <option value="2">Titre 2</option>
-                                        <option value="3">Titre 3</option>
-                                        <option value="4">Titre 4</option>
-                                        <option value="5">Titre 5</option>
-                                        <option value="6">Titre 6</option>
-                                        <option selected>Texte</option>
-                                    </select>
-                                </span>
-
-                                <!-- Polices (Tahoma ajoutée) -->
-                                <span class="ql-formats">
-                                    <select class="ql-font">
-                                        <option value="helvetica">Helvetica</option>
-                                        <option value="arial">Arial</option>
-                                        <option value="tahoma" selected>Tahoma</option>
-                                        <option value="roboto">Roboto</option>
-                                        <option value="calibri">Calibri</option>
-                                        <option value="opensans">Open Sans</option>
-                                        <option value="futura">Futura</option>
-                                        <option value="timesnewroman">Times New Roman</option>
-                                        <option value="georgia">Georgia</option>
-                                        <option value="garamond">Garamond</option>
-                                        <option value="playfair">Playfair Display</option>
-                                        <option value="inter">Inter</option>
-                                        <option value="aptos">Aptos</option>
-                                    </select>
-                                </span>
-
-                                <!-- Tailles -->
-                                <span class="ql-formats flex items-center border-r pr-2">
-                                    <select class="ql-size">
-                                        <option value="10pt">10pt</option>
-                                        <option value="12pt">12pt</option>
-                                        <option value="14pt" selected>14pt</option>
-                                        <option value="16pt">16pt</option>
-                                        <option value="18pt">18pt</option>
-                                        <option value="20pt">20pt</option>
-                                        <option value="24pt">24pt</option>
-                                        <option value="32pt">32pt</option>
-                                    </select>
-                                    <button type="button" @click.prevent="askCustomSize()" class="ml-1 p-1 hover:bg-gray-100 rounded text-xs font-bold" title="Taille libre">px+</button>
-                                </span>
-
-                                <!-- Styles & Alignement -->
-                                <span class="ql-formats">
-                                    <button class="ql-bold"></button>
-                                    <button class="ql-italic"></button>
-                                    <button class="ql-underline"></button>
-                                    <select class="ql-color"></select>
-                                    <button class="ql-align" value=""></button>
-                                    <button class="ql-align" value="center"></button>
-                                    <button class="ql-align" value="right"></button>
-                                    <button class="ql-align" value="justify"></button>
-                                </span>
-
-                             
-
-                                <!-- Formes -->
-                                <span class="ql-formats border-l pl-2">
-                                    <button class="ql-clean"></button>
-                                </span>
-                            </div>
-
-                            <!-- ZONE D'ÉDITION -->
-                            <div class="w-full max-w-[21cm] shadow-xl ring-1 ring-gray-900/5">
-                                <div x-ref="quillEditor" class="bg-white text-gray-900 leading-relaxed h-auto" style="min-height: 29.7cm;"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                        <!-- Pièces Jointes -->
-                        <div class="pt-8 border-t border-gray-100">
-                            <label class="block text-xs font-bold uppercase text-gray-400 mb-3">Pièces Jointes (P.J.)</label>
-                            <div class="space-y-4">
-                                <div class="flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 rounded-md hover:border-yellow-500 relative transition-colors">
-                                    <input type="file" wire:model="newAttachments" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                                    <div class="text-center text-sm text-gray-600">
-                                        <svg class="mx-auto h-12 w-12 text-gray-300" stroke="currentColor" fill="none" viewBox="0 0 48 48"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                                        <p class="mt-1 font-bold text-yellow-600">Cliquez pour ajouter des fichiers</p>
-                                    </div>
-                                    <div wire:loading wire:target="newAttachments" class="absolute inset-0 bg-white/80 flex items-center justify-center rounded-md font-bold text-yellow-600">Upload en cours...</div>
+                                <!-- BARRE D'OUTILS TAILWIND -->
+                                <div id="toolbar-container" class="w-full max-w-4xl mb-6 bg-white rounded-t-lg shadow-sm flex flex-wrap items-center justify-center gap-1 border border-gray-200 p-2 z-20 sticky top-0">
+                                    <span class="ql-formats">
+                                        <select class="ql-font">
+                                            <option value="tahoma" selected>Tahoma</option>
+                                            <option value="arial">Arial</option>
+                                            <option value="timesnewroman">Times New Roman</option>
+                                        </select>
+                                        <select class="ql-size">
+                                            <option value="12px">12px</option>
+                                            <option value="14px" selected>14px</option>
+                                            <option value="16px">16px</option>
+                                            <option value="18px">18px</option>
+                                        </select>
+                                    </span>
+                                    <span class="ql-formats border-l border-gray-200 pl-2">
+                                        <button class="ql-bold"></button>
+                                        <button class="ql-italic"></button>
+                                        <button class="ql-underline"></button>
+                                        <select class="ql-color"></select>
+                                    </span>
+                                    <span class="ql-formats border-l border-gray-200 pl-2">
+                                        <button class="ql-align" value=""></button>
+                                        <button class="ql-align" value="center"></button>
+                                        <button class="ql-align" value="justify"></button>
+                                    </span>
+                                    <span class="ql-formats border-l border-gray-200 pl-2">
+                                        <button class="ql-list" value="ordered"></button>
+                                        <button class="ql-list" value="bullet"></button>
+                                    </span>
                                 </div>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    @foreach($existingAttachments as $idx => $file)
-                                        <div class="flex items-center p-2 bg-blue-50 border border-blue-100 rounded-lg">
-                                            <span class="text-xs text-blue-700 truncate flex-1 font-medium">{{ basename(is_array($file) ? ($file['path'] ?? '') : $file) }}</span>
-                                            <button wire:click="removeExistingAttachment({{ $idx }})" class="text-blue-300 hover:text-red-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                                <!-- ZONE D'ÉDITION (FEUILLE A4) -->
+                                <div class="relative w-full max-w-[21cm] bg-white shadow-2xl border border-gray-300 transition-all duration-300">
+                                    
+                                    <!-- CALQUE DES LIGNES DE SAUT DE PAGE (Tailwind) -->
+                                    <!-- 1080px est une estimation de la hauteur utile A4 en tenant compte des marges -->
+                                    <div class="absolute inset-0 pointer-events-none z-10 overflow-hidden" aria-hidden="true">
+                                        
+                                        <!-- Page 1 -> 2 -->
+                                        <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 1080px;">
+                                            <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase tracking-wider shadow-md rounded-bl-md">
+                                                Début Page 2
+                                            </span>
+                                        </div>
+
+                                        <!-- Page 2 -> 3 -->
+                                        <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 2160px;">
+                                            <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase shadow-md rounded-bl-md">
+                                                Début Page 3
+                                            </span>
+                                        </div>
+
+                                        <!-- Page 3 -> 4 -->
+                                        <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 3240px;">
+                                            <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase shadow-md rounded-bl-md">
+                                                Début Page 4
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- ÉDITEUR RÉEL -->
+                                    <div x-ref="quillEditor" class="text-gray-900 min-h-[29.7cm]"></div>
+                                </div>
+
+                                <!-- Footer Info -->
+                                <div class="w-full max-w-[21cm] mt-4 flex justify-between text-[10px] text-gray-400 font-medium px-2">
+                                    <span>Format : A4 Portrait (210 x 297 mm)</span>
+                                    <span>Police recommandée : Tahoma / 11-12pt</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <style>
+                            /* Intégration fine des styles Quill non gérables par Tailwind */
+                            .ql-container.ql-snow {
+                                border: none !important;
+                            }
+                            
+                            .ql-editor {
+                                padding: 50px 70px !important; /* Marges type Word */
+                                min-height: 29.7cm;
+                                font-family: 'Tahoma', sans-serif;
+                                line-height: 1.5;
+                                font-size: 14px;
+                            }
+
+                            /* Support des polices personnalisées dans la barre Quill */
+                            .ql-font-tahoma { font-family: 'Tahoma', sans-serif !important; }
+                            .ql-font-timesnewroman { font-family: 'Times New Roman', serif !important; }
+                            .ql-font-arial { font-family: 'Arial', sans-serif !important; }
+
+                            /* Forcer l'affichage des noms de tailles dans la barre d'outils */
+                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="12px"]::before,
+                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="12px"]::before { content: '12px'; }
+                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="14px"]::before,
+                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="14px"]::before { content: '14px'; }
+                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="16px"]::before,
+                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="16px"]::before { content: '16px'; }
+                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="18px"]::before,
+                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="18px"]::before { content: '18px'; }
+                        </style>
+
+                        
+
+                        <!-- ATTACHMENTS SECTION -->
+                        <div class="mt-8 border-t border-gray-100 pt-6">
+                            <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2" style="color: var(--c-grey);">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                                </svg>
+                                Pièces Jointes (P.J.)
+                            </label>
+
+                            <div class="space-y-4">
+                                <!-- Zone de Drop/Upload -->
+                                <div class="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-yellow-50/20 hover:border-[#daaf2c] transition-colors relative">
+                                    <div class="space-y-1 text-center">
+                                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                        <div class="flex text-sm text-gray-600 justify-center">
+                                            <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-bold text-charte-gold focus-within:ring-2 focus-within:ring-[#daaf2c]">
+                                                <span>Téléverser des fichiers</span>
+                                                <input id="file-upload" wire:model="attachments" type="file" class="sr-only" multiple>
+                                            </label>
+                                        </div>
+                                        <p class="text-xs text-gray-500">PDF, DOCX, PNG, JPG jusqu'à 10MB</p>
+                                    </div>
+
+                                    <div wire:loading wire:target="attachments" class="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+                                        <div class="flex items-center font-semibold text-charte-gold">
+                                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Upload en cours...
+                                        </div>
+                                    </div>
+                                </div>
+                                @error('attachments.*') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+
+                                <!-- LISTE DES FICHIERS -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    
+                                    <!-- 1. AFFICHAGE DES FICHIERS DÉJÀ ENREGISTRÉS (Base de données) -->
+                                    @foreach($existingAttachments as $index => $item)
+                                        @php
+                                            // On extrait le chemin (string) que l'item soit une chaîne ou un tableau
+                                            $filePath = is_string($item) ? $item : ($item['path'] ?? '');
+                                            // On récupère l'extension de manière sécurisée
+                                            $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+                                            // On récupère le nom du fichier pour l'affichage
+                                            $fileName = basename($filePath);
+                                        @endphp
+                                        
+                                        <div class="relative flex items-center p-3 border border-blue-200 rounded-lg bg-blue-50/30 group hover:border-blue-400 transition-colors">
+                                            <div class="flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center bg-white border border-blue-100 text-blue-500 font-bold text-[10px] uppercase">
+                                                {{ $extension ?: '?' }}
+                                            </div>
+                                            <div class="ml-4 flex-1 min-w-0">
+                                                <p class="text-sm font-medium text-gray-900 truncate" title="{{ $fileName }}">
+                                                    {{ $fileName }}
+                                                </p>
+                                                <p class="text-[10px] text-blue-600 font-bold uppercase tracking-tighter">Fichier déjà enregistré</p>
+                                            </div>
+                                            
+                                            <button type="button" 
+                                                wire:click="removeExistingAttachment({{ $index }})" 
+                                                class="ml-2 inline-flex items-center p-1.5 border border-transparent rounded-full shadow-sm text-white bg-gray-400 hover:bg-red-500 transition-colors">
+                                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                            </button>
                                         </div>
                                     @endforeach
-                                    @foreach($newAttachments as $idx => $file)
-                                        <div class="flex items-center p-2 bg-yellow-50 border border-yellow-100 rounded-lg">
-                                            <span class="text-xs text-yellow-800 truncate flex-1 font-medium">{{ $file->getClientOriginalName() }}</span>
-                                            <button wire:click="removeNewAttachment({{ $idx }})" class="text-yellow-300 hover:text-red-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-                                        </div>
-                                    @endforeach
+
+                                    <!-- 2. AFFICHAGE DES NOUVEAUX FICHIERS (En cours d'upload) -->
+                                    @if($attachments)
+                                        @foreach($attachments as $index => $file)
+                                            <div class="relative flex items-center p-3 border border-yellow-200 rounded-lg bg-yellow-50/30 group hover:border-[#daaf2c] transition-colors">
+                                                <div class="flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center bg-white border border-gray-200 text-gray-500 font-bold text-[10px] uppercase">
+                                                    {{ $file->extension() }}
+                                                </div>
+                                                <div class="ml-4 flex-1 min-w-0">
+                                                    <p class="text-sm font-medium text-gray-900 truncate">{{ $file->getClientOriginalName() }}</p>
+                                                    <p class="text-[10px] text-green-600 font-bold uppercase">Nouveau fichier</p>
+                                                </div>
+                                                <button type="button" wire:click="removeAttachment({{ $index }})" class="ml-2 inline-flex items-center p-1.5 border border-transparent rounded-full shadow-sm text-white bg-gray-300 hover:bg-red-500 transition-colors">
+                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        @endforeach
+                                    @endif
                                 </div>
                             </div>
                         </div>

@@ -28,8 +28,22 @@ class Incoming2Memos extends Component
     // =========================================================
 
     public $search = '';
+    public $isViewingPdf = false;
     public $comment = ''; 
     public $date;
+
+    // 1. Ajoutez ces propriétés en haut de la classe
+    public $isDecisionModalOpen = false;
+    public $decisionChoice = ''; // 'accord' ou 'refus'
+    public $decisionComment = ''; // Optionnel : pour ajouter une note à la décision
+
+    // --- Données d'Affichage ---
+    public $user_service;
+    public $user_first_name;
+    public $user_last_name;
+    public $user_entity_name;
+
+    public $pdfBase64 = '';
 
     public $isOpen = false;                 
     public $isRegistrationModalOpen = false; 
@@ -48,10 +62,6 @@ class Incoming2Memos extends Component
     #[Rule('required|string')]
     public string $content = '';
 
-    public $user_service;
-    public $user_first_name;
-    public $user_last_name;
-    public $user_entity_name;
     public $selections = [];
 
     #[Rule('required|string')]
@@ -105,11 +115,35 @@ class Incoming2Memos extends Component
         $this->resetPage();
     }
 
+    /**
+     * Ouvre l'aperçu du mémo
+     */
     public function viewMemo($id)
     {
-        $memo = Memo::with(['user.entity'])->findOrFail($id);
-        $this->fillMemoDataView($memo);
-        $this->isOpen = true;
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
+        $this->memo_id = $memo->id;
+
+        $pdf = Pdf::loadView('pdf.memo-layout', [
+            'memo'               => $memo,
+            'recipientsByAction' => $memo->destinataires->groupBy('action'),
+            'date'               => $memo->created_at->format('d/m/Y'),
+            'logo'               => $this->getLogoBase64(),
+        ])->setPaper('a4', 'portrait');
+
+        $this->pdfBase64 = base64_encode($pdf->output());
+        $this->isViewingPdf = true;
+        $this->isEditing = false;
+    }
+
+    public function closePdfView()
+    {
+        $this->isViewingPdf = false;
+        $this->pdfBase64 = '';
+    }
+
+    private function getLogoBase64() {
+        $path = public_path('images/logo.jpg');
+        return file_exists($path) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($path)) : null;
     }
 
     private function fillMemoDataView($memo)
@@ -359,39 +393,54 @@ class Incoming2Memos extends Component
         $this->cancelCloseModal();
     }
 
-    public function submitDecision($id, $decision) 
-    {
-        $user = Auth::user();
-        $destRecord = Destinataires::where('memo_id', $id)
-            ->where('entity_id', $user->entity_id)
-            ->where('action', 'like', '%Décider%')
-            ->first();
+    // 2. Ajoutez cette méthode pour ouvrir le modal
+public function openDecisionModal($id, $choice)
+{
+    $this->memo_id = $id;
+    $this->decisionChoice = $choice;
+    $this->decisionComment = '';
+    $this->isDecisionModalOpen = true;
+}
 
-        if (!$destRecord) return;
+// 3. Modifiez la méthode submitDecision existante pour fermer le modal
+public function submitDecision($id, $decision) 
+{
+    $user = Auth::user();
+    // On utilise le commentaire du modal s'il existe
+    $comment = $this->decisionComment ?: ($decision === 'accord' ? "Accord donné." : "Refus signifié.");
 
-        if ($decision === 'refus') {
-            DB::transaction(function () use ($id, $user) {
-                Destinataires::where('memo_id', $id)->update(['processing_status' => 'traiter', 'completed_at' => now()]);
-                Memo::where('id', $id)->update(['workflow_direction' => 'terminer']);
-                Historiques::create([
-                    'user_id' => $user->id,
-                    'memo_id' => $id,
-                    'visa'    => 'REFUS DÉCISIF',
-                    'workflow_comment' => "Le dossier a été refusé par " . $user->entity->name
-                ]);
-            });
-            $this->dispatch('notify', message: "Mémo refusé.");
-        } else {
-            $destRecord->update(['processing_status' => 'decision_prise', 'completed_at' => now()]);
+    $destRecord = Destinataires::where('memo_id', $id)
+        ->where('entity_id', $user->entity_id)
+        ->where('action', 'like', '%Décider%')
+        ->first();
+
+    if (!$destRecord) return;
+
+    if ($decision === 'refus') {
+        DB::transaction(function () use ($id, $user, $comment) {
+            Destinataires::where('memo_id', $id)->update(['processing_status' => 'traiter', 'completed_at' => now()]);
+            Memo::where('id', $id)->update(['workflow_direction' => 'terminer']);
             Historiques::create([
                 'user_id' => $user->id,
                 'memo_id' => $id,
-                'visa'    => 'DÉCISION RENDUE',
-                'workflow_comment' => "DÉCISION : " . strtoupper($decision)
+                'visa'    => 'REFUS DÉCISIF',
+                'workflow_comment' => $comment
             ]);
-            $this->dispatch('notify', message: "Décision enregistrée.");
-        }
+        });
+        $this->dispatch('notify', message: "Mémo refusé.");
+    } else {
+        $destRecord->update(['processing_status' => 'decision_prise', 'completed_at' => now()]);
+        Historiques::create([
+            'user_id' => $user->id,
+            'memo_id' => $id,
+            'visa'    => 'DÉCISION RENDUE',
+            'workflow_comment' => "DÉCISION : " . strtoupper($decision) . " - " . $comment
+        ]);
+        $this->dispatch('notify', message: "Décision enregistrée.");
     }
+
+    $this->isDecisionModalOpen = false; // Fermer le modal après traitement
+}
 
     // =========================================================
     // 6. GESTION DES RÉPONSES
@@ -501,23 +550,13 @@ class Incoming2Memos extends Component
 
     public function downloadMemoPDF()
     {
-        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
-        $logo = file_exists(public_path('images/logo.jpg')) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents(public_path('images/logo.jpg'))) : null;
-        
-        $qrCode = null;
-        if ($memo->qr_code) {
-            $qrImg = QrCode::format('png')->size(100)->margin(1)->generate(route('memo.verify', $memo->qr_code));
-            $qrCode = 'data:image/png;base64,' . base64_encode($qrImg);
-        }
-
+        $memo = Memo::findOrFail($this->memo_id);
         $pdf = Pdf::loadView('pdf.memo-layout', [
-            'memo' => $memo, 
+            'memo' => $memo,
             'recipientsByAction' => $memo->destinataires->groupBy('action'),
-            'logo' => $logo, 
-            'qrCode' => $qrCode, 
             'date' => $memo->created_at->format('d/m/Y'),
-        ])->setPaper('a4', 'portrait');
-
+            'logo' => $this->getLogoBase64(),
+        ]);
         return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
     }
 
@@ -534,6 +573,8 @@ class Incoming2Memos extends Component
         unset($this->recipients[$index]);
         $this->recipients = array_values($this->recipients);
     }
+
+    
 
     // =========================================================
     // 8. RENDU FINAL

@@ -330,157 +330,169 @@
                         @endif
                     </div>
 
-                    <!-- QUILL EDITOR SECTION -->
-                    <!-- 3. SECTION ÉDITEUR TYPE WORD (Quill) -->
-                 
-                    <div class="pt-2">
-                        <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2" style="color: var(--c-grey);">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Corps du Document
-                        </label>
+                    <!-- ÉDITEUR QUILL (Type Word) -->
+                        <div class="pt-2">
+                            <!-- Label avec info utilisateur -->
+                            <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex justify-between items-center text-gray-500">
+                                <span class="flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Corps du Document
+                                </span>
+                                <span class="text-[10px] font-normal normal-case italic opacity-60">
+                                    Les lignes rouges indiquent les sauts de page (Format A4)
+                                </span>
+                            </label>
 
-                        <div wire:ignore 
-                            class="flex flex-col items-center bg-gray-50 rounded-lg p-4 border border-gray-200"
-                            x-data="{
-                                content: @entangle('content'),
-                                quill: null,
-                                
-                                initQuill() {
-                                    // 1. Enregistrement des Polices (Ajout de Tahoma)
-                                    const Font = Quill.import('formats/font');
-                                    Font.whitelist = [
-                                        'helvetica', 'arial', 'roboto', 'calibri', 'opensans', 'futura', 
-                                        'timesnewroman', 'georgia', 'garamond', 'playfair', 
-                                        'inter', 'aptos', 'tahoma'
-                                    ];
-                                    Quill.register(Font, true);
+                            <div wire:ignore 
+                                class="flex flex-col items-center bg-gray-100 rounded-xl p-4 border border-gray-200 shadow-inner"
+                                x-data="{
+                                    content: @entangle('content'),
+                                    quill: null,
+                                    initQuill() {
+                                        // Enregistrement des Polices
+                                        const Font = Quill.import('formats/font');
+                                        Font.whitelist = ['tahoma', 'timesnewroman', , 'arial'];
+                                        Quill.register(Font, true);
 
-                                    // 2. Configuration Taille (Style Inline pour tailles personnalisées)
-                                    const Size = Quill.import('attributors/style/size');
-                                    Size.whitelist = ['10px', '12px', '14px', '16px', '18px', '20px', '24px', '32px', '48px'];
-                                    Quill.register(Size, true);
+                                        // Configuration Tailles
+                                        const Size = Quill.import('attributors/style/size');
+                                        Size.whitelist = ['12pt', '14pt', '16pt', '18pt', '24pt', '32pt'];
+                                        Quill.register(Size, true);
 
-                                    // 3. Initialisation de l'éditeur
-                                    this.quill = new Quill(this.$refs.quillEditor, {
-                                        theme: 'snow',
-                                        placeholder: ' Rédigez votre mémo ici...',
-                                        modules: {
-                                            toolbar: '#toolbar-container'
-                                        }
-                                    });
+                                        this.quill = new Quill(this.$refs.quillEditor, {
+                                            theme: 'snow',
+                                            placeholder: 'Commencez à rédiger votre mémorandum...',
+                                            modules: { toolbar: '#toolbar-container' }
+                                        });
 
-                                    if (this.content) {
-                                        this.quill.root.innerHTML = this.content;
+                                        if (this.content) { this.quill.root.innerHTML = this.content; }
+                                        this.quill.on('text-change', () => { this.content = this.quill.root.innerHTML; });
                                     }
-                                    
-                                    this.quill.on('text-change', () => {
-                                        this.content = this.quill.root.innerHTML;
-                                    });
-                                },
-
-                    
-                            }"
-                            x-init="initQuill()">
-                            
-                            <!-- BARRE D'OUTILS -->
-                            <div id="toolbar-container" class="w-full max-w-4xl mb-4 !border-0 bg-white rounded-lg shadow-sm flex flex-wrap items-center justify-center gap-x-2 border border-gray-200 p-2">
+                                }"
+                                x-init="initQuill()">
                                 
-                                <!-- H1-H6 -->
-                                <span class="ql-formats">
-                                    <select class="ql-header">
-                                        <option value="1">Titre 1</option>
-                                        <option value="2">Titre 2</option>
-                                        <option value="3">Titre 3</option>
-                                        <option value="4">Titre 4</option>
-                                        <option value="5">Titre 5</option>
-                                        <option value="6">Titre 6</option>
-                                        <option selected>Texte</option>
-                                    </select>
-                                </span>
+                                <!-- BARRE D'OUTILS TAILWIND -->
+                                <div id="toolbar-container" class="w-full max-w-4xl mb-6 bg-white rounded-t-lg shadow-sm flex flex-wrap items-center justify-center gap-1 border border-gray-200 p-2 z-20 sticky top-0">
+                                    <span class="ql-formats border-l border-gray-200 pl-2">
+                                        <select class="ql-header">
+                                            <option value="1">Titre Niveau 1</option>
+                                            <option value="2">Titre Niveau 2</option>
+                                            <option value="3">Titre Niveau 3</option>
+                                            <option value="4">Titre Niveau 4</option>
+                                            <option value="5">Titre Niveau 5</option>
+                                            <option value="6">Titre Niveau 6</option>
+                                            <option selected>Texte Normal</option>
+                                        </select>
+                                    </span>
+                                    <span class="ql-formats">
+                                        <select class="ql-font">
+                                            <option value="tahoma" selected>Tahoma</option>
+                                            <option value="arial">Arial</option>
+                                            <option value="timesnewroman">Times New Roman</option>
+                                        </select>
+                                        <select class="ql-size">
+                                            <option value="12pt" selected>12pt</option>
+                                            <option value="14pt">14pt</option>
+                                            <option value="16pt">16pt</option>
+                                            <option value="18pt">18pt</option>
+                                            <option value="18pt">24pt</option>
+                                            <option value="18pt">32pt</option>
+                                        </select>
+                                    </span>
+                                    <span class="ql-formats border-l border-gray-200 pl-2">
+                                        <button class="ql-bold"></button>
+                                        <button class="ql-italic"></button>
+                                        <button class="ql-underline"></button>
+                                        <select class="ql-color"></select>
+                                    </span>
+                                    <span class="ql-formats border-l border-gray-200 pl-2">
+                                        <button class="ql-align" value=""></button>
+                                        <button class="ql-align" value="center"></button>
+                                        <button class="ql-align" value="justify"></button>
+                                    </span>
+                                    <span class="ql-formats border-l border-gray-200 pl-2">
+                                        <button class="ql-list" value="ordered"></button>
+                                        <button class="ql-list" value="bullet"></button>
+                                    </span>
+                                </div>
 
-                                <!-- Polices (Tahoma ajoutée) -->
-                                <span class="ql-formats">
-                                    <select class="ql-font">
-                                        <option value="helvetica">Helvetica</option>
-                                        <option value="arial">Arial</option>
-                                        <option value="tahoma" selected>Tahoma</option>
-                                        <option value="roboto">Roboto</option>
-                                        <option value="calibri">Calibri</option>
-                                        <option value="opensans">Open Sans</option>
-                                        <option value="futura">Futura</option>
-                                        <option value="timesnewroman">Times New Roman</option>
-                                        <option value="georgia">Georgia</option>
-                                        <option value="garamond">Garamond</option>
-                                        <option value="playfair">Playfair Display</option>
-                                        <option value="inter">Inter</option>
-                                        <option value="aptos">Aptos</option>
-                                    </select>
-                                </span>
+                                <!-- ZONE D'ÉDITION (FEUILLE A4) -->
+                                <div class="relative w-full max-w-[21cm] bg-white shadow-2xl border border-gray-300 transition-all duration-300">
+                                    
+                                    <!-- CALQUE DES LIGNES DE SAUT DE PAGE (Tailwind) -->
+                                    <!-- 1080px est une estimation de la hauteur utile A4 en tenant compte des marges -->
+                                    <div class="absolute inset-0 pointer-events-none z-10 overflow-hidden" aria-hidden="true">
+                                        
+                                        <!-- Page 1 -> 2 -->
+                                        <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 1080px;">
+                                            <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase tracking-wider shadow-md rounded-bl-md">
+                                                Début Page 2
+                                            </span>
+                                        </div>
 
-                                <!-- Tailles -->
-                                <span class="ql-formats flex items-center border-r pr-2">
-                                    <select class="ql-size">
-                                        <option value="10pt">10pt</option>
-                                        <option value="12pt">12pt</option>
-                                        <option value="14pt" selected>14pt</option>
-                                        <option value="16pt">16pt</option>
-                                        <option value="18pt">18pt</option>
-                                        <option value="20pt">20pt</option>
-                                        <option value="24pt">24pt</option>
-                                        <option value="32pt">32pt</option>
-                                    </select>
-                                    <button type="button" @click.prevent="askCustomSize()" class="ml-1 p-1 hover:bg-gray-100 rounded text-xs font-bold" title="Taille libre">px+</button>
-                                </span>
+                                        <!-- Page 2 -> 3 -->
+                                        <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 2160px;">
+                                            <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase shadow-md rounded-bl-md">
+                                                Début Page 3
+                                            </span>
+                                        </div>
 
-                                <!-- Styles & Alignement -->
-                                <span class="ql-formats">
-                                    <button class="ql-bold"></button>
-                                    <button class="ql-italic"></button>
-                                    <button class="ql-underline"></button>
-                                    <select class="ql-color"></select>
-                                    <button class="ql-align" value=""></button>
-                                    <button class="ql-align" value="center"></button>
-                                    <button class="ql-align" value="right"></button>
-                                    <button class="ql-align" value="justify"></button>
-                                </span>
+                                        <!-- Page 3 -> 4 -->
+                                        <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 3240px;">
+                                            <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase shadow-md rounded-bl-md">
+                                                Début Page 4
+                                            </span>
+                                        </div>
+                                    </div>
 
-                             
+                                    <!-- ÉDITEUR RÉEL -->
+                                    <div x-ref="quillEditor" class="text-gray-900 min-h-[29.7cm]"></div>
+                                </div>
 
-                                <!-- Formes -->
-                                <span class="ql-formats border-l pl-2">
-                                    <button class="ql-clean"></button>
-                                </span>
-                            </div>
-
-                            <!-- ZONE D'ÉDITION -->
-                            <div class="w-full max-w-[21cm] shadow-xl ring-1 ring-gray-900/5">
-                                <div x-ref="quillEditor" class="bg-white text-gray-900 leading-relaxed h-auto" style="min-height: 29.7cm;"></div>
+                                <!-- Footer Info -->
+                                <div class="w-full max-w-[21cm] mt-4 flex justify-between text-[10px] text-gray-400 font-medium px-2">
+                                    <span>Format : A4 Portrait (210 x 297 mm)</span>
+                                    <span>Police recommandée : Tahoma / 11-12pt</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <style>
-                        /* Indispensable pour l'affichage de la taille sélectionnée */
-                        .ql-snow .ql-picker.ql-size .ql-picker-label::before,
-                        .ql-snow .ql-picker.ql-size .ql-picker-item::before { content: attr(data-value) !important; }
+                        <style>
+                            /* Intégration fine des styles Quill non gérables par Tailwind */
+                            .ql-container.ql-snow {
+                                border: none !important;
+                                font-family: 'Tahoma', sans-serif;
+                            }
+                            
+                            .ql-editor {
+                                padding: 50px 70px !important; /* Marges type Word */
+                                min-height: 29.7cm;
+                                font-family: 'Tahoma', sans-serif;
+                                line-height: 1.5;
+                                font-size: 12pt;
+                            }
 
-                        /* Définition des familles de polices */
-                        .ql-font-helvetica { font-family: 'Helvetica', sans-serif; }
-                        .ql-font-arial { font-family: 'Arial', sans-serif; }
-                        .ql-font-tahoma { font-family: 'Tahoma', sans-serif; }
-                        .ql-font-roboto { font-family: 'Roboto', sans-serif; }
-                        .ql-font-calibri { font-family: 'Calibri', sans-serif; }
-                        .ql-font-opensans { font-family: 'Open Sans', sans-serif; }
-                        .ql-font-futura { font-family: 'Futura', sans-serif; }
-                        .ql-font-timesnewroman { font-family: 'Times New Roman', serif; }
-                        .ql-font-georgia { font-family: 'Georgia', serif; }
-                        .ql-font-garamond { font-family: 'Garamond', serif; }
-                        .ql-font-playfair { font-family: 'Playfair Display', serif; }
-                        .ql-font-inter { font-family: 'Inter', sans-serif; }
-                        .ql-font-aptos { font-family: 'Aptos', sans-serif; }
-                    </style>
+                            /* Support des polices personnalisées dans la barre Quill */
+                            .ql-font-tahoma { font-family: 'Tahoma', sans-serif !important; }
+                            .ql-font-timesnewroman { font-family: 'Times New Roman', serif !important; }
+                            .ql-font-arial { font-family: 'Arial', sans-serif !important; }
+
+                            /* Forcer l'affichage des noms de tailles dans la barre d'outils */
+                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="12pt"]::before,
+                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="12pt"]::before { content: '12pt'; }
+                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="14pt"]::before,
+                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="14pt"]::before { content: '14pt'; }
+                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="16pt"]::before,
+                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="16pt"]::before { content: '16pt'; }
+                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="18pt"]::before,
+                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="18pt"]::before { content: '18pt'; }
+                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="24pt"]::before,
+                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="24pt"]::before { content: '24pt'; }
+                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="32pt"]::before,
+                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="32pt"]::before { content: '32pt'; }
+                        </style>
 
 
 

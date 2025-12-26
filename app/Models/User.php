@@ -43,6 +43,7 @@ class User extends Authenticatable implements LdapAuthenticatable
         'service',
         'is_admin',
         'is_active',
+        'blocking_reason',
         'manager_id',
     ];
 

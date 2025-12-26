@@ -17,16 +17,19 @@ use Livewire\Attributes\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Livewire\WithFileUploads;
 
 class DocsMemos extends Component
 {
     use WithPagination;
+    use WithFileUploads;
 
     // =========================================================
     // 1. PROPRIÉTÉS DU COMPOSANT
     // =========================================================
 
     public $search = '';
+    public $isViewingPdf = false;
     public $isEditing = false;
 
     // --- États des Modals ---
@@ -57,15 +60,20 @@ class DocsMemos extends Component
     public $actionsList = ['Faire le nécessaire', 'Prendre connaissance', 'Prendre position', 'Décider'];
 
     // --- Pièces Jointes ---
-    public $newAttachments = [];      
+    public $attachments = [];  
+    public $newAttachments = [];    
     public $existingAttachments = []; 
 
     // --- Données pour l'Aperçu ---
-    public $date;
+  
     public $user_service;
     public $user_first_name;
     public $user_last_name;
     public $user_entity_name;
+
+    public $pdfBase64 = '';
+    public $date;
+
 
     // --- Workflow & Assignation ---
     public $memo_type = 'standard'; 
@@ -97,9 +105,30 @@ class DocsMemos extends Component
 
     public function viewMemo($id)
     {
-        $memo = Memo::with(['user.entity'])->findOrFail($id);
-        $this->fillMemoDataView($memo);
-        $this->isOpen = true;
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
+        $this->memo_id = $memo->id;
+
+        $pdf = Pdf::loadView('pdf.memo-layout', [
+            'memo'               => $memo,
+            'recipientsByAction' => $memo->destinataires->groupBy('action'),
+            'date'               => $memo->created_at->format('d/m/Y'),
+            'logo'               => $this->getLogoBase64(),
+        ])->setPaper('a4', 'portrait');
+
+        $this->pdfBase64 = base64_encode($pdf->output());
+        $this->isViewingPdf = true;
+        $this->isEditing = false;
+    }
+
+    public function closePdfView()
+    {
+        $this->isViewingPdf = false;
+        $this->pdfBase64 = '';
+    }
+
+    private function getLogoBase64() {
+        $path = public_path('images/logo.jpg');
+        return file_exists($path) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($path)) : null;
     }
 
     private function fillMemoDataView($memo)
@@ -171,20 +200,29 @@ class DocsMemos extends Component
     public function sendMemo()
     {
         $this->validate([
-            'selected_visa'          => 'required',
-            'workflow_comment'       => 'nullable|string|max:1000',
+            'selected_visa' => 'required',
+            'workflow_comment' => 'nullable|string|max:1000',
             'selected_project_users' => 'required_if:memo_type,projet|array',
         ]);
 
         $memo = Memo::findOrFail($this->memo_id);
-        $currentUser = Auth::user();
-        $nextHolders = [];
+        $user = Auth::user();
         $today = Carbon::now()->format('Y-m-d');
         
         $activeReplacements = ReplacesUser::where('date_begin_replace', '<=', $today)
             ->where('date_end_replace', '>=', $today)
             ->get()
             ->keyBy('user_id');
+
+        $replacementContext = $this->getReplacementRights($memo);
+        $finalComment = $this->workflow_comment;
+
+        if ($replacementContext && in_array('viser', $replacementContext['actions_allowed'])) {
+            $titulaire = $replacementContext['original_user'];
+            $finalComment = "[P/O " . $titulaire->poste . "] " . $this->workflow_comment;
+        }
+
+        $nextHolders = [];
 
         if ($this->memo_type === 'standard' && $this->managerData) {
             $nextHolders[] = $this->managerData['effective']->id;
@@ -194,55 +232,88 @@ class DocsMemos extends Component
             $users = User::whereIn('id', $this->selected_project_users)->get();
             foreach ($users as $u) {
                 $avail = $this->resolveUserAvailability($u, $activeReplacements);
-                $nextHolders[] = $avail['effective']->id;
+                if ($avail) $nextHolders[] = $avail['effective']->id;
             }
         }
 
         if (empty($nextHolders)) {
-            $this->addError('general', 'Aucun destinataire valide trouvé.');
-            return;
+            $this->addError('general', 'Destinataire invalide.'); return;
         }
 
         $memo->update([
-            'previous_holders' => [$currentUser->id],
-            'current_holders'  => array_unique($nextHolders),
-            'status'           => 'envoyer',
-            'workflow_comment' => $this->workflow_comment
+            'previous_holders' => [$user->id],
+            'current_holders' => array_unique($nextHolders),
+            'status' => 'envoyer',
+            'workflow_direction' => 'sortant',
+            'workflow_comment' => $finalComment
         ]);
 
         Historiques::create([
-            'user_id'          => $currentUser->id,
-            'memo_id'          => $memo->id,
-            'visa'             => $this->selected_visa,
-            'workflow_comment' => $this->workflow_comment ?? 'R.A.S',
+            'user_id' => $user->id,
+            'memo_id' => $memo->id,
+            'visa'    => $this->selected_visa,
+            'workflow_comment' => $finalComment ?? 'R.A.S',
         ]);
 
-        foreach (User::whereIn('id', $nextHolders)->get() as $u) {
-            try { $u->notify(new MemoActionNotification($memo, 'envoyer', $currentUser)); } catch (\Exception $e) {}
+        foreach (User::whereIn('id', $nextHolders)->get() as $recipient) {
+            try { $recipient->notify(new MemoActionNotification($memo, 'envoyer', $user)); } catch (\Exception $e) {}
         }
 
         $this->closeModalTrois();
-        $this->dispatch('notify', message: "Mémo envoyé avec succès.");
+        $this->dispatch('notify', message: "Transmis avec succès.");
+    }
+
+    public function getReplacementRights($memo)
+    {
+        $user = Auth::user();
+        $today = Carbon::now()->format('Y-m-d');
+        $prev = is_array($memo->previous_holders) ? $memo->previous_holders : json_decode($memo->previous_holders, true);
+        
+        if (empty($prev)) return null;
+        $lastSender = User::find(end($prev));
+        if (!$lastSender) return null;
+
+        $rep = ReplacesUser::where('user_id_replace', $user->id)
+            ->where('date_begin_replace', '<=', $today)
+            ->where('date_end_replace', '>=', $today)
+            ->where('user_id', $lastSender->manager_id)
+            ->first();
+
+        if ($rep) {
+            $replaced = User::find($rep->user_id);
+            return [
+                'is_active' => true,
+                'original_user' => $replaced,
+                'actions_allowed' => is_array($rep->action_replace) ? $rep->action_replace : explode(',', (string)$rep->action_replace),
+            ];
+        }
+        return null;
     }
 
     // =========================================================
     // 5. LOGIQUE D'ÉDITION
     // =========================================================
 
-    public function editMemo($id)
+   public function editMemo($id)
     {
         $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
         
         $this->memo_id = $memo->id;
-        $this->object  = $memo->object;
+        $this->object = $memo->object;
         $this->concern = $memo->concern ?? '';
         $this->content = $memo->content;
         
+        // Chargement des pièces jointes existantes
         $pj = $memo->pieces_jointes;
-        if (is_string($pj)) { $pj = json_decode($pj, true); }
+        if (is_string($pj)) { 
+            $pj = json_decode($pj, true); 
+        }
         $this->existingAttachments = is_array($pj) ? $pj : [];
-        $this->newAttachments      = [];
+        
+        // Réinitialiser les nouveaux uploads
+        $this->attachments = [];
 
+        // Chargement des destinataires
         $this->recipients = $memo->destinataires->map(fn($dest) => [
             'entity_id'   => $dest->entity_id,
             'entity_name' => $dest->entity->name ?? 'Inconnu',
@@ -252,54 +323,51 @@ class DocsMemos extends Component
         $this->date = $memo->created_at->format('d/m/Y');   
         $this->user_entity_name = $memo->user->entity->name ?? 'Entité';
 
+        $this->isEditing = true;
+        $this->isViewingPdf = false;
         $this->resetValidation();
-        $this->isEditing = true; 
     }
 
     public function cancelEdit()
     {
         $this->isEditing = false;
-        $this->reset(['memo_id', 'object', 'concern', 'content', 'recipients', 'newAttachments', 'existingAttachments']);
-    }   
+        $this->reset(['memo_id', 'object', 'concern', 'content', 'recipients', 'attachments', 'existingAttachments']);
+        $this->resetValidation();
+    }
 
-    public function addRecipient()
+    // Supprimer un fichier qui est déjà sur le serveur
+    public function removeExistingAttachment($index)
     {
-        $this->validate(['newRecipientEntity' => 'required', 'newRecipientAction' => 'required']);
-
-        if (collect($this->recipients)->contains('entity_id', $this->newRecipientEntity)) {
-            $this->addError('newRecipientEntity', 'Déjà ajouté.'); return;
+        if (isset($this->existingAttachments[$index])) {
+            unset($this->existingAttachments[$index]);
+            $this->existingAttachments = array_values($this->existingAttachments);
         }
-
-        $entity = $this->allEntities->firstWhere('id', $this->newRecipientEntity);
-        $this->recipients[] = [
-            'entity_id'   => $entity->id,
-            'entity_name' => $entity->name,
-            'action'      => $this->newRecipientAction
-        ];
-        $this->reset(['newRecipientEntity', 'newRecipientAction']);
     }
 
-    public function removeRecipient($index) {
-        unset($this->recipients[$index]); $this->recipients = array_values($this->recipients);
-    }
-
-    public function removeExistingAttachment($index) {
-        unset($this->existingAttachments[$index]); $this->existingAttachments = array_values($this->existingAttachments);
-    }
-
-    public function removeNewAttachment($index) {
-        array_splice($this->newAttachments, $index, 1);
+    // Supprimer un fichier qui vient d'être sélectionné (upload temporaire)
+    public function removeAttachment($index)
+    {
+        if (isset($this->attachments[$index])) {
+            unset($this->attachments[$index]);
+            $this->attachments = array_values($this->attachments);
+        }
     }
 
     public function save()
     {
         $this->validate();
 
+        // 1. On garde les anciens fichiers
         $finalAttachments = $this->existingAttachments;
-        foreach ($this->newAttachments as $file) {
-            $finalAttachments[] = $file->store('attachments/memos', 'public');
+
+        // 2. On traite les nouveaux fichiers s'il y en a
+        if ($this->attachments) {
+            foreach ($this->attachments as $file) {
+                $finalAttachments[] = $file->store('attachments/memos', 'public');
+            }
         }
 
+        // 3. Mise à jour de la DB
         $memo = Memo::updateOrCreate(
             ['id' => $this->memo_id],
             [
@@ -311,6 +379,7 @@ class DocsMemos extends Component
             ]
         );
 
+        // 4. Maj Destinataires
         Destinataires::where('memo_id', $memo->id)->delete();
         $recipientData = array_map(fn($r) => [
             'memo_id'   => $memo->id,
@@ -321,9 +390,9 @@ class DocsMemos extends Component
         ], $this->recipients);
         Destinataires::insert($recipientData);
 
-        $this->closeModalDeux();
         $this->isEditing = false;
-        $this->dispatch('notify', message: "Mémo modifié avec succès !");
+        $this->attachments = []; // Vider le tampon
+        $this->dispatch('notify', message: "Mémo mis à jour avec succès !");
     }
 
     // =========================================================
@@ -332,23 +401,13 @@ class DocsMemos extends Component
 
     public function downloadMemoPDF()
     {
-        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
-        $recipientsByAction = $memo->destinataires->groupBy('action');
-
-        $pathLogo = public_path('images/logo.jpg');
-        $logoBase64 = file_exists($pathLogo) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($pathLogo)) : null;
-
-        $qrCodeBase64 = null;
-        if ($memo->qr_code) {
-            $qrImage = QrCode::format('png')->size(100)->margin(1)->generate(route('memo.verify', $memo->qr_code));
-            $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($qrImage);
-        }
-
+        $memo = Memo::findOrFail($this->memo_id);
         $pdf = Pdf::loadView('pdf.memo-layout', [
-            'memo' => $memo, 'recipientsByAction' => $recipientsByAction,
-            'logo' => $logoBase64, 'qrCode' => $qrCodeBase64, 'date' => $memo->created_at->format('d/m/Y'),
-        ])->setPaper('a4', 'portrait');
-
+            'memo' => $memo,
+            'recipientsByAction' => $memo->destinataires->groupBy('action'),
+            'date' => $memo->created_at->format('d/m/Y'),
+            'logo' => $this->getLogoBase64(),
+        ]);
         return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
     }
 
@@ -379,6 +438,23 @@ class DocsMemos extends Component
             'effective'   => (object) $user->only(['id', 'first_name', 'last_name', 'poste', 'departement']),
             'is_replaced' => false
         ];
+    }
+
+    public function addRecipient()
+    {
+        $this->validate(['newRecipientEntity' => 'required', 'newRecipientAction' => 'required']);
+        $entity = Entity::find($this->newRecipientEntity);
+        $this->recipients[] = [
+            'entity_id'   => $entity->id,
+            'entity_name' => $entity->name,
+            'action'      => $this->newRecipientAction
+        ];
+        $this->reset(['newRecipientEntity', 'newRecipientAction']);
+    }
+
+    public function removeRecipient($index) {
+        unset($this->recipients[$index]);
+        $this->recipients = array_values($this->recipients);
     }
 
     public function closeModal() { 
