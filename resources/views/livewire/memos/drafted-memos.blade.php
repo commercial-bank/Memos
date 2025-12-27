@@ -647,57 +647,96 @@
                                 <div class="min-h-[100px]">
                                     
                                     <!-- A. AFFICHAGE STANDARD (N+1) -->
-                                @if($memo_type === 'standard')
-                                    <div class="bg-blue-50 rounded-lg p-4 border border-blue-100 animate-fade-in-down">
-                                        <p class="text-xs font-bold text-blue-500 uppercase mb-3">
-                                            Destinataire Final
-                                        </p>
-                                        
-                                        @if($managerData)
-                                            <div class="flex items-start">
-                                                
-                                                <!-- 1. AVATAR (Celui qui reçoit vraiment) -->
-                                                <div class="flex-shrink-0">
-                                                    <div class="h-10 w-10 rounded-full {{ $managerData['is_replaced'] ? 'bg-orange-200 text-orange-700' : 'bg-blue-200 text-blue-700' }} flex items-center justify-center font-bold shadow-sm">
-                                                        {{ substr($managerData['effective']->first_name, 0, 1) }}{{ substr($managerData['effective']->last_name, 0, 1) }}
-                                                    </div>
+                                    @if($memo_type === 'standard')
+                                        <div class="bg-blue-50 rounded-lg p-4 border border-blue-100 animate-fade-in-down">
+                                            
+                                            @if($isSecretary)
+                                                <!-- CAS 1 : L'UTILISATEUR EST UNE SECRÉTAIRE (Sélection multiple dans la hiérarchie) -->
+                                                <p class="text-xs font-bold text-blue-500 uppercase mb-3">
+                                                    Hiérarchie de l'Entité (Sélectionnez le(s) destinataire(s))
+                                                </p>
+
+                                                <div class="space-y-2 max-h-60 overflow-y-auto pr-2">
+                                                    @forelse($standardRecipientsList as $recipient)
+                                                        <label class="relative flex items-start p-3 rounded-lg bg-white border border-gray-100 cursor-pointer hover:border-blue-300 hover:bg-blue-50/50 transition-all group">
+                                                            <div class="flex items-center h-5">
+                                                                <input type="checkbox" wire:model="selected_standard_users" value="{{ $recipient['original']->id }}" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                                            </div>
+                                                            <div class="ml-3 flex-1">
+                                                                <div class="flex items-center justify-between">
+                                                                    <span class="text-sm font-bold text-gray-900 group-hover:text-blue-700">
+                                                                        {{ $recipient['original']->first_name }} {{ $recipient['original']->last_name }}
+                                                                    </span>
+                                                                    @if($recipient['is_replaced'])
+                                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-700 uppercase">
+                                                                            Remplacé
+                                                                        </span>
+                                                                    @endif
+                                                                </div>
+                                                                <p class="text-[11px] text-gray-500">{{ $recipient['original']->poste }}</p>
+                                                                
+                                                                @if($recipient['is_replaced'])
+                                                                    <div class="mt-1 flex items-center gap-1 text-[10px] text-gray-400 italic">
+                                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                                                        Délégué à : {{ $recipient['effective']->first_name }} {{ $recipient['effective']->last_name }}
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        </label>
+                                                    @empty
+                                                        <p class="text-xs text-gray-500 italic">Aucun responsable hiérarchique trouvé.</p>
+                                                    @endforelse
                                                 </div>
+                                                @error('selected_standard_users') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+
+                                            @else
+                                                <!-- CAS 2 : UTILISATEUR CLASSIQUE (Affichage fixe du N+1) -->
+                                                <p class="text-xs font-bold text-blue-500 uppercase mb-3">
+                                                    Destinataire Final (N+1)
+                                                </p>
                                                 
-                                                <div class="ml-3 flex-1">
-                                                    <!-- 2. NOM (Celui qui reçoit vraiment) -->
-                                                    <p class="text-sm font-bold text-gray-900">
-                                                        {{ $managerData['effective']->first_name }} {{ $managerData['effective']->last_name }}
-                                                    </p>
-                                                    
-                                                    <!-- 3. CONTEXTE -->
-                                                    @if($managerData['is_replaced'])
-                                                        <!-- Cas : Remplacement Actif -->
-                                                        <div class="flex flex-col mt-1">
-                                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 w-fit mb-1">
-                                                                Intérimaire / Remplaçant
-                                                            </span>
-                                                            <p class="text-xs text-gray-500 flex items-center gap-1">
-                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
-                                                                Remplace <span class="font-semibold">{{ $managerData['original']->first_name }} {{ $managerData['original']->last_name }}</span> (Absent)
-                                                            </p>
+                                                @if($managerData)
+                                                    <div class="flex items-start">
+                                                        <!-- AVATAR -->
+                                                        <div class="flex-shrink-0">
+                                                            <div class="h-10 w-10 rounded-full {{ $managerData['is_replaced'] ? 'bg-orange-200 text-orange-700' : 'bg-blue-200 text-blue-700' }} flex items-center justify-center font-bold shadow-sm">
+                                                                {{ substr($managerData['effective']->first_name, 0, 1) }}{{ substr($managerData['effective']->last_name, 0, 1) }}
+                                                            </div>
                                                         </div>
-                                                    @else
-                                                        <!-- Cas : Normal -->
-                                                        <p class="text-xs text-gray-500">{{ $managerData['original']->poste ?? 'Supérieur Hiérarchique' }}</p>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        @else
-                                            <!-- Cas : Pas de manager configuré -->
-                                            <div class="flex items-center gap-2 text-red-500 bg-red-50 p-3 rounded border border-red-100">
-                                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                <div class="text-sm">
-                                                    <span class="font-bold">Erreur :</span> Aucun manager n'est associé à votre compte.
-                                                </div>
-                                            </div>
-                                        @endif
-                                    </div>
-                                @endif
+                                                        
+                                                        <div class="ml-3 flex-1">
+                                                            <!-- NOM -->
+                                                            <p class="text-sm font-bold text-gray-900">
+                                                                {{ $managerData['effective']->first_name }} {{ $managerData['effective']->last_name }}
+                                                            </p>
+                                                            
+                                                            <!-- CONTEXTE -->
+                                                            @if($managerData['is_replaced'])
+                                                                <div class="flex flex-col mt-1">
+                                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 w-fit mb-1">
+                                                                        Intérimaire / Remplaçant
+                                                                    </span>
+                                                                    <p class="text-xs text-gray-500 flex items-center gap-1">
+                                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path></svg>
+                                                                        Remplace <span class="font-semibold">{{ $managerData['original']->first_name }} {{ $managerData['original']->last_name }}</span> (Absent)
+                                                                    </p>
+                                                                </div>
+                                                            @else
+                                                                <p class="text-xs text-gray-500">{{ $managerData['original']->poste ?? 'Supérieur Hiérarchique' }}</p>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                @else
+                                                    <div class="flex items-center gap-2 text-red-500 bg-red-50 p-3 rounded border border-red-100">
+                                                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                        <div class="text-sm">
+                                                            <span class="font-bold">Erreur :</span> Aucun manager n'est associé à votre compte.
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            @endif
+                                        </div>
+                                    @endif
 
                                     <!-- B. AFFICHAGE PROJET (LISTE SANS N+1) -->
                                     @if($memo_type === 'projet')

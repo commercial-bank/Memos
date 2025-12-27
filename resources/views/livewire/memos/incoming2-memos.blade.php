@@ -119,19 +119,230 @@
                                     </table>
                                 </div>
 
-                                <!-- EDITEUR QUILL (Note: utilisez @entangle('new_content')) -->
-                                <div class="space-y-2">
-                                    <label class="text-xs font-bold uppercase text-gray-400">Corps de la réponse</label>
-                                    <!-- Votre code Quill Editor ici adapté pour 'new_content' -->
+                                <!-- ÉDITEUR QUILL (Type Word) -->
+                                <div class="pt-2">
+                                    <!-- Label avec info utilisateur -->
+                                    <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex justify-between items-center text-gray-500">
+                                        <span class="flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                            Corps du Document
+                                        </span>
+                                        <span class="text-[10px] font-normal normal-case italic opacity-60">
+                                            Les lignes rouges indiquent les sauts de page (Format A4)
+                                        </span>
+                                    </label>
+
                                     <div wire:ignore 
-                                        x-data="{ content: @entangle('new_content') }" 
-                                        x-init="
-                                            quill = new Quill($refs.editor, { theme: 'snow' });
-                                            quill.on('text-change', () => content = quill.root.innerHTML);
-                                        ">
-                                        <div x-ref="editor" style="min-height: 300px;">{!! $new_content !!}</div>
+                                        class="flex flex-col items-center bg-gray-100 rounded-xl p-4 border border-gray-200 shadow-inner"
+                                        x-data="{
+                                            content: @entangle('new_content'),
+                                            quill: null,
+                                            initQuill() {
+                                                // Enregistrement des Polices
+                                                const Font = Quill.import('formats/font');
+                                                Font.whitelist = ['tahoma', 'timesnewroman', , 'arial'];
+                                                Quill.register(Font, true);
+
+                                                // Configuration Tailles
+                                                const Size = Quill.import('attributors/style/size');
+                                                Size.whitelist = ['12pt', '14pt', '16pt', '18pt', '24pt', '32pt'];
+                                                Quill.register(Size, true);
+
+                                                this.quill = new Quill(this.$refs.quillEditor, {
+                                                    theme: 'snow',
+                                                    placeholder: 'Commencez à rédiger votre mémorandum...',
+                                                    modules: { toolbar: '#toolbar-container' }
+                                                });
+
+                                                if (this.content) { this.quill.root.innerHTML = this.content; }
+                                                this.quill.on('text-change', () => { this.content = this.quill.root.innerHTML; });
+                                            }
+                                        }"
+                                        x-init="initQuill()">
+                                        
+                                        <!-- BARRE D'OUTILS TAILWIND -->
+                                        <div id="toolbar-container" class="w-full max-w-4xl mb-6 bg-white rounded-t-lg shadow-sm flex flex-wrap items-center justify-center gap-1 border border-gray-200 p-2 z-20 sticky top-0">
+                                            <span class="ql-formats border-l border-gray-200 pl-2">
+                                                <select class="ql-header">
+                                                    <option value="1">Titre Niveau 1</option>
+                                                    <option value="2">Titre Niveau 2</option>
+                                                    <option value="3">Titre Niveau 3</option>
+                                                    <option value="4">Titre Niveau 4</option>
+                                                    <option value="5">Titre Niveau 5</option>
+                                                    <option value="6">Titre Niveau 6</option>
+                                                    <option selected>Texte Normal</option>
+                                                </select>
+                                            </span>
+                                            <span class="ql-formats">
+                                                <select class="ql-font">
+                                                    <option value="tahoma" selected>Tahoma</option>
+                                                    <option value="arial">Arial</option>
+                                                    <option value="timesnewroman">Times New Roman</option>
+                                                </select>
+                                                <select class="ql-size">
+                                                    <option value="12pt" selected>12pt</option>
+                                                    <option value="14pt">14pt</option>
+                                                    <option value="16pt">16pt</option>
+                                                    <option value="18pt">18pt</option>
+                                                    <option value="18pt">24pt</option>
+                                                    <option value="18pt">32pt</option>
+                                                </select>
+                                            </span>
+                                            <span class="ql-formats border-l border-gray-200 pl-2">
+                                                <button class="ql-bold"></button>
+                                                <button class="ql-italic"></button>
+                                                <button class="ql-underline"></button>
+                                                <select class="ql-color"></select>
+                                            </span>
+                                            <span class="ql-formats border-l border-gray-200 pl-2">
+                                                <button class="ql-align" value=""></button>
+                                                <button class="ql-align" value="center"></button>
+                                                <button class="ql-align" value="justify"></button>
+                                            </span>
+                                            <span class="ql-formats border-l border-gray-200 pl-2">
+                                                <button class="ql-list" value="ordered"></button>
+                                                <button class="ql-list" value="bullet"></button>
+                                            </span>
+                                        </div>
+
+                                        <!-- ZONE D'ÉDITION (FEUILLE A4) -->
+                                        <div class="relative w-full max-w-[21cm] bg-white shadow-2xl border border-gray-300 transition-all duration-300">
+                                            
+                                            <!-- CALQUE DES LIGNES DE SAUT DE PAGE (Tailwind) -->
+                                            <!-- 1080px est une estimation de la hauteur utile A4 en tenant compte des marges -->
+                                            <div class="absolute inset-0 pointer-events-none z-10 overflow-hidden" aria-hidden="true">
+                                                
+                                                <!-- Page 1 -> 2 -->
+                                                <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 1080px;">
+                                                    <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase tracking-wider shadow-md rounded-bl-md">
+                                                        Début Page 2
+                                                    </span>
+                                                </div>
+
+                                                <!-- Page 2 -> 3 -->
+                                                <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 2160px;">
+                                                    <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase shadow-md rounded-bl-md">
+                                                        Début Page 3
+                                                    </span>
+                                                </div>
+
+                                                <!-- Page 3 -> 4 -->
+                                                <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 3240px;">
+                                                    <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase shadow-md rounded-bl-md">
+                                                        Début Page 4
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <!-- ÉDITEUR RÉEL -->
+                                            <div x-ref="quillEditor" class="text-gray-900 min-h-[29.7cm]"></div>
+                                        </div>
+
+                                        <!-- Footer Info -->
+                                        <div class="w-full max-w-[21cm] mt-4 flex justify-between text-[10px] text-gray-400 font-medium px-2">
+                                            <span>Format : A4 Portrait (210 x 297 mm)</span>
+                                            <span>Police recommandée : Tahoma / 11-12pt</span>
+                                        </div>
+                                    </div>
+                                    @error('new_content') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror        
+                                </div>
+
+                                <style>
+                                    /* Intégration fine des styles Quill non gérables par Tailwind */
+                                    .ql-container.ql-snow {
+                                        border: none !important;
+                                        font-family: 'Tahoma', sans-serif;
+                                    }
+                                    
+                                    .ql-editor {
+                                        padding: 50px 70px !important; /* Marges type Word */
+                                        min-height: 29.7cm;
+                                        font-family: 'Tahoma', sans-serif;
+                                        line-height: 1.5;
+                                        font-size: 12pt;
+                                    }
+
+                                    /* Support des polices personnalisées dans la barre Quill */
+                                    .ql-font-tahoma { font-family: 'Tahoma', sans-serif !important; }
+                                    .ql-font-timesnewroman { font-family: 'Times New Roman', serif !important; }
+                                    .ql-font-arial { font-family: 'Arial', sans-serif !important; }
+
+                                    /* Forcer l'affichage des noms de tailles dans la barre d'outils */
+                                    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="12pt"]::before,
+                                    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="12pt"]::before { content: '12pt'; }
+                                    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="14pt"]::before,
+                                    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="14pt"]::before { content: '14pt'; }
+                                    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="16pt"]::before,
+                                    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="16pt"]::before { content: '16pt'; }
+                                    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="18pt"]::before,
+                                    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="18pt"]::before { content: '18pt'; }
+                                    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="24pt"]::before,
+                                    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="24pt"]::before { content: '24pt'; }
+                                    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="32pt"]::before,
+                                    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="32pt"]::before { content: '32pt'; }
+                                </style>
+
+                                <!-- ATTACHMENTS SECTION -->
+                                <div class="mt-8 border-t border-gray-100 pt-6">
+                                    <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2" style="color: var(--c-grey);">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                                        </svg>
+                                        Pièces Jointes (P.J.)
+                                    </label>
+
+                                    <div class="space-y-4">
+                                        <div class="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-yellow-50/20 hover:border-[#daaf2c] transition-colors relative">
+                                            <div class="space-y-1 text-center">
+                                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                </svg>
+                                                <div class="flex text-sm text-gray-600 justify-center">
+                                                    <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-bold text-charte-gold focus-within:ring-2 focus-within:ring-[#daaf2c]">
+                                                        <span>Téléverser des fichiers</span>
+                                                        <input id="file-upload" wire:model="attachments" type="file" class="sr-only" multiple>
+                                                    </label>
+                                                </div>
+                                                <p class="text-xs text-gray-500">PDF, DOCX, PNG, JPG jusqu'à 10MB</p>
+                                            </div>
+
+                                            <div wire:loading wire:target="attachments" class="absolute inset-0 bg-white/80 flex items-center justify-center">
+                                                <div class="flex items-center font-semibold text-charte-gold">
+                                                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Upload en cours...
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @error('attachments.*') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+
+                                        @if($attachments)
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                @foreach($attachments as $index => $file)
+                                                    <div class="relative flex items-center p-3 border border-gray-200 rounded-lg bg-gray-50 group hover:border-[#daaf2c] transition-colors">
+                                                        <div class="flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center bg-white border border-gray-200 text-gray-500 font-bold text-xs uppercase">
+                                                            {{ $file->extension() }}
+                                                        </div>
+                                                        <div class="ml-4 flex-1 min-w-0">
+                                                            <p class="text-sm font-medium text-gray-900 truncate">{{ $file->getClientOriginalName() }}</p>
+                                                            <p class="text-xs text-gray-500">{{ round($file->getSize() / 1024, 2) }} KB</p>
+                                                        </div>
+                                                        <button type="button" wire:click="removeAttachment({{ $index }})" class="ml-2 inline-flex items-center p-1.5 border border-transparent rounded-full shadow-sm text-white bg-gray-300 hover:bg-red-500">
+                                                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
+
                             </div>
                         </div>
                     </div>

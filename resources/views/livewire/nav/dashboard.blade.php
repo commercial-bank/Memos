@@ -289,58 +289,63 @@
 <!-- 7. SCRIPTS (Charts & Logic)                    -->
 <!-- ============================================== -->
 <script>
-    document.addEventListener('livewire:initialized', () => {
-        // Configuration du Graphique
-        var options = {
-            series: [{ name: 'Créations', data: @json($chartSortants) }],
-            chart: {
-                height: 320,
-                type: 'area',
-                fontFamily: 'inherit',
-                toolbar: { show: false },
-                animations: { enabled: true, speed: 800 }
-            },
-            colors: ['#daaf2c'], // COULEUR OR
-            fill: {
-                type: 'gradient',
-                gradient: {
-                    shadeIntensity: 1,
-                    opacityFrom: 0.5,
-                    opacityTo: 0.05,
-                    stops: [0, 90, 100]
-                }
-            },
-            dataLabels: { enabled: false },
-            stroke: { curve: 'smooth', width: 3 },
-            xaxis: {
-                categories: @json($chartCategories),
-                axisBorder: { show: false },
-                axisTicks: { show: false },
-                labels: { style: { colors: '#9ca3af', fontSize: '12px' } }
-            },
-            yaxis: {
-                labels: { style: { colors: '#9ca3af', fontSize: '12px' } }
-            },
-            grid: {
-                borderColor: '#f3f4f6',
-                strokeDashArray: 4,
-                yaxis: { lines: { show: true } }
-            },
-            tooltip: {
-                theme: 'light',
-                style: { fontSize: '12px' },
-                marker: { show: true },
-            }
+    document.addEventListener('livewire:init', () => {
+        let chart;
+
+        const initChart = (categories, seriesData) => {
+            var options = {
+                series: [{ 
+                    name: 'Mémos créés', 
+                    data: seriesData 
+                }],
+                chart: {
+                    type: 'area',
+                    height: 320,
+                    fontFamily: 'inherit',
+                    toolbar: { show: false },
+                    animations: { enabled: true }
+                },
+                colors: ['#daaf2c'],
+                stroke: { curve: 'smooth', width: 3 },
+                fill: {
+                    type: 'gradient',
+                    gradient: { opacityFrom: 0.5, opacityTo: 0.05 }
+                },
+                xaxis: {
+                    categories: categories,
+                    labels: { style: { colors: '#9ca3af', fontSize: '12px' } }
+                },
+                yaxis: {
+                    min: 0,
+                    forceNiceScale: true,
+                    labels: { style: { colors: '#9ca3af' } }
+                },
+                tooltip: { theme: 'light' }
+            };
+
+            if(chart) { chart.destroy(); } // Détruire l'ancien graphique si existant
+            chart = new ApexCharts(document.querySelector("#chart-timeline"), options);
+            chart.render();
         };
 
-        // Initialisation
-        var chart = new ApexCharts(document.querySelector("#chart-timeline"), options);
-        chart.render();
+        // Premier rendu (chargement de la page)
+        initChart(@json($chartCategories), @json($chartSortants));
 
-        // Écouteur pour mise à jour dynamique (Changement de période)
-        Livewire.on('update-chart', (data) => {
-            chart.updateSeries([{ data: data.series }]);
-            chart.updateOptions({ xaxis: { categories: data.categories } });
+        // Rendu lors des mises à jour Livewire (Changement de période)
+        // On utilise hook 'request' ou simplement l'écouteur d'événement
+        Livewire.on('update-chart', (event) => {
+            // Note : Dans Livewire 3, les paramètres sont envoyés dans un objet
+            const categories = event.categories;
+            const series = event.series;
+            
+            if(chart) {
+                chart.updateOptions({
+                    xaxis: { categories: categories }
+                });
+                chart.updateSeries([{
+                    data: series
+                }]);
+            }
         });
     });
 </script>

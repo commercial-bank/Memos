@@ -18,10 +18,12 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Notifications\MemoActionNotification;
 use Livewire\Attributes\Rule;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 
 class Incoming2Memos extends Component
 {
     use WithPagination;
+    use WithFileUploads;
 
     // =========================================================
     // 1. PROPRIÉTÉS DU COMPOSANT
@@ -100,6 +102,13 @@ class Incoming2Memos extends Component
     public $newRecipientAction = '';
     public $allEntities = []; 
     public $actionsList = ['Faire le nécessaire', 'Prendre connaissance', 'Prendre position', 'Décider'];
+
+      // --- Gestion des Pièces Jointes ---
+    #[Rule(['attachments.*' => 'nullable|file|max:10240'])] 
+
+
+    public $existingAttachments = []; 
+
 
     // =========================================================
     // 2. INITIALISATION & NAVIGATION
@@ -394,53 +403,53 @@ class Incoming2Memos extends Component
     }
 
     // 2. Ajoutez cette méthode pour ouvrir le modal
-public function openDecisionModal($id, $choice)
-{
-    $this->memo_id = $id;
-    $this->decisionChoice = $choice;
-    $this->decisionComment = '';
-    $this->isDecisionModalOpen = true;
-}
+    public function openDecisionModal($id, $choice)
+    {
+        $this->memo_id = $id;
+        $this->decisionChoice = $choice;
+        $this->decisionComment = '';
+        $this->isDecisionModalOpen = true;
+    }
 
-// 3. Modifiez la méthode submitDecision existante pour fermer le modal
-public function submitDecision($id, $decision) 
-{
-    $user = Auth::user();
-    // On utilise le commentaire du modal s'il existe
-    $comment = $this->decisionComment ?: ($decision === 'accord' ? "Accord donné." : "Refus signifié.");
+    // 3. Modifiez la méthode submitDecision existante pour fermer le modal
+    public function submitDecision($id, $decision) 
+    {
+        $user = Auth::user();
+        // On utilise le commentaire du modal s'il existe
+        $comment = $this->decisionComment ?: ($decision === 'accord' ? "Accord donné." : "Refus signifié.");
 
-    $destRecord = Destinataires::where('memo_id', $id)
-        ->where('entity_id', $user->entity_id)
-        ->where('action', 'like', '%Décider%')
-        ->first();
+        $destRecord = Destinataires::where('memo_id', $id)
+            ->where('entity_id', $user->entity_id)
+            ->where('action', 'like', '%Décider%')
+            ->first();
 
-    if (!$destRecord) return;
+        if (!$destRecord) return;
 
-    if ($decision === 'refus') {
-        DB::transaction(function () use ($id, $user, $comment) {
-            Destinataires::where('memo_id', $id)->update(['processing_status' => 'traiter', 'completed_at' => now()]);
-            Memo::where('id', $id)->update(['workflow_direction' => 'terminer']);
+        if ($decision === 'refus') {
+            DB::transaction(function () use ($id, $user, $comment) {
+                Destinataires::where('memo_id', $id)->update(['processing_status' => 'traiter', 'completed_at' => now()]);
+                Memo::where('id', $id)->update(['workflow_direction' => 'terminer']);
+                Historiques::create([
+                    'user_id' => $user->id,
+                    'memo_id' => $id,
+                    'visa'    => 'REFUS DÉCISIF',
+                    'workflow_comment' => $comment
+                ]);
+            });
+            $this->dispatch('notify', message: "Mémo refusé.");
+        } else {
+            $destRecord->update(['processing_status' => 'decision_prise', 'completed_at' => now()]);
             Historiques::create([
                 'user_id' => $user->id,
                 'memo_id' => $id,
-                'visa'    => 'REFUS DÉCISIF',
-                'workflow_comment' => $comment
+                'visa'    => 'DÉCISION RENDUE',
+                'workflow_comment' => "DÉCISION : " . strtoupper($decision) . " - " . $comment
             ]);
-        });
-        $this->dispatch('notify', message: "Mémo refusé.");
-    } else {
-        $destRecord->update(['processing_status' => 'decision_prise', 'completed_at' => now()]);
-        Historiques::create([
-            'user_id' => $user->id,
-            'memo_id' => $id,
-            'visa'    => 'DÉCISION RENDUE',
-            'workflow_comment' => "DÉCISION : " . strtoupper($decision) . " - " . $comment
-        ]);
-        $this->dispatch('notify', message: "Décision enregistrée.");
-    }
+            $this->dispatch('notify', message: "Décision enregistrée.");
+        }
 
-    $this->isDecisionModalOpen = false; // Fermer le modal après traitement
-}
+        $this->isDecisionModalOpen = false; // Fermer le modal après traitement
+    }
 
     // =========================================================
     // 6. GESTION DES RÉPONSES
@@ -478,6 +487,7 @@ public function submitDecision($id, $decision)
             'new_concern' => 'required|string|max:255',
             'new_content' => 'required',
             'recipients'  => 'required|array|min:1',
+            'attachments.*' => 'nullable|file|max:10240', // Validation des fichiers
         ]);
 
         $user = Auth::user();
@@ -488,10 +498,34 @@ public function submitDecision($id, $decision)
         if (!$targetId) return;
 
         DB::transaction(function () use ($user, $targetId) {
+            // 1. Traitement des pièces jointes
+            $filePaths = [];
+            if ($this->attachments) {
+                foreach ($this->attachments as $file) {
+                    // Stockage dans le dossier public/attachments/memos
+                    $filePaths[] = $file->store('attachments/memos', 'public');
+                }
+            }
+
+            // 2. Marquer le mémo parent comme répondu pour l'entité actuelle
             Destinataires::where('memo_id', $this->parent_id)
                 ->where('entity_id', $user->entity_id)
                 ->update(['processing_status' => 'repondu', 'completed_at' => now()]);
+                
+            // 3. VÉRIFICATION : EST-CE QUE TOUTES LES ENTITÉS ONT FINI ?
+            // On vérifie s'il existe encore AU MOINS UNE entité destinataire du parent en statut "en_cours"
+            $isStillPending = Destinataires::where('memo_id', $this->parent_id)
+                ->where('processing_status', 'en_cours')
+                ->exists();
 
+            // Si plus aucune entité n'est "en_cours", alors le mémo parent est officiellement "terminer"
+            if (!$isStillPending) {
+                Memo::where('id', $this->parent_id)->update([
+                    'workflow_direction' => 'terminer'
+                ]);
+            }
+
+            // 3. Création du nouveau mémo (Réponse) avec les pièces jointes
             $newMemo = Memo::create([
                 'object' => $this->new_object,
                 'concern' => $this->new_concern,
@@ -500,9 +534,11 @@ public function submitDecision($id, $decision)
                 'parent_id' => $this->parent_id,
                 'workflow_direction' => 'sortant',        
                 'status' => 'envoyer',       
-                'current_holders' => [$targetId], 
+                'current_holders' => [$targetId],
+                'pieces_jointes' => json_encode($filePaths), // Enregistrement des chemins en JSON
             ]);
 
+            // 4. Insertion des destinataires
             $destData = array_map(fn($r) => [
                 'memo_id' => $newMemo->id,
                 'entity_id' => $r['entity_id'],
@@ -513,11 +549,12 @@ public function submitDecision($id, $decision)
             ], $this->recipients);
             Destinataires::insert($destData);
 
+            // 5. Historique sur le mémo parent
             Historiques::create([
                 'user_id' => $user->id, 
                 'memo_id' => $this->parent_id,
                 'visa' => 'RÉPONDU', 
-                'workflow_comment' => "Émission d'une réponse."
+                'workflow_comment' => "Émission d'une réponse avec " . count($filePaths) . " P.J."
             ]);
         });
 
@@ -529,6 +566,11 @@ public function submitDecision($id, $decision)
     {
         $this->isCreatingReply = false;
         $this->reset(['new_object', 'new_concern', 'new_content', 'recipients', 'parent_id']);
+    }
+
+     public function removeAttachment($index)
+    {
+        array_splice($this->attachments, $index, 1);
     }
 
     // =========================================================

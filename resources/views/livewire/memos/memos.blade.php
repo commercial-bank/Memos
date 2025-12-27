@@ -72,14 +72,15 @@
                         $tabs = [
                             'incoming' => 'Mémos Sortants',
                             'incoming2' => 'Mémos Entrants',
+                            'drafted' => 'Mes Mémos',
+                            'document' => 'Mémos Envoyés'
+
                         ];
 
                         if(auth()->user()->poste == 'Secretaire') { 
                             $tabs['blockout'] = 'Blocs Mémos Sortants';
                             $tabs['blockint'] = 'Blocs Mémos Entrants';
                         } else {
-                            $tabs['drafted'] = 'Mes Mémos';
-                            $tabs['document'] = 'Mémos Envoyés';
                             $tabs['favorites'] = 'Favoris';
                             $tabs['archives'] = 'Archives';
                         }

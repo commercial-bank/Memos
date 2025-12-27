@@ -73,6 +73,10 @@ class DraftedMemos extends Component
     // --- Options Statiques ---
     public $actionsList = ['Faire le nécessaire', 'Prendre connaissance', 'Prendre position', 'Décider'];
 
+    public $isSecretary = false;
+    public $standardRecipientsList = []; // Liste Director + Sous-directeurs
+    public $selected_standard_users = []; // Les IDs sélectionnés en mode Standard
+
     public function mount()
     {
         $this->allEntities = Entity::orderBy('name', 'asc')->get(); 
@@ -192,7 +196,7 @@ class DraftedMemos extends Component
     public function assignMemo($id)
     {
         $this->memo_id = $id;
-        $this->reset(['workflow_comment', 'selected_visa', 'selected_project_users']);
+        $this->reset(['workflow_comment', 'selected_visa', 'selected_project_users', 'selected_standard_users']);
         $this->memo_type = 'standard';
 
         $currentUser = Auth::user();
@@ -203,10 +207,29 @@ class DraftedMemos extends Component
             ->get()
             ->keyBy('user_id');
 
-        if ($currentUser->manager_id) {
-            $manager = User::find($currentUser->manager_id);
-            $this->managerData = $this->resolveUserAvailability($manager, $activeReplacements);
+         $this->isSecretary = Str::contains($currentUser->poste, 'Secretaire');
+
+
+        if ($this->isSecretary) {
+            // RÉCUPÉRATION : Manager + tous les Directeurs et Sous-Directeurs de la MÊME entité
+            $this->standardRecipientsList = User::where('entity_id', $currentUser->entity_id)
+                ->where('id', '!=', $currentUser->id) // Exclure soi-même
+                ->where(function ($q) use ($currentUser) {
+                    $q->where('id', $currentUser->manager_id) // Son manager direct
+                    ->orWhere('poste', 'like', '%Directeur%') // Tous les Directeurs
+                    ->orWhere('poste', 'like', '%Sous-Directeur%'); // Tous les Sous-Directeurs
+            })
+            ->orderBy('last_name')
+            ->get()
+            ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
+        } else {
+            // Logique classique pour les autres postes
+            if ($currentUser->manager_id) {
+                $manager = User::find($currentUser->manager_id);
+                $this->managerData = $this->resolveUserAvailability($manager, $activeReplacements);
+            }
         }
+
 
         $excludeIds = array_filter([$currentUser->id, $currentUser->manager_id]);
         $this->projectUsersList = User::whereNotIn('id', $excludeIds)
@@ -223,6 +246,7 @@ class DraftedMemos extends Component
             'selected_visa' => 'required',
             'workflow_comment' => 'nullable|string|max:1000',
             'selected_project_users' => 'required_if:memo_type,projet|array',
+            'selected_standard_users' => 'required_if:isSecretary,true|array', 
         ]);
 
         $memo = Memo::findOrFail($this->memo_id);
@@ -244,9 +268,24 @@ class DraftedMemos extends Component
 
         $nextHolders = [];
 
-        if ($this->memo_type === 'standard' && $this->managerData) {
-            $nextHolders[] = $this->managerData['effective']->id;
+        // --- LOGIQUE STANDARD MODIFIÉE ---
+        if ($this->memo_type === 'standard') {
+            if ($this->isSecretary) {
+                // On récupère les IDs sélectionnés parmi le Directeur et Sous-Directeurs
+                $selectedUsers = User::whereIn('id', $this->selected_standard_users)->get();
+                foreach ($selectedUsers as $u) {
+                    $avail = $this->resolveUserAvailability($u, $activeReplacements);
+                    $nextHolders[] = $avail['effective']->id;
+                }
+            } else {
+                // Logique N+1 classique
+                if ($this->managerData) {
+                    $nextHolders[] = $this->managerData['effective']->id;
+                }
+            }
         }
+
+        
 
         if ($this->memo_type === 'projet') {
             $users = User::whereIn('id', $this->selected_project_users)->get();

@@ -17,6 +17,7 @@ class BlockintMemos extends Component
     public $isOpen = false;
     public $selectedYear;
     public $search = ''; 
+    public $isViewingPdf = false;
 
     // Propriétés pour le contenu du mémo (Modal)
     public $memo_id;
@@ -26,6 +27,13 @@ class BlockintMemos extends Component
     public $date = '';
     public $user_entity_name = '';
     public $user_service = '';
+
+    // --- Données d'Affichage ---
+
+    public $user_first_name;
+    public $user_last_name;
+
+    public $pdfBase64 = '';
 
     /**
      * Initialisation du composant
@@ -47,12 +55,32 @@ class BlockintMemos extends Component
      * Visualisation d'un mémo
      * Optimisation : Chargement des relations imbriquées (user.entity) pour éviter les requêtes N+1
      */
-    public function viewMemo($id) 
+    public function viewMemo($id)
     {
-        // On récupère le mémo avec l'utilisateur et son entité en une seule requête
-        $memo = Memo::with(['user.entity'])->findOrFail($id);
-        $this->fillMemoDataView($memo);
-        $this->isOpen = true;
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
+        $this->memo_id = $memo->id;
+
+        $pdf = Pdf::loadView('pdf.memo-layout', [
+            'memo'               => $memo,
+            'recipientsByAction' => $memo->destinataires->groupBy('action'),
+            'date'               => $memo->created_at->format('d/m/Y'),
+            'logo'               => $this->getLogoBase64(),
+        ])->setPaper('a4', 'portrait');
+
+        $this->pdfBase64 = base64_encode($pdf->output());
+        $this->isViewingPdf = true;
+        $this->isEditing = false;
+    }
+
+    public function closePdfView()
+    {
+        $this->isViewingPdf = false;
+        $this->pdfBase64 = '';
+    }
+
+    private function getLogoBase64() {
+        $path = public_path('images/logo.jpg');
+        return file_exists($path) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($path)) : null;
     }
 
     /**
@@ -87,39 +115,14 @@ class BlockintMemos extends Component
      */
     public function downloadMemoPDF()
     {
-        // Eager loading des relations nécessaires au PDF
-        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
-        
-        // Groupement des destinataires en mémoire
-        $recipientsByAction = $memo->destinataires->groupBy('action');
-
-        // 1. Préparation du Logo (Base64 pour éviter les problèmes d'accès fichiers dans le PDF)
-        $pathLogo = public_path('images/logo.jpg');
-        $logoBase64 = null;
-        if (file_exists($pathLogo)) {
-            $logoBase64 = 'data:image/jpg;base64,' . base64_encode(file_get_contents($pathLogo));
-        }
-
-        // 2. Génération du QR Code (Format PNG recommandé pour DomPDF)
-        $qrCodeBase64 = null;
-        if ($memo->qr_code) {
-            $qrImage = QrCode::format('png')->size(100)->margin(1)->generate(route('memo.verify', $memo->qr_code));
-            $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($qrImage);
-        }
-
-        // 3. Initialisation du PDF
+        $memo = Memo::findOrFail($this->memo_id);
         $pdf = Pdf::loadView('pdf.memo-layout', [
             'memo' => $memo,
-            'recipientsByAction' => $recipientsByAction,
-            'logo' => $logoBase64,
-            'qrCode' => $qrCodeBase64,
+            'recipientsByAction' => $memo->destinataires->groupBy('action'),
             'date' => $memo->created_at->format('d/m/Y'),
-        ])->setPaper('a4', 'portrait');
-
-        // 4. Stream du téléchargement pour libérer la mémoire serveur immédiatement
-        return response()->streamDownload(function () use ($pdf) {
-            echo $pdf->output();
-        }, 'Memo_' . $memo->id . '.pdf');
+            'logo' => $this->getLogoBase64(),
+        ]);
+        return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
     }
 
     /**
