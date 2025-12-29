@@ -58,8 +58,8 @@
             <nav class="-mb-px flex space-x-8">
                 @foreach([
                     'users' => ['label' => 'Personnel', 'icon' => 'fa-users-cog'],
-                    'entities' => ['label' => 'Entités', 'icon' => 'fa-building'],
-                    'sous_directions' => ['label' => 'Directions', 'icon' => 'fa-sitemap'],
+                    'entities' => ['label' => 'Directions', 'icon' => 'fa-building'],
+                    'sous_directions' => ['label' => 'Sous Directions', 'icon' => 'fa-sitemap'],
                     'audit' => ['label' => 'Supervision & Audit', 'icon' => 'fa-dna']
                 ] as $key => $tab)
                     <button wire:click="$set('activeTab', '{{ $key }}')"

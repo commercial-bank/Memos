@@ -128,7 +128,7 @@
                         <!-- ENTITE -->
                         <div class="sm:col-span-3">
                             <label for="entity" class="block text-sm font-medium text-gray-700">
-                                Entité <span class="text-red-600 font-bold ml-0.5" title="Champ obligatoire">*</span>
+                                Direction <span class="text-red-600 font-bold ml-0.5" title="Champ obligatoire">*</span>
                             </label>
 
                             <select id="entity" wire:model="entity_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-yellow-500 sm:text-sm border p-2">

@@ -213,7 +213,7 @@
                 </td>
             </tr>
             <tr>
-                <td class="col-label">Emetteur : {{ $memo->reference ? Str::afterLast($memo->reference, '/') : 'DGR' }}</td>
+                <td class="col-label">Emetteur : {{ $memo->reference ? Str::afterLast($memo->reference, '/') : '#' }}</td>
                 <td class="col-check">
                     <span class="checkbox {{ isset($recipientsByAction['Prendre position']) ? 'checked' : '' }}"></span> Prendre position
                 </td>
