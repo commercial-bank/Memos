@@ -12,6 +12,8 @@ class Entity extends Model
     protected $fillable = [
         'ref',
         'name',
+        'type',
+        'upper_id',
     ];
 
     protected $appends = ['acronym'];

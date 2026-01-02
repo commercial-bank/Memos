@@ -25,6 +25,9 @@
     <!-- === CSS QUILL 2.0.2 === -->
     <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
 
+    <!-- TomSelect CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+
     <!-- =========================================================
          STYLES PERSONNALISÉS (CSS)
          ========================================================= -->
@@ -156,14 +159,52 @@
     <!-- Vite Resources (JS) -->
     @vite(['resources/js/app.js'])
 
-   
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('searchableSelect', (config) => ({
+            instance: null,
+            init() {
+                // Initialisation de TomSelect
+                this.instance = new TomSelect(this.$el, {
+                    placeholder: config.placeholder || 'Rechercher...',
+                    allowEmptyOption: true,
+                    maxOptions: 1000, // Permet de gérer de gros volumes
+                    controlInput: '<input>',
+                    render: {
+                        no_results: (data, escape) => '<div class="no-results">Aucun résultat pour "' + escape(data.input) + '"</div>',
+                    }
+                });
 
+                // Synchronisation avec Livewire quand la valeur change
+                this.instance.on('change', (value) => {
+                    this.$dispatch('input', value);
+                });
+            },
+            // Important pour les listes dépendantes (ex: Sous-Direction qui change selon la Direction)
+            updateOptions() {
+                if(this.instance) {
+                    this.instance.clearOptions();
+                    this.instance.sync();
+                }
+            }
+        }))
+    })
+</script>
+<script>
+    // Appliquer au chargement
+    if ({{ session('dark_mode') ? 'true' : 'false' }}) {
+        document.documentElement.classList.add('dark');
+    }
 
-
-        
-        
-
-
-
+    // Écouter les changements en direct
+    window.addEventListener('dark-mode-toggled', event => {
+        if (event.detail.darkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    });
+</script>
 </body>
 </html>

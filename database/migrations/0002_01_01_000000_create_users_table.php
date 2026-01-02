@@ -33,15 +33,14 @@ return new class extends Migration
 
                 // INFO MÉTIER 
                 $table->string('poste')->nullable(); 
-                $table->unsignedBigInteger('entity_id')->nullable();
-                $table->unsignedBigInteger('sous_direction_id')->nullable();
-                $table->string('departement')->nullable();
-                $table->string('service')->nullable();
+                $table->unsignedBigInteger('dir_id')->nullable();
+                $table->unsignedBigInteger('sd_id')->nullable();
+                $table->unsignedBigInteger('dep_id')->nullable();
+                $table->unsignedBigInteger('serv_id')->nullable();
                 $table->boolean('is_admin')->default(false);
                 $table->boolean('is_active')->default(true);
                 $table->text('blocking_reason')->nullable();
                 $table->unsignedBigInteger('manager_id')->nullable();
-    
                 $table->rememberToken();
                 $table->timestamps();
         });

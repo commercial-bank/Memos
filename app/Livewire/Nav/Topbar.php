@@ -9,15 +9,24 @@ use Illuminate\Support\Facades\Auth;
 
 class TopBar extends Component
 {
-    // Important : garde le contenu affiché dans l'URL
     #[Url(as: 'view')] 
     public $currentContent = 'dashboard-content'; 
     
     public $navbarTitle = 'Dashboard';
+    public $darkMode = false; // État du mode sombre
 
     public function mount()
     {
         $this->updateTitleBasedOnContent();
+        // Récupérer l'état initial depuis la session
+        $this->darkMode = session()->get('dark_mode', false);
+    }
+
+    // Cette fonction écoute le signal envoyé par la Sidebar
+    #[On('dark-mode-toggled')]
+    public function updateDarkMode($darkMode)
+    {
+        $this->darkMode = $darkMode;
     }
 
     public function selectTab($tab)
@@ -35,7 +44,6 @@ class TopBar extends Component
             case 'settings': $this->currentContent = 'settings-content'; break;
             case 'notifications': $this->currentContent = 'notifications-content'; break;
             case 'documents': $this->currentContent = 'settings-documents'; break;
-            case 'reports': $this->currentContent = 'settings-reports'; break;
             default: $this->currentContent = 'dashboard-content';
         }
 
@@ -47,30 +55,13 @@ class TopBar extends Component
         $titles = [
             'dashboard-content' => 'Dashboard',
             'memos-content' => 'Mémos',
-            'settings-documents' => 'Mes Documents',
+            'settings-documents' => 'Mes documents',
             'profile-content' => 'Mon Profil',
             'settings-content' => 'Paramètres',
             'notifications-content' => 'Mes Notifications',
         ];
 
         $this->navbarTitle = $titles[$this->currentContent] ?? 'Dashboard';
-    }
-    
-    // ... Garde tes méthodes de notifications (markAsRead) ici ...
-    public function markAllNotificationsAsRead()
-    {
-        Auth::user()->unreadNotifications->markAsRead();
-    }
-    
-    public function markNotificationAsRead($notificationId)
-    {
-        $notification = Auth::user()->notifications()->find($notificationId);
-        if ($notification) {
-            $notification->markAsRead();
-            if (!empty($notification->data['link']) && $notification->data['link'] !== '#') {
-                return redirect($notification->data['link']);
-            }
-        }
     }
 
     public function forceGoToProfile()

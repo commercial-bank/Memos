@@ -98,6 +98,25 @@ class IncomingMemos extends Component
     }
 
     /**
+ * Logique partagée pour récupérer les données du PDF
+ */
+    private function getPdfData($memo)
+    {
+        // On cherche le directeur de l'entité du créateur du mémo
+        $director = User::where('entity_id', $memo->user->entity_id)
+                        ->where('poste', 'Directeur')
+                        ->first();
+
+        return [
+            'memo'               => $memo,
+            'recipientsByAction' => $memo->destinataires->groupBy('action'),
+            'date'               => $memo->created_at->format('d/m/Y'),
+            'logo'               => $this->getLogoBase64(),
+            'director'           => $director, // On passe l'objet director à la vue
+        ];
+    }
+
+    /**
      * Ouvre l'aperçu du mémo
      */
     public function viewMemo($id)
@@ -105,12 +124,9 @@ class IncomingMemos extends Component
         $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
         $this->memo_id = $memo->id;
 
-        $pdf = Pdf::loadView('pdf.memo-layout', [
-            'memo'               => $memo,
-            'recipientsByAction' => $memo->destinataires->groupBy('action'),
-            'date'               => $memo->created_at->format('d/m/Y'),
-            'logo'               => $this->getLogoBase64(),
-        ])->setPaper('a4', 'portrait');
+        // Utilisation de la méthode partagée
+        $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo))
+              ->setPaper('a4', 'portrait');
 
         $this->pdfBase64 = base64_encode($pdf->output());
         $this->isViewingPdf = true;
@@ -370,98 +386,77 @@ class IncomingMemos extends Component
         $this->dispatch('notify', message: "Enregistré et transmis !");
     }
 
+    // 3. LOGIQUE INTELLIGENTE DE GÉNÉRATION DE RÉFÉRENCE
     private function generateSmartReference($memo)
-{
-    $year = now()->year;
-    $memoCreator = \App\Models\User::find($memo->user_id);
-
-    if (!$memoCreator) return null;
-
-    // 1. CALCUL DU COMPTEUR
-    // On compte les enregistrements dans 'blocs_enregistrements' pour l'entité du créateur cette année
-    $count = \App\Models\BlocEnregistrements::whereYear('created_at', $year)
-        ->whereHas('user', function($q) use ($memoCreator) {
-            $q->where('entity_id', $memoCreator->entity_id);
-        })
-        ->count() + 1;
-
-    $baseNum = sprintf("%04d", $count);
-
-    // 2. RÉCUPÉRATION DE L'HISTORIQUE DES VISAS
-    // On récupère tous les gens qui ont agi sur ce mémo
-    $historiques = \App\Models\Historiques::with(['user.entity', 'user.sousDirection'])
-        ->where('memo_id', $memo->id)
-        ->get();
-
-    // Variables pour construire les segments
-    $entRef      = ""; // Segment Entité (Directeur)
-    $sdRef       = ""; // Segment Sous-Direction (Sous-Directeur)
-    $deptName    = ""; // Segment Département (Chef de Dept)
-    $serviceName = ""; // Segment Service (Chef de Service)
-    $initials    = ""; // Segment Initiales (Employé / Stagiaire)
-
-    foreach ($historiques as $log) {
-        $u = $log->user;
-        if (!$u) continue;
-
-        $poste = \Illuminate\Support\Str::lower($u->poste);
-        $visa  = $log->visa; // Ex: "Vu & Accord"
+    {
         
-        // On considère un accord si le mot "Accord" est présent dans le visa
-        $isAccord = \Illuminate\Support\Str::contains($visa, 'Accord');
 
-        // --- RÈGLE DIRECTEUR ---
-        if (\Illuminate\Support\Str::contains($poste, 'Directeur') && !\Illuminate\Support\Str::contains($poste, 'sous')) {
-            $entRef = $u->entity->ref ?? "";
-        }
+        $currentYear = now()->year;
+    
+        $count = BlocEnregistrements::where('nature_memo', 'Memo Sortant')
+            ->where('user_id', Auth::id())
+            ->whereYear('created_at', $currentYear)
+            ->count() + 1;
         
-        // --- RÈGLE SOUS-DIRECTEUR ---
-        elseif (\Illuminate\Support\Str::contains($poste, 'Sous-Directeur')) {
-            $sdRef = $u->sousDirection->ref ?? "";
+        // 2. Données de base du créateur du mémo
+        $creator = User::with(['entity', 'sousDirection'])->find($memo->user_id);
+        
+        // Préparation des segments
+        $refEntity = $creator->entity->ref ?? 'ENT';
+        $refSD = $creator->sousDirection->ref ?? 'SD'; // Assure-toi d'avoir la relation dans User
+        $refDept = $creator->departement;
+        $refService = $creator->service;
+        $userInitials = Str::upper(substr($creator->first_name, 0, 1) . substr($creator->last_name, 0, 1));
+
+        // 3. Vérification des Visas dans l'historique
+        // On récupère tous les visas "Vu & Accord" pour ce mémo
+        $validations = Historiques::where('memo_id', $memo->id)
+                                  ->where('visa', 'Vu & Accord')
+                                  ->pluck('user_id')
+                                  ->toArray();
+
+        // SCÉNARIO 1 : Le créateur a validé lui-même (Vu & Accord)
+        if (in_array($creator->id, $validations)) {
+            // Format : N°/Entity/SD/Dept/Service/Initiales
+            return sprintf("%04d/%s/%s/%s/%s/%s", $count, $refEntity, $refSD, $refDept, $refService, $userInitials);
         }
 
-        // --- RÈGLE CHEF DE DÉPARTEMENT ---
-        elseif (\Illuminate\Support\Str::contains($poste, 'Chef-Departement')) {
-            if ($isAccord) {
-                $deptName = $u->departement;
-            }
+        // Pour les étapes suivantes, on remonte la hiérarchie du créateur
+        // Note: Cela suppose que la hiérarchie est bien définie via manager_id
+        
+        $n1 = $creator->manager_id ? User::find($creator->manager_id) : null;
+        
+        // SCÉNARIO 2 : Le N+1 (Chef Service ?) a validé
+        // On vérifie si N1 existe, s'il a validé, et si son poste contient "Service"
+        if ($n1 && in_array($n1->id, $validations) && Str::contains($n1->poste, 'Service')) {
+             // Format : N°/Entity/SD/Dept/Service
+             return sprintf("%04d/%s/%s/%s/%s", $count, $refEntity, $refSD, $refDept, $refService);
         }
 
-        // --- RÈGLE CHEF DE SERVICE ---
-        elseif (\Illuminate\Support\Str::contains($poste, 'Chef-Service')) {
-            if ($isAccord) {
-                $serviceName = $u->service;
-            }
+        // On cherche le N+2 (Chef Département ?)
+        $n2 = $n1 && $n1->manager_id ? User::find($n1->manager_id) : null;
+
+        // SCÉNARIO 3 : Le N+2 (Chef Dept) a validé
+        if ($n2 && in_array($n2->id, $validations) && Str::contains($n2->poste, 'Département')) {
+             // Format : N°/Entity/SD/Dept
+             return sprintf("%04d/%s/%s/%s", $count, $refEntity, $refSD, $refDept);
         }
 
-        // --- RÈGLE EMPLOYÉ / STAGIAIRE ---
-        elseif (
-            \Illuminate\Support\Str::contains($poste, 'Employer') || 
-            \Illuminate\Support\Str::contains($poste, 'stagiaire') || 
-            \Illuminate\Support\Str::contains($poste, 'professionnel')
-        ) {
-            if ($isAccord) {
-                $first = \Illuminate\Support\Str::substr($u->first_name, 0, 1);
-                $last  = \Illuminate\Support\Str::substr($u->last_name, 0, 1);
-                $initials = \Illuminate\Support\Str::upper($first . $last);
-            }
-        }
+        // SCÉNARIO 4 (Par défaut ou Sous-Directeur) : 
+        // Si personne "en bas" n'a validé complètement, on garde la ref haute
+        // Format : N°/Entity/SD
+        return sprintf("%04d/%s/%s", $count, $refEntity, $refSD);
     }
 
-    // 3. ASSEMBLAGE DE LA CHAÎNE
-    // On construit le tableau dans l'ordre hiérarchique décroissant
-    $segments = [];
-    $segments[] = $baseNum;
-
-    if (!empty($entRef))      $segments[] = \Illuminate\Support\Str::upper($entRef);
-    if (!empty($sdRef))       $segments[] = \Illuminate\Support\Str::upper($sdRef);
-    if (!empty($deptName))    $segments[] = \Illuminate\Support\Str::upper($deptName);
-    if (!empty($serviceName)) $segments[] = \Illuminate\Support\Str::upper($serviceName);
-    if (!empty($initials))    $segments[] = $initials;
-
-    // Jointure avec des slashes, en filtrant les éléments vides au cas où
-    return implode('/', array_filter($segments));
-}
+    private function abbreviate($string)
+    {
+        if (empty($string)) return '';
+        
+        // Prend les premières lettres de chaque mot majuscule
+        // Ex simple: juste les 3 premières lettres en majuscule
+        // Tu peux faire une logique plus complexe avec des Regex
+        return Str::upper(substr($string, 0, 3)); 
+    }
 
     // =========================================================
     // 6. GESTION DU REJET
@@ -483,22 +478,40 @@ class IncomingMemos extends Component
         $memo = Memo::findOrFail($this->memo_id);
         $user = Auth::user();
         
-        $prev = is_array($memo->previous_holders) ? $memo->previous_holders : json_decode($memo->previous_holders, true);
-        $backTo = !empty($prev) ? end($prev) : $memo->user_id;
+        // Récupération de l'historique des détenteurs
+        $prev = is_array($memo->previous_holders) ? $memo->previous_holders : json_decode($memo->previous_holders ?? '[]', true);
+        
+        // CIBLE DU REJET : Le dernier expéditeur, sinon le créateur du mémo
+        $backToId = !empty($prev) ? end($prev) : $memo->user_id;
 
+        // Mise à jour du mémo
         $memo->update([
             'status' => 'rejeter',
             'workflow_direction' => 'sortant',
-            'current_holders' => [$backTo],
+            'current_holders' => [$backToId],
             'workflow_comment' => $this->reject_comment
         ]);
 
+        // Enregistrement dans l'historique des actions
         Historiques::create([
-            'user_id' => $user->id, 'memo_id' => $memo->id, 'visa' => 'Rejeté', 'workflow_comment' => $this->reject_comment,
+            'user_id' => $user->id, 
+            'memo_id' => $memo->id, 
+            'visa' => 'Rejeté', 
+            'workflow_comment' => $this->reject_comment,
         ]);
 
+        // NOTIFICATION : On récupère l'objet User du destinataire
+        $recipient = User::find($backToId);
+        if ($recipient) {
+            try { 
+                $recipient->notify(new MemoActionNotification($memo, 'rejeter', $user)); 
+            } catch (\Exception $e) {
+                // Silencieusement échoué ou logger l'erreur
+            }
+        }
+
         $this->closeRejectModal();
-        $this->dispatch('notify', message: "Mémo rejeté.");
+        $this->dispatch('notify', message: "Le mémo a été rejeté et renvoyé.");
     }
 
     // =========================================================
@@ -562,13 +575,9 @@ class IncomingMemos extends Component
 
     public function downloadMemoPDF()
     {
-        $memo = Memo::findOrFail($this->memo_id);
-        $pdf = Pdf::loadView('pdf.memo-layout', [
-            'memo' => $memo,
-            'recipientsByAction' => $memo->destinataires->groupBy('action'),
-            'date' => $memo->created_at->format('d/m/Y'),
-            'logo' => $this->getLogoBase64(),
-        ]);
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
+        $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo));
+        
         return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
     }
 

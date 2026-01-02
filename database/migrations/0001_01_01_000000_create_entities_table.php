@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('ref');
             $table->string('name');
+            $table->string('type');
+            $table->string('upper_id')->nullable();
             $table->timestamps();
         });
     }

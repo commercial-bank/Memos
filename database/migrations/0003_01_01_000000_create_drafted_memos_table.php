@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('memos', function (Blueprint $table) {
+        Schema::create('drafted_memos', function (Blueprint $table) {
             $table->id();
             $table->string('object');
             $table->string('reference')->nullable();
@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('workflow_direction')->default('sortant');
             $table->foreignId('parent_id')->nullable()->constrained('memos')->onDelete('cascade');
             $table->json('pieces_jointes')->nullable();
+            $table->json('destinataires')->nullable();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
@@ -34,6 +35,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('memos');
+        Schema::dropIfExists('drafted_memos');
     }
 };

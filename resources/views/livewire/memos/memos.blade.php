@@ -1,18 +1,20 @@
-<div class="min-h-screen bg-[#f9fafb] text-[#000000] font-sans">
+<div class="min-h-screen transition-colors duration-300 {{ $darkMode ? 'bg-[#121212] text-white' : 'bg-[#f9fafb] text-[#000000]' }} font-sans">
 
     <!-- Injection des variables CSS pour garantir la charte -->
     <style>
         :root {
             --c-gold: #daaf2c;
-            --c-grey: #707173;
-            --c-black: #000000;
+            --c-grey: {{ $darkMode ? '#a0a0a0' : '#707173' }};
+            --c-black: {{ $darkMode ? '#ffffff' : '#000000' }};
+            --c-bg-card: {{ $darkMode ? '#1e1e1e' : '#ffffff' }};
+            --c-border: {{ $darkMode ? '#2d2d2d' : '#e5e7eb' }};
         }
 
         /* Utilitaires Charte */
         .text-charte-gold { color: var(--c-gold); }
         .text-charte-grey { color: var(--c-grey); }
         .bg-charte-gold { background-color: var(--c-gold); }
-        .bg-charte-black { background-color: var(--c-black); }
+        .bg-charte-black { background-color: {{ $darkMode ? '#2d2d2d' : '#000000' }}; }
 
         /* Focus Rings personnalisés */
         .focus-gold:focus {
@@ -21,6 +23,10 @@
             outline: none;
             box-shadow: 0 0 0 2px var(--c-gold);
         }
+
+        /* Scrollbar fine */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--c-gold); border-radius: 20px; }
 
         /* STYLE DES TABLEAUX DANS L'EDITEUR */
         .ql-editor table {
@@ -36,6 +42,15 @@
             min-width: 30px;
             height: 25px;
         }
+
+        /* QUILL DARK MODE OVERRIDE */
+        .ql-toolbar.ql-snow {
+            background-color: {{ $darkMode ? '#2d2d2d' : '#ffffff' }};
+            border-color: var(--c-border) !important;
+        }
+        .ql-snow .ql-stroke { stroke: {{ $darkMode ? '#ffffff' : '#444' }}; }
+        .ql-snow .ql-fill { fill: {{ $darkMode ? '#ffffff' : '#444' }}; }
+        .ql-snow .ql-picker { color: {{ $darkMode ? '#ffffff' : '#444' }}; }
     </style>
 
     <!-- ========================================================== -->
@@ -66,7 +81,7 @@
             </div>
 
             <!-- Navigation par Onglets -->
-            <div class="border-b border-gray-200 mb-8">
+            <div class="border-b mb-8" style="border-color: var(--c-border);">
                 <nav class="-mb-px flex space-x-8 overflow-x-auto custom-scrollbar" aria-label="Tabs">
                     @php
                         $tabs = [
@@ -74,12 +89,11 @@
                             'incoming2' => 'Mémos Entrants',
                             'drafted' => 'Mes Mémos',
                             'document' => 'Mémos Envoyés'
-
                         ];
 
                         if(auth()->user()->poste == 'Secretaire') { 
-                            $tabs['blockout'] = 'Blocs Mémos Sortants';
-                            $tabs['blockint'] = 'Blocs Mémos Entrants';
+                            $tabs['blockout'] = 'Blocs Sortants';
+                            $tabs['blockint'] = 'Blocs Entrants';
                         } else {
                             $tabs['favorites'] = 'Favoris';
                             $tabs['archives'] = 'Archives';
@@ -92,49 +106,6 @@
                             style="{{ $activeTab === $key 
                                 ? 'border-color: var(--c-gold); color: var(--c-black);' 
                                 : 'border-color: transparent; color: var(--c-grey);' }}">
-                            
-                            @switch($key)
-                                @case('incoming')
-                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-                                    </svg>
-                                    @break
-                                @case('incoming2')
-                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                                    </svg>
-                                    @break
-                                @case('blockout')
-                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15M9 12l3-3m0 0l3 3m-3-3v10.125" />
-                                    </svg>
-                                    @break
-                                @case('blockint')
-                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15m0-3l-3 3m0 0l-3-3m3 3V1.5" />
-                                    </svg>
-                                    @break
-                                @case('drafted')
-                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                    </svg>
-                                    @break
-                                @case('document')
-                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    @break
-                                @case('favorites')
-                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="{{ $activeTab === $key ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-                                    </svg>
-                                    @break
-                                @case('archives')
-                                    <svg class="w-5 h-5 {{ $activeTab === $key ? 'text-yellow-600' : 'text-gray-400 group-hover:text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-                                    </svg>
-                                    @break
-                            @endswitch
                             <span>{{ $label }}</span>
                         </button>
                     @endforeach
@@ -142,7 +113,7 @@
             </div>
 
             <!-- Contenu dynamique des listes -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 min-h-[400px] p-6">
+            <div class="rounded-xl shadow-sm border min-h-[400px] p-6 transition-all" style="background-color: var(--c-bg-card); border-color: var(--c-border);">
                 @switch($activeTab)
                     @case('incoming') <livewire:memos.incoming-memos wire:key="tab-incoming"/> @break
                     @case('incoming2') <livewire:memos.incoming2-memos wire:key="tab-incoming2"/> @break
@@ -163,27 +134,27 @@
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
             
             <!-- Barre d'actions -->
-            <div class="mb-8 bg-white border border-gray-100 rounded-xl shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all duration-300">
+            <div class="mb-8 border rounded-xl shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all" style="background-color: var(--c-bg-card); border-color: var(--c-border);">
                 
-                <button wire:click="cancelCreation" type="button" class="group flex items-center text-gray-500 hover:text-black transition-colors">
-                    <div class="mr-3 h-10 w-10 rounded-full bg-gray-100 group-hover:bg-[#daaf2c]/20 group-hover:text-[#daaf2c] flex items-center justify-center transition-colors duration-200">
+                <button wire:click="cancelCreation" type="button" class="group flex items-center transition-colors">
+                    <div class="mr-3 h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 {{ $darkMode ? 'bg-white/5 group-hover:bg-[#daaf2c]/20' : 'bg-gray-100 group-hover:bg-[#daaf2c]/20' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                         </svg>
                     </div>
                     <div class="flex flex-col items-start">
-                        <span class="font-bold text-base text-black">Retour</span>
+                        <span class="font-bold text-base" style="color: var(--c-black);">Retour</span>
                         <span class="text-xs font-normal" style="color: var(--c-grey);">Vers la liste</span>
                     </div>
                 </button>
                 
-                <div class="flex items-center justify-end space-x-3 w-full sm:w-auto border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0">
-                    <button wire:click="cancelCreation" type="button" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200">
+                <div class="flex items-center justify-end space-x-3 w-full sm:w-auto">
+                    <button wire:click="cancelCreation" type="button" class="px-5 py-2.5 text-sm font-medium rounded-lg border transition-all {{ $darkMode ? 'bg-white/5 border-gray-700 text-white hover:bg-white/10' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50' }}">
                         Annuler
                     </button>
                     
                     <button wire:click="save" wire:loading.attr="disabled" type="button" 
-                        class="relative inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-lg shadow-md text-black transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#daaf2c]"
+                        class="relative inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-lg shadow-md text-black transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         style="background-color: var(--c-gold);">
                         
                         <span wire:loading.remove wire:target="save" class="flex items-center">
@@ -225,10 +196,10 @@
             @endif
 
             <!-- FEUILLE DE PAPIER -->
-            <div class="bg-white rounded-lg shadow-2xl overflow-hidden relative" style="border: 1px solid #e5e7eb;">
+            <div class="bg-white rounded-lg shadow-2xl overflow-hidden relative" style="border: 1px solid var(--c-border);">
                 
                 <div class="px-8 py-6 flex justify-between items-center" 
-                     style="background-color: var(--c-black); color: white; border-bottom: 4px solid var(--c-gold);">
+                     style="background-color: {{ $darkMode ? '#1e1e1e' : '#000000' }}; color: white; border-bottom: 4px solid var(--c-gold);">
                     <div>
                         <h2 class="text-2xl font-bold tracking-wider uppercase" style="font-family: 'Times New Roman', serif;">Mémorandum</h2>
                         <p class="text-xs font-bold tracking-widest mt-1" style="color: var(--c-gold);">INTERNE / CONFIDENTIEL</p>
@@ -242,25 +213,23 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
                         <div class="space-y-2">
-                            <label for="concern" class="block text-xs font-bold uppercase tracking-wide mb-1" style="color: var(--c-grey);">Pour (Concerne)</label>
+                            <label for="concern" class="block text-xs font-bold uppercase tracking-wide mb-1" style="color: #707173;">Pour (Concerne)</label>
                             <input type="text" wire:model="concern" id="concern" 
                                 class="block w-full border-0 border-b-2 border-gray-200 bg-transparent py-2 px-0 text-black placeholder-gray-300 sm:text-lg transition-colors focus:ring-0 focus:border-[#daaf2c]" 
                                 placeholder="Ex: Direction Générale...">
-                            @error('concern') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="space-y-2">
-                            <label for="object" class="block text-xs font-bold uppercase tracking-wide mb-1" style="color: var(--c-grey);">Objet</label>
+                            <label for="object" class="block text-xs font-bold uppercase tracking-wide mb-1" style="color: #707173;">Objet</label>
                             <input type="text" wire:model="object" id="object" 
                                 class="block w-full border-0 border-b-2 border-gray-200 bg-transparent py-2 px-0 text-black font-bold placeholder-gray-300 sm:text-lg transition-colors focus:ring-0 focus:border-[#daaf2c]" 
                                 placeholder="Sujet principal...">
-                            @error('object') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
                     <!-- DISTRIBUTION LIST -->
                     <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                        <h3 class="text-sm font-bold uppercase tracking-wide mb-4 flex items-center" style="color: var(--c-black);">
+                        <h3 class="text-sm font-bold uppercase tracking-wide mb-4 flex items-center text-black">
                             <svg class="w-4 h-4 mr-2" style="color: var(--c-gold);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                             </svg>
@@ -269,27 +238,25 @@
 
                         <div class="flex flex-col md:flex-row gap-4 mb-4">
                             <div class="flex-1">
-                                <select wire:model="newRecipientEntity" class="block w-full rounded-md border-gray-300 shadow-sm focus-gold text-sm">
-                                    <option value="">-- Sélectionner un destinataire --</option>
+                                <select wire:model="newRecipientEntity" class="block w-full rounded-md border-gray-300 shadow-sm focus-gold text-sm text-black">
+                                    <option value="">-- Destinataire --</option>
                                     @foreach($entities as $entity)
                                         <option value="{{ $entity->id }}">{{ $entity->name }}</option>
                                     @endforeach
                                 </select>
-                                @error('newRecipientEntity') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                             </div>
 
                             <div class="flex-1">
-                                <select wire:model="newRecipientAction" class="block w-full rounded-md border-gray-300 shadow-sm focus-gold text-sm">
+                                <select wire:model="newRecipientAction" class="block w-full rounded-md border-gray-300 shadow-sm focus-gold text-sm text-black">
                                     <option value="">-- Action requise --</option>
                                     @foreach($actionsList as $action)
                                         <option value="{{ $action }}">{{ $action }}</option>
                                     @endforeach
                                 </select>
-                                @error('newRecipientAction') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                             </div>
 
                             <button wire:click="addRecipient" type="button" 
-                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none">
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800">
                                 <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                 </svg>
@@ -331,175 +298,75 @@
                         @endif
                     </div>
 
-                    <!-- ÉDITEUR QUILL (Type Word) -->
-                        <div class="pt-2">
-                            <!-- Label avec info utilisateur -->
-                            <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex justify-between items-center text-gray-500">
-                                <span class="flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    Corps du Document
+                    <!-- ÉDITEUR QUILL -->
+                    <div class="pt-2">
+                        <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex justify-between items-center text-gray-500">
+                            <span class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Corps du Document
+                            </span>
+                        </label>
+
+                        <div wire:ignore 
+                            class="flex flex-col items-center rounded-xl p-4 border shadow-inner transition-colors"
+                            style="background-color: {{ $darkMode ? '#2d2d2d' : '#f3f4f6' }}; border-color: var(--c-border);"
+                            x-data="{
+                                content: @entangle('content'),
+                                quill: null,
+                                initQuill() {
+                                    this.quill = new Quill(this.$refs.quillEditor, {
+                                        theme: 'snow',
+                                        placeholder: 'Commencez à rédiger...',
+                                        modules: { toolbar: '#toolbar-container' }
+                                    });
+                                    if (this.content) { this.quill.root.innerHTML = this.content; }
+                                    this.quill.on('text-change', () => { this.content = this.quill.root.innerHTML; });
+                                }
+                            }"
+                            x-init="initQuill()">
+                            
+                            <!-- Toolbar -->
+                            <div id="toolbar-container" class="w-full max-w-4xl mb-6 bg-white rounded-t-lg shadow-sm flex flex-wrap items-center justify-center gap-1 border border-gray-200 p-2 z-20 sticky top-0">
+                                <span class="ql-formats">
+                                    <select class="ql-font">
+                                        <option value="tahoma" selected>Tahoma</option>
+                                        <option value="arial">Arial</option>
+                                        <option value="timesnewroman">Times New Roman</option>
+                                    </select>
+                                    <select class="ql-size">
+                                        <option value="12pt" selected>12pt</option>
+                                        <option value="14pt">14pt</option>
+                                        <option value="18pt">18pt</option>
+                                    </select>
                                 </span>
-                                <span class="text-[10px] font-normal normal-case italic opacity-60">
-                                    Les lignes rouges indiquent les sauts de page (Format A4)
+                                <span class="ql-formats">
+                                    <button class="ql-bold"></button>
+                                    <button class="ql-italic"></button>
+                                    <button class="ql-underline"></button>
                                 </span>
-                            </label>
+                                <span class="ql-formats">
+                                    <button class="ql-list" value="ordered"></button>
+                                    <button class="ql-list" value="bullet"></button>
+                                </span>
+                            </div>
 
-                            <div wire:ignore 
-                                class="flex flex-col items-center bg-gray-100 rounded-xl p-4 border border-gray-200 shadow-inner"
-                                x-data="{
-                                    content: @entangle('content'),
-                                    quill: null,
-                                    initQuill() {
-                                        // Enregistrement des Polices
-                                        const Font = Quill.import('formats/font');
-                                        Font.whitelist = ['tahoma', 'timesnewroman', , 'arial'];
-                                        Quill.register(Font, true);
-
-                                        // Configuration Tailles
-                                        const Size = Quill.import('attributors/style/size');
-                                        Size.whitelist = ['12pt', '14pt', '16pt', '18pt', '24pt', '32pt'];
-                                        Quill.register(Size, true);
-
-                                        this.quill = new Quill(this.$refs.quillEditor, {
-                                            theme: 'snow',
-                                            placeholder: 'Commencez à rédiger votre mémorandum...',
-                                            modules: { toolbar: '#toolbar-container' }
-                                        });
-
-                                        if (this.content) { this.quill.root.innerHTML = this.content; }
-                                        this.quill.on('text-change', () => { this.content = this.quill.root.innerHTML; });
-                                    }
-                                }"
-                                x-init="initQuill()">
-                                
-                                <!-- BARRE D'OUTILS TAILWIND -->
-                                <div id="toolbar-container" class="w-full max-w-4xl mb-6 bg-white rounded-t-lg shadow-sm flex flex-wrap items-center justify-center gap-1 border border-gray-200 p-2 z-20 sticky top-0">
-                                    <span class="ql-formats border-l border-gray-200 pl-2">
-                                        <select class="ql-header">
-                                            <option value="1">Titre Niveau 1</option>
-                                            <option value="2">Titre Niveau 2</option>
-                                            <option value="3">Titre Niveau 3</option>
-                                            <option value="4">Titre Niveau 4</option>
-                                            <option value="5">Titre Niveau 5</option>
-                                            <option value="6">Titre Niveau 6</option>
-                                            <option selected>Texte Normal</option>
-                                        </select>
-                                    </span>
-                                    <span class="ql-formats">
-                                        <select class="ql-font">
-                                            <option value="tahoma" selected>Tahoma</option>
-                                            <option value="arial">Arial</option>
-                                            <option value="timesnewroman">Times New Roman</option>
-                                        </select>
-                                        <select class="ql-size">
-                                            <option value="12pt" selected>12pt</option>
-                                            <option value="14pt">14pt</option>
-                                            <option value="16pt">16pt</option>
-                                            <option value="18pt">18pt</option>
-                                            <option value="18pt">24pt</option>
-                                            <option value="18pt">32pt</option>
-                                        </select>
-                                    </span>
-                                    <span class="ql-formats border-l border-gray-200 pl-2">
-                                        <button class="ql-bold"></button>
-                                        <button class="ql-italic"></button>
-                                        <button class="ql-underline"></button>
-                                        <select class="ql-color"></select>
-                                    </span>
-                                    <span class="ql-formats border-l border-gray-200 pl-2">
-                                        <button class="ql-align" value=""></button>
-                                        <button class="ql-align" value="center"></button>
-                                        <button class="ql-align" value="justify"></button>
-                                    </span>
-                                    <span class="ql-formats border-l border-gray-200 pl-2">
-                                        <button class="ql-list" value="ordered"></button>
-                                        <button class="ql-list" value="bullet"></button>
-                                    </span>
-                                </div>
-
-                                <!-- ZONE D'ÉDITION (FEUILLE A4) -->
-                                <div class="relative w-full max-w-[21cm] bg-white shadow-2xl border border-gray-300 transition-all duration-300">
-                                    
-                                    <!-- CALQUE DES LIGNES DE SAUT DE PAGE (Tailwind) -->
-                                    <!-- 1080px est une estimation de la hauteur utile A4 en tenant compte des marges -->
-                                    <div class="absolute inset-0 pointer-events-none z-10 overflow-hidden" aria-hidden="true">
-                                        
-                                        <!-- Page 1 -> 2 -->
-                                        <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 1080px;">
-                                            <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase tracking-wider shadow-md rounded-bl-md">
-                                                Début Page 2
-                                            </span>
-                                        </div>
-
-                                        <!-- Page 2 -> 3 -->
-                                        <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 2160px;">
-                                            <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase shadow-md rounded-bl-md">
-                                                Début Page 3
-                                            </span>
-                                        </div>
-
-                                        <!-- Page 3 -> 4 -->
-                                        <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 3240px;">
-                                            <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase shadow-md rounded-bl-md">
-                                                Début Page 4
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <!-- ÉDITEUR RÉEL -->
-                                    <div x-ref="quillEditor" class="text-gray-900 min-h-[29.7cm]"></div>
-                                </div>
-
-                                <!-- Footer Info -->
-                                <div class="w-full max-w-[21cm] mt-4 flex justify-between text-[10px] text-gray-400 font-medium px-2">
-                                    <span>Format : A4 Portrait (210 x 297 mm)</span>
-                                    <span>Police recommandée : Tahoma / 11-12pt</span>
-                                </div>
+                            <!-- Zone A4 -->
+                            <div class="relative w-full max-w-[21cm] bg-white shadow-2xl border border-gray-300">
+                                <div x-ref="quillEditor" class="text-gray-900 min-h-[29.7cm]"></div>
                             </div>
                         </div>
+                    </div>
 
-                        <style>
-                            /* Intégration fine des styles Quill non gérables par Tailwind */
-                            .ql-container.ql-snow {
-                                border: none !important;
-                                font-family: 'Tahoma', sans-serif;
-                            }
-                            
-                            .ql-editor {
-                                padding: 50px 70px !important; /* Marges type Word */
-                                min-height: 29.7cm;
-                                font-family: 'Tahoma', sans-serif;
-                                line-height: 1.5;
-                                font-size: 12pt;
-                            }
-
-                            /* Support des polices personnalisées dans la barre Quill */
-                            .ql-font-tahoma { font-family: 'Tahoma', sans-serif !important; }
-                            .ql-font-timesnewroman { font-family: 'Times New Roman', serif !important; }
-                            .ql-font-arial { font-family: 'Arial', sans-serif !important; }
-
-                            /* Forcer l'affichage des noms de tailles dans la barre d'outils */
-                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="12pt"]::before,
-                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="12pt"]::before { content: '12pt'; }
-                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="14pt"]::before,
-                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="14pt"]::before { content: '14pt'; }
-                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="16pt"]::before,
-                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="16pt"]::before { content: '16pt'; }
-                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="18pt"]::before,
-                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="18pt"]::before { content: '18pt'; }
-                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="24pt"]::before,
-                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="24pt"]::before { content: '24pt'; }
-                            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="32pt"]::before,
-                            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="32pt"]::before { content: '32pt'; }
-                        </style>
-
-
+                    <style>
+                        .ql-container.ql-snow { border: none !important; }
+                        .ql-editor { padding: 50px 70px !important; min-height: 29.7cm; font-family: 'Tahoma', sans-serif; line-height: 1.5; font-size: 12pt; }
+                    </style>
 
                     <!-- ATTACHMENTS SECTION -->
                     <div class="mt-8 border-t border-gray-100 pt-6">
-                        <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2" style="color: var(--c-grey);">
+                        <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2" style="color: #707173;">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
                             </svg>
@@ -509,42 +376,24 @@
                         <div class="space-y-4">
                             <div class="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-yellow-50/20 hover:border-[#daaf2c] transition-colors relative">
                                 <div class="space-y-1 text-center">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                    </svg>
                                     <div class="flex text-sm text-gray-600 justify-center">
-                                        <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-bold text-charte-gold focus-within:ring-2 focus-within:ring-[#daaf2c]">
+                                        <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-bold text-[#daaf2c] focus-within:ring-2 focus-within:ring-[#daaf2c]">
                                             <span>Téléverser des fichiers</span>
                                             <input id="file-upload" wire:model="attachments" type="file" class="sr-only" multiple>
                                         </label>
                                     </div>
                                     <p class="text-xs text-gray-500">PDF, DOCX, PNG, JPG jusqu'à 10MB</p>
                                 </div>
-
-                                <div wire:loading wire:target="attachments" class="absolute inset-0 bg-white/80 flex items-center justify-center">
-                                    <div class="flex items-center font-semibold text-charte-gold">
-                                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Upload en cours...
-                                    </div>
-                                </div>
                             </div>
-                            @error('attachments.*') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
 
                             @if($attachments)
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     @foreach($attachments as $index => $file)
                                         <div class="relative flex items-center p-3 border border-gray-200 rounded-lg bg-gray-50 group hover:border-[#daaf2c] transition-colors">
-                                            <div class="flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center bg-white border border-gray-200 text-gray-500 font-bold text-xs uppercase">
-                                                {{ $file->extension() }}
-                                            </div>
                                             <div class="ml-4 flex-1 min-w-0">
                                                 <p class="text-sm font-medium text-gray-900 truncate">{{ $file->getClientOriginalName() }}</p>
-                                                <p class="text-xs text-gray-500">{{ round($file->getSize() / 1024, 2) }} KB</p>
                                             </div>
-                                            <button type="button" wire:click="removeAttachment({{ $index }})" class="ml-2 inline-flex items-center p-1.5 border border-transparent rounded-full shadow-sm text-white bg-gray-300 hover:bg-red-500">
+                                            <button type="button" wire:click="removeAttachment({{ $index }})" class="ml-2 p-1.5 rounded-full text-white bg-gray-300 hover:bg-red-500">
                                                 <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                                 </svg>

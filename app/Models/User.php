@@ -3,11 +3,12 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\Poste;
 use App\Models\Memo;
 use App\Models\Entity;
-use App\Models\WrittenMemo;
 
 // 1. AJOUTER CES DEUX IMPORTATIONS
+use App\Models\WrittenMemo;
 use Illuminate\Notifications\Notifiable;
 use LdapRecord\Laravel\Auth\LdapAuthenticatable;
 use LdapRecord\Laravel\Auth\AuthenticatesWithLdap;
@@ -37,14 +38,19 @@ class User extends Authenticatable implements LdapAuthenticatable
         'domain',
         'password',
         'poste',
-        'entity_id',
-        'sous_direction_id',
-        'departement',
-        'service',
+        'dir_id',
+        'sd_id',
+        'dep_id',
+        'serv_id',
         'is_admin',
         'is_active',
         'blocking_reason',
         'manager_id',
+    ];
+
+    protected $casts = [
+        'poste' => Poste::class,
+        // ... vos autres casts
     ];
 
 
@@ -142,7 +148,6 @@ class User extends Authenticatable implements LdapAuthenticatable
         // Liste des champs OBLIGATOIRES pour utiliser l'app
         $requiredFields = [
             'poste',
-            'entity_id',
         ];
 
         foreach ($requiredFields as $field) {

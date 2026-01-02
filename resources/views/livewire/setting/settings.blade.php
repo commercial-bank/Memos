@@ -53,13 +53,15 @@
         <!-- VUE : LISTE GÉNÉRALE (Personnel, Audit...) -->
         <!-- ========================================== -->
         
-        <!-- NAVIGATION PAR ONGLETS -->
+        <!-- NAVIGATION PAR ONGLETS (MISE À JOUR : STRUCTURE UNIQUE) -->
         <div class="mb-8 border-b border-gray-200">
             <nav class="-mb-px flex space-x-8">
                 @foreach([
                     'users' => ['label' => 'Personnel', 'icon' => 'fa-users-cog'],
-                    'entities' => ['label' => 'Directions', 'icon' => 'fa-building'],
-                    'sous_directions' => ['label' => 'Sous Directions', 'icon' => 'fa-sitemap'],
+                    'Direction' => ['label' => 'Directions', 'icon' => 'fa-building'],
+                    'Sous-Direction' => ['label' => 'Sous Directions', 'icon' => 'fa-sitemap'],
+                    'Departement' => ['label' => 'Départements', 'icon' => 'fa-layer-group'],
+                    'Service' => ['label' => 'Services', 'icon' => 'fa-concierge-bell'],
                     'audit' => ['label' => 'Supervision & Audit', 'icon' => 'fa-dna']
                 ] as $key => $tab)
                     <button wire:click="$set('activeTab', '{{ $key }}')"
@@ -88,7 +90,7 @@
             @endif
         </div>
 
-        <!-- DASHBOARD AUDIT (Affiché seulement sur l'onglet Audit) -->
+        <!-- DASHBOARD AUDIT -->
         @if($activeTab === 'audit')
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="glass-panel rounded-2xl p-6 border-l-4 border-[#707173] shadow-lg">
@@ -205,13 +207,16 @@
                     </tbody>
                 </table>
 
-            @else
-                <!-- TABLEAU ENTITÉS / DIRECTIONS -->
+            @elseif(in_array($activeTab, ['Direction', 'Sous-Direction', 'Departement', 'Service']))
+                <!-- TABLEAU GÉNÉRIQUE DES ENTITÉS (UNIFIÉ) -->
                 <table class="min-w-full divide-y divide-gray-100">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-4 text-left text-[10px] font-black text-[#707173] uppercase tracking-widest">Référence Code</th>
-                            <th class="px-6 py-4 text-left text-[10px] font-black text-[#707173] uppercase tracking-widest">Libellé</th>
+                            <th class="px-6 py-4 text-left text-[10px] font-black text-[#707173] uppercase tracking-widest">Libellé ({{ $activeTab }})</th>
+                            @if($activeTab !== 'Direction')
+                                <th class="px-6 py-4 text-left text-[10px] font-black text-[#707173] uppercase tracking-widest">Rattaché à</th>
+                            @endif
                             <th class="px-6 py-4 text-right text-[10px] font-black text-[#707173] uppercase tracking-widest">Actions</th>
                         </tr>
                     </thead>
@@ -220,6 +225,14 @@
                             <tr class="hover:bg-gray-50/50">
                                 <td class="px-6 py-4 text-xs font-black text-gray-900 font-mono tracking-widest uppercase">{{ $item->ref }}</td>
                                 <td class="px-6 py-4 text-xs font-bold text-[#707173] uppercase">{{ $item->name }}</td>
+                                @if($activeTab !== 'Direction')
+                                    <td class="px-6 py-4">
+                                        @php $parent = \App\Models\Entity::find($item->upper_id); @endphp
+                                        <span class="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                            {{ $parent ? $parent->name : 'N/A' }}
+                                        </span>
+                                    </td>
+                                @endif
                                 <td class="px-6 py-4 text-right text-sm">
                                     <button wire:click="openEditModal({{ $item->id }})" class="text-blue-600 hover:underline mr-4 font-bold text-[10px] uppercase">Modifier</button>
                                     <button wire:click="deleteStructure({{ $item->id }})" wire:confirm="Confirmer ?" class="text-red-500 hover:underline font-bold text-[10px] uppercase">Supprimer</button>
@@ -251,8 +264,6 @@
                                 {!! SimpleSoftwareIO\QrCode\Facades\QrCode::size(180)->generate(route('memo.verify', $selectedMemo->qr_code)) !!}
                             </div>
                             <div class="space-y-4" x-data="{ copied: false }">
-                              
-                                <!-- LIEN DE VÉRIFICATION SIMPLE -->
                                 <a href="{{ route('memo.verify', $selectedMemo->qr_code) }}" target="_blank" 
                                 class="flex items-center justify-center gap-2 w-full py-3 bg-white border border-[#707173]/30 rounded-2xl text-[10px] font-black text-[#707173] uppercase tracking-widest hover:bg-gray-50 transition-colors">
                                     <i class="fas fa-external-link-alt"></i>
@@ -350,7 +361,7 @@
         </div>
     @endif
 
-    <!-- MODALE STANDARD (Création/Edition/Remplacement) -->
+    <!-- MODALE STANDARD (MISE À JOUR : FORMULAIRE ENTITÉ UNIFIÉ) -->
     @if($showModal)
         <div class="fixed inset-0 z-[200] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -360,17 +371,49 @@
                 <div class="inline-block align-bottom bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-100">
                     <div class="bg-white px-8 pt-8 pb-4 border-b">
                         <h3 class="text-xl font-black text-gray-900 uppercase tracking-widest">
-                            @if($activeTab === 'users') Gestion des Délégations @else {{ $isEditing ? 'Éditer' : 'Créer' }} {{ $activeTab === 'entities' ? 'Entité' : 'Direction' }} @endif
+                            @if($activeTab === 'users') Gestion des Délégations @else {{ $isEditing ? 'Éditer' : 'Créer' }} {{ $activeTab }} @endif
                         </h3>
                     </div>
 
                     <div class="px-8 py-8 sm:p-10">
-                        @if($activeTab !== 'users')
+                        @if(!in_array($activeTab, ['users', 'audit']))
+                            <!-- FORMULAIRE ENTITÉ UNIFIÉ -->
                             <div class="space-y-6">
-                                <div><label class="block text-[10px] font-black text-[#707173] uppercase tracking-widest mb-1">Code de Référence</label><input type="text" wire:model="ref" class="block w-full bg-gray-50 border-gray-200 rounded-xl shadow-sm focus:ring-[#daaf2c] focus:border-[#daaf2c] text-sm font-bold p-3 uppercase tracking-tighter"></div>
-                                <div><label class="block text-[10px] font-black text-[#707173] uppercase tracking-widest mb-1">Libellé</label><input type="text" wire:model="name" class="block w-full bg-gray-50 border-gray-200 rounded-xl shadow-sm focus:ring-[#daaf2c] focus:border-[#daaf2c] text-sm font-bold p-3 uppercase"></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-[10px] font-black text-[#707173] uppercase tracking-widest mb-1">Code de Référence</label>
+                                        <input type="text" wire:model="ref" class="block w-full bg-gray-50 border-gray-200 rounded-xl shadow-sm focus:ring-[#daaf2c] focus:border-[#daaf2c] text-sm font-bold p-3 uppercase tracking-tighter">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-black text-[#707173] uppercase tracking-widest mb-1">Libellé</label>
+                                        <input type="text" wire:model="name" class="block w-full bg-gray-50 border-gray-200 rounded-xl shadow-sm focus:ring-[#daaf2c] focus:border-[#daaf2c] text-sm font-bold p-3 uppercase">
+                                    </div>
+                                </div>
+
+                                <!-- Sélecteur de Parent Dynamique (sauf pour Direction) -->
+                                @if($activeTab !== 'Direction')
+                                    <div>
+                                        <label class="block text-[10px] font-black text-[#707173] uppercase mb-1">Structure Parente</label>
+                                        <select wire:model="upper_id" class="w-full bg-gray-50 border-gray-200 rounded-xl p-3 text-xs font-bold uppercase">
+                                            <option value="">-- CHOISIR LE PARENT --</option>
+                                            @php
+                                                $targetType = match($activeTab) {
+                                                    'Sous-Direction' => 'Direction',
+                                                    'Departement'    => 'Sous-Direction',
+                                                    'Service'        => 'Departement',
+                                                    default          => null
+                                                };
+                                                $parents = $targetType ? \App\Models\Entity::where('type', $targetType)->get() : [];
+                                            @endphp
+                                            @foreach($parents as $p)
+                                                <option value="{{ $p->id }}">{{ $p->ref }} - {{ $p->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endif
                             </div>
-                        @else
+                        @elseif($activeTab === 'users')
+                            <!-- LOGIQUE REMPLACEMENT (SANS CHANGEMENT) -->
                             <div class="space-y-8">
                                 <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-center gap-3"><i class="fas fa-info-circle text-blue-500"></i><p class="text-[10px] font-bold text-blue-800 uppercase italic">Substitut pour l'utilisateur ID_{{ $itemId }}</p></div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -411,41 +454,21 @@
         </div>
     @endif
 
-    <!-- MODAL DE MOTIF DE BLOCAGE -->
+    <!-- MODAL DE MOTIF DE BLOCAGE (SANS CHANGEMENT) -->
     @if($showDeactivationModal)
         <div class="fixed inset-0 z-[300] overflow-y-auto">
             <div class="flex items-center justify-center min-h-screen p-4">
                 <div class="fixed inset-0 bg-gray-900/90 backdrop-blur-sm transition-opacity" wire:click="$set('showDeactivationModal', false)"></div>
-
                 <div class="relative bg-white rounded-[2rem] shadow-2xl max-w-md w-full p-8 border-t-4 border-red-500 overflow-hidden">
-                    <div class="absolute top-0 right-0 p-4">
-                        <button wire:click="$set('showDeactivationModal', false)" class="text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-
                     <div class="text-center mb-6">
-                        <div class="h-16 w-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <i class="fas fa-user-slash fa-2x"></i>
-                        </div>
+                        <div class="h-16 w-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-user-slash fa-2x"></i></div>
                         <h3 class="text-xl font-black text-gray-900 uppercase">Suspension de Compte</h3>
                         <p class="text-xs text-gray-500 font-bold mt-1 uppercase tracking-tighter">Veuillez justifier cette action</p>
                     </div>
-
                     <div class="space-y-4">
-                        <div>
-                            <label class="block text-[10px] font-black text-[#707173] uppercase mb-2">Motif du blocage (Visible par l'utilisateur)</label>
-                            <textarea wire:model="blocking_reason" 
-                                      rows="4" 
-                                      placeholder="Ex: Fin de contrat, Violation des règles de sécurité..."
-                                      class="w-full bg-gray-50 border-gray-200 rounded-2xl p-4 text-sm font-medium focus:ring-red-500 focus:border-red-500 @error('blocking_reason') border-red-500 @enderror"></textarea>
-                            @error('blocking_reason') <span class="text-[10px] text-red-500 font-bold uppercase">{{ $message }}</span> @enderror
-                        </div>
-
-                        <button wire:click="processDeactivation" 
-                                class="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg">
-                            Confirmer le blocage
-                        </button>
+                        <textarea wire:model="blocking_reason" rows="4" placeholder="Motif du blocage..." class="w-full bg-gray-50 border-gray-200 rounded-2xl p-4 text-sm font-medium focus:ring-red-500 focus:border-red-500"></textarea>
+                        @error('blocking_reason') <span class="text-[10px] text-red-500 font-bold uppercase">{{ $message }}</span> @enderror
+                        <button wire:click="processDeactivation" class="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg">Confirmer le blocage</button>
                     </div>
                 </div>
             </div>

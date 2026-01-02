@@ -2,14 +2,15 @@
 
 namespace App\Livewire\Memos;
 
+use Carbon\Carbon;
 use App\Models\Memo;
-use App\Models\Destinataires;
+use App\Models\User;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Destinataires;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
-use Carbon\Carbon;
 
 class Archives extends Component
 {
@@ -47,17 +48,33 @@ class Archives extends Component
      * Ouvre le modal de visualisation et récupère les infos de statut spécifiques
      * Optimisation : Chargement des relations (Eager Loading) pour éviter le problème N+1
      */
+    private function getPdfData($memo)
+    {
+        // On cherche le directeur de l'entité du créateur du mémo
+        $director = User::where('entity_id', $memo->user->entity_id)
+                        ->where('poste', 'Directeur')
+                        ->first();
+
+        return [
+            'memo'               => $memo,
+            'recipientsByAction' => $memo->destinataires->groupBy('action'),
+            'date'               => $memo->created_at->format('d/m/Y'),
+            'logo'               => $this->getLogoBase64(),
+            'director'           => $director, // On passe l'objet director à la vue
+        ];
+    }
+
+    /**
+     * Ouvre l'aperçu du mémo
+     */
     public function viewMemo($id)
     {
         $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
         $this->memo_id = $memo->id;
 
-        $pdf = Pdf::loadView('pdf.memo-layout', [
-            'memo'               => $memo,
-            'recipientsByAction' => $memo->destinataires->groupBy('action'),
-            'date'               => $memo->created_at->format('d/m/Y'),
-            'logo'               => $this->getLogoBase64(),
-        ])->setPaper('a4', 'portrait');
+        // Utilisation de la méthode partagée
+        $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo))
+              ->setPaper('a4', 'portrait');
 
         $this->pdfBase64 = base64_encode($pdf->output());
         $this->isViewingPdf = true;
@@ -91,13 +108,9 @@ class Archives extends Component
      */
     public function downloadMemoPDF()
     {
-        $memo = Memo::findOrFail($this->memo_id);
-        $pdf = Pdf::loadView('pdf.memo-layout', [
-            'memo' => $memo,
-            'recipientsByAction' => $memo->destinataires->groupBy('action'),
-            'date' => $memo->created_at->format('d/m/Y'),
-            'logo' => $this->getLogoBase64(),
-        ]);
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
+        $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo));
+        
         return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
     }
 

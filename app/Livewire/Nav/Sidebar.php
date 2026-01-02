@@ -9,11 +9,28 @@ use Illuminate\Support\Facades\Session;
 
 class Sidebar extends Component
 {
-    // Important : garde la trace de l'onglet dans l'URL
     #[Url(as: 'tab')] 
     public $activeTab = 'dashboard'; 
 
     public $isCollapsed = false; 
+    public $darkMode = false;
+
+    public function mount()
+    {
+        // Récupérer l'état du mode sombre depuis la session au chargement
+        $this->darkMode = session()->get('dark_mode', false);
+    }
+
+    public function toggleDarkMode()
+    {
+        $this->darkMode = !$this->darkMode;
+        
+        // Sauvegarder en session pour la persistance
+        session()->put('dark_mode', $this->darkMode);
+        
+        // Notifier le navigateur pour changer la classe sur l'élément <html>
+        $this->dispatch('dark-mode-toggled', darkMode: $this->darkMode);
+    }
 
     public function selectTab($tab)
     {

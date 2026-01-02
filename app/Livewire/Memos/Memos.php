@@ -6,6 +6,7 @@ use App\Models\Memo;
 use Livewire\Component;
 use App\Models\Destinataires;
 use Livewire\Attributes\Rule;
+use Livewire\Attributes\On;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ class Memos extends Component
     // --- État de la vue ---
     public $isCreating = false;
     public $activeTab = 'incoming';
+    public $darkMode = false; // Ajout pour le Dark Mode
 
     // --- Champs du Mémo ---
     #[Rule('required|min:5')]
@@ -49,6 +51,21 @@ class Memos extends Component
         'Prendre position',
         'Décider'
     ];
+
+    // =========================================================
+    // 0. GESTION DARK MODE
+    // =========================================================
+    
+    public function mount()
+    {
+        $this->darkMode = session()->get('dark_mode', false);
+    }
+
+    #[On('dark-mode-toggled')]
+    public function updateDarkMode($darkMode)
+    {
+        $this->darkMode = $darkMode;
+    }
 
     // =========================================================
     // 1. NAVIGATION
