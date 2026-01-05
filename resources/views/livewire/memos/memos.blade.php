@@ -91,7 +91,7 @@
                             'incoming2' => 'Mémos Entrants'
                         ];
 
-                        if(auth()->user()->poste == 'Secretaire') { 
+                        if(auth()->user()->poste->value == 'Secretaire') { 
                             $tabs['blockout'] = 'Blocs Sortants';
                             $tabs['blockint'] = 'Blocs Entrants';
                         } else {

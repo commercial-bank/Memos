@@ -133,14 +133,80 @@
                         </div>
 
                         <div class="sm:col-span-6">
-                            <label for="manager" class="block text-sm font-medium" style="color: var(--profile-text-muted);">Manager (N+1)</label>
-                            <select id="manager" wire:model="manager_id" {{ $isLocked ? 'disabled' : '' }} class="mt-1 block w-full rounded-md shadow-sm p-2 border focus:ring-[#daaf2c]" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
-                                <option value="">-- Sélectionner --</option> 
-                                @foreach($user_all as $value)
-                                    <option value="{{ $value->id }}">{{ $value->first_name }} {{ $value->last_name }}</option>
-                                @endforeach
-                            </select>
+                            <label for="manager" class="block text-sm font-medium" style="color: var(--profile-text-muted);">
+                                Manager (N+1)
+                            </label>
+
+                            <!-- Conteneur de recherche avec Alpine.js -->
+                            <div x-data="{ open: false, selectedName: '{{ $user->manager ? $user->manager->first_name . ' ' . $user->manager->last_name : '-- Sélectionner --' }}' }" class="relative mt-1">
+                                
+                                <!-- Champ de saisie (Recherche) -->
+                                <div class="relative">
+                                    <input 
+                                        type="text" 
+                                        class="block w-full rounded-md shadow-sm p-2 border sm:text-sm transition-all"
+                                        style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);"
+                                        placeholder="Rechercher un manager..."
+                                        wire:model.live.debounce.300ms="searchManager"
+                                        @focus="open = true"
+                                        @click.away="open = false"
+                                        {{ $isLocked ? 'disabled' : '' }}
+                                        x-model="selectedName"
+                                        @input="open = true"
+                                    >
+                                    
+                                    <!-- Icône flèche -->
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                        <i class="fas fa-chevron-down text-xs" style="color: var(--profile-text-muted);"></i>
+                                    </div>
+                                </div>
+
+                                <!-- Liste déroulante -->
+                                <div 
+                                    x-show="open" 
+                                    x-transition
+                                    class="absolute z-10 mt-1 w-full rounded-md shadow-lg border max-h-60 overflow-auto"
+                                    style="background-color: var(--profile-bg-card); border-color: var(--profile-border);"
+                                >
+                                    <ul class="py-1 text-sm">
+                                        <li 
+                                            @click="open = false; $wire.set('manager_id', null); selectedName = '-- Sélectionner --'"
+                                            class="cursor-pointer px-4 py-2 hover:bg-[#daaf2c] hover:text-black"
+                                            style="color: var(--profile-text-main);"
+                                        >
+                                            -- Aucun --
+                                        </li>
+
+                                        @forelse($this->filteredManagers as $m)
+                                            <li 
+                                                @click="
+                                                    open = false; 
+                                                    $wire.set('manager_id', {{ $m->id }}); 
+                                                    selectedName = '{{ $m->first_name }} {{ $m->last_name }}';
+                                                "
+                                                class="cursor-pointer px-4 py-2 hover:bg-[#daaf2c] hover:text-black transition-colors"
+                                                style="color: var(--profile-text-main);"
+                                            >
+                                                <div class="flex flex-col">
+                                                    <span class="font-bold">{{ $m->first_name }} {{ $m->last_name }}</span>
+                                                </div>
+                                            </li>
+                                        @empty
+                                            <li class="px-4 py-2 text-xs italic" style="color: var(--profile-text-muted);">
+                                                Aucun résultat pour "{{ $searchManager }}"
+                                            </li>
+                                        @endforelse
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- Input caché pour stocker la valeur réelle pour le formulaire -->
+                            <input type="hidden" wire:model="manager_id">
+                            
+                            @error('manager_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                         </div>
+
+
                     </div>
                 </div>
 

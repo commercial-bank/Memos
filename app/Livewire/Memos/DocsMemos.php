@@ -244,28 +244,18 @@ class DocsMemos extends Component
             'selected_standard_users' => 'required_if:isSecretary,true|array', 
         ]);
 
-        // 2. Récupérer le BROUILLON (DraftedMemo)
-        $draft = DraftedMemo::findOrFail($this->memo_id);
+        $memo = Memo::findOrFail($this->memo_id);
         $user = Auth::user();
         $today = Carbon::now()->format('Y-m-d');
         
-        // Gestion des remplacements
+        // Gestion des remplacements (Logique identique pour trouver le N+1 effectif)
         $activeReplacements = ReplacesUser::where('date_begin_replace', '<=', $today)
             ->where('date_end_replace', '>=', $today)
             ->get()
             ->keyBy('user_id');
 
-        // Commentaire spécial si P/O (Par Ordre)
-        $replacementContext = $this->getReplacementRights($draft);
-        $finalComment = $this->workflow_comment;
-        if ($replacementContext && in_array('viser', $replacementContext['actions_allowed'])) {
-            $titulaire = $replacementContext['original_user'];
-            $finalComment = "[P/O " . $titulaire->poste . "] " . $this->workflow_comment;
-        }
-
-        // 3. Déterminer les futurs détenteurs (Next Holders)
+        // 3. Déterminer les PROCHAINS détenteurs (Next Holders)
         $nextHolders = [];
-
         if ($this->memo_type === 'standard') {
             if ($this->isSecretary) {
                 $selectedUsers = User::whereIn('id', $this->selected_standard_users)->get();
@@ -274,8 +264,11 @@ class DocsMemos extends Component
                     $nextHolders[] = $avail['effective']->id;
                 }
             } else {
-                if ($this->managerData) {
-                    $nextHolders[] = $this->managerData['effective']->id;
+                // Ici, on prend le manager de l'utilisateur connecté
+                if ($user->manager_id) {
+                    $manager = User::find($user->manager_id);
+                    $avail = $this->resolveUserAvailability($manager, $activeReplacements);
+                    $nextHolders[] = $avail['effective']->id;
                 }
             }
         } elseif ($this->memo_type === 'projet') {
@@ -287,66 +280,45 @@ class DocsMemos extends Component
         }
 
         if (empty($nextHolders)) {
-            $this->addError('general', 'Aucun destinataire sélectionné.');
+            $this->addError('general', 'Aucun destinataire trouvé pour la transmission.');
             return;
         }
 
-        // 4. CRÉATION DU MÉMO (Transfert de DraftedMemo vers Memo)
-        // On convertit le brouillon en mémo officiel
-        $memo = Memo::create([
-            'object'             => $draft->object,
-            'reference'          => $draft->reference,
-            'concern'            => $draft->concern,
-            'content'            => $draft->content,
-            'status'             => 'envoyer',
-            'workflow_direction' => 'sortant',
-            'pieces_jointes'     => $draft->pieces_jointes, // Array ou JSON selon cast
-            'user_id'            => $draft->user_id,
-            'parent_id'          => $draft->parent_id,
-            // Gestion des détenteurs
-            'previous_holders'   => [$user->id], 
-            'current_holders'    => array_unique($nextHolders), // Puisque c'est le 1er envoi
-            'treatment_holders'  => array_unique($nextHolders),
+        // 4. MISE À JOUR DU MÉMO (LOGIQUE D'AJOUT SANS ÉCRASER)
+        
+        // Récupération des anciennes listes (ou tableau vide si null)
+        $oldCurrentHolders = is_array($memo->current_holders) ? $memo->current_holders : [];
+        $oldPreviousHolders = is_array($memo->previous_holders) ? $memo->previous_holders : [];
+
+        // Préparation des nouvelles listes
+        // array_unique(array_merge(...)) permet d'ajouter sans doublons
+        $newCurrentHolders = array_unique(array_merge($oldCurrentHolders, $nextHolders));
+        $newPreviousHolders = array_unique(array_merge($oldPreviousHolders, [$user->id]));
+
+        $memo->update([
+            'current_holders'   => $newCurrentHolders,   // Ajouté aux anciens
+            'previous_holders'  => $newPreviousHolders,  // Ajouté aux anciens
+            'treatment_holders' => array_unique($nextHolders), // ÉCRASÉ : Seuls les nouveaux peuvent traiter
+            'status'            => 'envoyer',
         ]);
 
-        // 5. ENREGISTREMENT DES DESTINATAIRES DANS LA TABLE 'destinataires'
-        // On récupère les destinataires du JSON du brouillon
-        $recipientsData = is_array($draft->destinataires) ? $draft->destinataires : json_decode($draft->destinataires, true);
-        
-        if (!empty($recipientsData)) {
-            foreach ($recipientsData as $dest) {
-                Destinataires::create([
-                    'memo_id'   => $memo->id,
-                    'entity_id' => $dest['entity_id'],
-                    'action'    => $dest['action'],
-                ]);
-            }
-        }
-
-        // 6. CRÉATION DE L'HISTORIQUE
+        // 5. CRÉATION DE L'HISTORIQUE
         Historiques::create([
             'user_id'          => $user->id,
             'memo_id'          => $memo->id,
-            'visa'             => 'valider', // Forcé en "valider"
-            'workflow_comment' => $finalComment ?? 'R.A.S',
+            'visa'             => 'valider', 
+            'workflow_comment' => $this->workflow_comment ?? 'Transmis au niveau supérieur',
         ]);
 
-        // 7. NOTIFICATIONS
+        // 6. NOTIFICATIONS
         foreach (User::whereIn('id', $nextHolders)->get() as $recipient) {
             try {
                 $recipient->notify(new MemoActionNotification($memo, 'envoyer', $user));
-            } catch (\Exception $e) {
-                // Log error if mail fails
-            }
+            } catch (\Exception $e) {}
         }
 
-        // 8. SUPPRESSION DU BROUILLON
-        $draft->delete();
-
-        // 9. FINALISATION
         $this->closeModalTrois();
-        $this->isEditing = false;
-        $this->dispatch('notify', message: "Mémo transmis et brouillon supprimé avec succès.");
+        $this->dispatch('notify', message: "Mémo envoyer avec succès.");
         
         
     }

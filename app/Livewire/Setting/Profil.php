@@ -28,6 +28,10 @@ class Profil extends Component
     public $manager_id;
     public $isLocked = false;
 
+
+    public $searchManager = ''; 
+    public $searchDirection = '';
+
     public $darkMode = false; // État du mode sombre
 
     /**
@@ -37,6 +41,15 @@ class Profil extends Component
     {
         $this->darkMode = session()->get('dark_mode', false);
         $this->user = Auth::user()->load(['replacements.substitute', 'replacing.user']);
+
+        $this->entites = \App\Models\Entity::where('type', 'Direction')->get();
+
+         // Pré-remplissage au chargement initial
+        $this->dir_id = $this->user->dir_id;
+        if ($this->user->direction) {
+            // Affiche "REF - NOM" pour que l'utilisateur sache ce qu'il voit
+            $this->searchDirection = $this->user->direction->ref . ' - ' . $this->user->direction->name;
+        }
 
         // LOGIQUE DE VERROUILLAGE : 
         // Si le profil est marqué comme verrouillé ET que l'utilisateur n'est PAS admin
@@ -59,6 +72,21 @@ class Profil extends Component
         if ($this->dir_id) { $this->sous_directions = Entity::where('upper_id', $this->dir_id)->get(); }
         if ($this->sd_id) { $this->departements = Entity::where('upper_id', $this->sd_id)->get(); }
         if ($this->dep_id) { $this->services = Entity::where('upper_id', $this->dep_id)->get(); }
+    }
+
+    // Modifiez le rendu ou créez une propriété calculée
+    public function getFilteredManagersProperty()
+    {
+        if (empty($this->searchManager)) {
+            return $this->user_all;
+        }
+
+        $searchTerm = strtolower($this->searchManager);
+        
+        return $this->user_all->filter(function($user) use ($searchTerm) {
+            return str_contains(strtolower($user->first_name), $searchTerm) || 
+                str_contains(strtolower($user->last_name), $searchTerm);
+        });
     }
 
     /**

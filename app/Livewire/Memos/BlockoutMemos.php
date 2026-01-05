@@ -2,13 +2,14 @@
 
 namespace App\Livewire\Memos;
 
-use App\Models\BlocEnregistrements; 
 use App\Models\Memo;
+use App\Models\User;
 use App\Models\Entity;
 use Livewire\Component;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\BlocEnregistrements; 
+use Illuminate\Support\Facades\Auth;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class BlockoutMemos extends Component
@@ -58,7 +59,7 @@ class BlockoutMemos extends Component
     private function getPdfData($memo)
     {
         // On cherche le directeur de l'entité du créateur du mémo
-        $director = User::where('entity_id', $memo->user->entity_id)
+        $director = User::where('dir_id', $memo->user->dir_id)
                         ->where('poste', 'Directeur')
                         ->first();
 

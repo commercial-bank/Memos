@@ -17,7 +17,7 @@ enum Poste: string
     {
         return match($this) {
             self::STAGIAIRE => 'Stagiaire Professionnel',
-            self::EMPLOYE => 'Employé',
+            self::EMPLOYE => 'Employé/Agent',
             self::CHEF_SERVICE => 'Chef de Service',
             self::CHEF_DEPARTEMENT => 'Chef de Département',
             self::SECRETAIRE => 'Secrétaire / Assistante',

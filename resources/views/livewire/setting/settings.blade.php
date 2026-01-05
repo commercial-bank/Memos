@@ -209,7 +209,10 @@
                                 @endif
                                 <td class="px-6 py-4 text-right text-sm">
                                     <button wire:click="openEditModal({{ $item->id }})" class="text-blue-600 hover:underline mr-4 font-bold text-[10px] uppercase">Modifier</button>
-                                    <button wire:click="deleteStructure({{ $item->id }})" wire:confirm="Confirmer ?" class="text-red-500 hover:underline font-bold text-[10px] uppercase">Supprimer</button>
+                                    <button wire:click="confirmDeleteStructure({{ $item->id }})" 
+                                            class="text-red-500 hover:text-red-700 font-black text-[10px] uppercase tracking-widest bg-red-50 px-3 py-1 rounded-lg transition-all">
+                                        <i class="fas fa-trash-alt mr-1"></i> Supprimer
+                                    </button>
                                 </td>
                             </tr>
                         @endforeach
@@ -467,6 +470,50 @@
                         <textarea wire:model="blocking_reason" rows="4" placeholder="Motif du blocage..." class="w-full bg-gray-50 border-gray-200 rounded-2xl p-4 text-sm font-medium focus:ring-red-500 focus:border-red-500"></textarea>
                         @error('blocking_reason') <span class="text-[10px] text-red-500 font-bold uppercase">{{ $message }}</span> @enderror
                         <button wire:click="processDeactivation" class="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg">Confirmer le blocage</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- MODAL DE CONFIRMATION DE SUPPRESSION (STYLE NASA DNA) -->
+    @if($showDeleteModal)
+        <div class="fixed inset-0 z-[400] overflow-y-auto">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <!-- Overlay sombre -->
+                <div class="fixed inset-0 bg-gray-900/90 backdrop-blur-md transition-opacity" wire:click="$set('showDeleteModal', false)"></div>
+                
+                <!-- Contenu de la modale -->
+                <div class="relative bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 border-t-8 border-red-600 overflow-hidden text-center transform transition-all animate-in zoom-in duration-200">
+                    
+                    <!-- Icône d'alerte -->
+                    <div class="h-20 w-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                    
+                    <h3 class="text-2xl font-black text-gray-900 uppercase tracking-tighter mb-2">Confirmation Requise</h3>
+                    
+                    <p class="text-sm text-[#707173] font-medium mb-8 italic">
+                        Êtes-vous sûr de vouloir supprimer définitivement la structure <br>
+                        <span class="text-red-600 font-black uppercase not-italic">"{{ $structureToDeleteName }}"</span> ?
+                        <br><br>
+                        <span class="text-[10px] bg-red-50 px-2 py-1 rounded text-red-500 font-bold uppercase tracking-widest">
+                            Attention : Cette action est irréversible.
+                        </span>
+                    </p>
+
+                    <div class="flex flex-col gap-3">
+                        <!-- Bouton Confirmer -->
+                        <button wire:click="deleteStructure" 
+                                class="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg flex items-center justify-center gap-2">
+                            <i class="fas fa-check-circle"></i> Confirmer la suppression
+                        </button>
+                        
+                        <!-- Bouton Annuler -->
+                        <button wire:click="$set('showDeleteModal', false)" 
+                                class="w-full py-4 bg-gray-100 text-[#707173] rounded-2xl font-black uppercase tracking-widest hover:bg-gray-200 transition-all">
+                            Annuler l'opération
+                        </button>
                     </div>
                 </div>
             </div>

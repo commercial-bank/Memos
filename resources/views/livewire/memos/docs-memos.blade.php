@@ -1517,20 +1517,7 @@
                                     <hr class="border-gray-100">
                                     
                                     <!-- Visa -->
-                                    <div>
-                                        <label class="block text-sm font-bold text-gray-700 mb-2">Votre Visa / Action</label>
-                                        <div class="grid grid-cols-3 gap-3">
-                                            @foreach(['Vu' => 'gray', 'Vu & Accord' => 'green', "Vu & Pas d'accord" => 'red'] as $visa => $color)
-                                                <label class="cursor-pointer">
-                                                    <input type="radio" wire:model="selected_visa" value="{{ $visa }}" class="peer sr-only">
-                                                    <div class="rounded-md border border-gray-200 p-2 hover:bg-{{ $color }}-50 peer-checked:border-{{ $color }}-500 peer-checked:bg-{{ $color }}-50 peer-checked:ring-1 peer-checked:ring-{{ $color }}-500 transition-all text-center">
-                                                        <span class="text-xs font-medium text-{{ $color }}-900">{{ $visa }}</span>
-                                                    </div>
-                                                </label>
-                                            @endforeach
-                                        </div>
-                                        @error('selected_visa') <span class="text-red-500 text-xs mt-1">Le visa est obligatoire.</span> @enderror
-                                    </div>
+                                    
 
                                     <!-- Commentaire -->
                                     <div>

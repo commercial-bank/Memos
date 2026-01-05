@@ -219,53 +219,64 @@ class IncomingMemos extends Component
     // =========================================================
 
     public function assignMemo($id)
-    {
-        $this->memo_id = $id;
-        $this->reset(['workflow_comment', 'selected_project_users', 'selected_standard_users']);
-        $this->memo_type = 'standard';
+{
+    $this->memo_id = $id;
+    $this->reset(['workflow_comment', 'selected_project_users', 'selected_standard_users', 'managerData']);
+    $this->memo_type = 'standard';
 
-        $currentUser = Auth::user();
-        $today = Carbon::now()->format('Y-m-d');
-        
-        $activeReplacements = ReplacesUser::where('date_begin_replace', '<=', $today)
-            ->where('date_end_replace', '>=', $today)
+    $currentUser = Auth::user();
+    $today = Carbon::now()->format('Y-m-d');
+    
+    $activeReplacements = ReplacesUser::where('date_begin_replace', '<=', $today)
+        ->where('date_end_replace', '>=', $today)
+        ->get()
+        ->keyBy('user_id');
+
+    $posteString = is_object($currentUser->poste) ? $currentUser->poste->value : (string)$currentUser->poste;
+    
+    // --- NOUVELLE LOGIQUE : Directeur sans Manager ---
+    if ($posteString == 'Directeur' && !$currentUser->manager_id) {
+        // On bascule sur le mode "Liste" (comme pour la secrétaire)
+        $this->isSecretary = true; 
+        $this->standardRecipientsList = User::where('dir_id', $currentUser->dir_id)
+            ->where('poste', 'Secretaire') // On cible les secrétaires de sa direction
+            ->where('id', '!=', $currentUser->id)
+            ->orderBy('last_name')
             ->get()
-            ->keyBy('user_id');
-
-        $posteString = $currentUser->poste->value ?? (string)$currentUser->poste;
-        $this->isSecretary = Str::contains($posteString, 'Secretaire');
-
-
-
-        if ($this->isSecretary) {
-            // RÉCUPÉRATION : Manager + tous les Directeurs et Sous-Directeurs de la MÊME entité
-            $this->standardRecipientsList = User::where('dir_id', $currentUser->dir_id)
-                ->where('id', '!=', $currentUser->id) // Exclure soi-même
-                ->where(function ($q) use ($currentUser) {
-                    $q->where('id', $currentUser->manager_id) // Son manager direct
-                    ->orWhere('poste', 'like', '%Directeur%') // Tous les Directeurs
-                    ->orWhere('poste', 'like', '%Sous-Directeur%'); // Tous les Sous-Directeurs
+            ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
+    } 
+    // --- Logique Secrétaire existante ---
+    elseif (Str::contains($posteString, 'Secretaire')) {
+        $this->isSecretary = true;
+        $this->standardRecipientsList = User::where('dir_id', $currentUser->dir_id)
+            ->where('id', '!=', $currentUser->id)
+            ->where(function ($q) use ($currentUser) {
+                $q->where('id', $currentUser->manager_id)
+                ->orWhere('poste', 'like', '%Directeur%')
+                ->orWhere('poste', 'like', '%Sous-Directeur%');
             })
             ->orderBy('last_name')
             ->get()
             ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
-        } else {
-            // Logique classique pour les autres postes
-            if ($currentUser->manager_id) {
-                $manager = User::find($currentUser->manager_id);
-                $this->managerData = $this->resolveUserAvailability($manager, $activeReplacements);
-            }
+    } 
+    // --- Cas Standard avec Manager direct ---
+    else {
+        $this->isSecretary = false;
+        if ($currentUser->manager_id) {
+            $manager = User::find($currentUser->manager_id);
+            $this->managerData = $this->resolveUserAvailability($manager, $activeReplacements);
         }
-
-
-        $excludeIds = array_filter([$currentUser->id, $currentUser->manager_id]);
-        $this->projectUsersList = User::whereNotIn('id', $excludeIds)
-            ->orderBy('last_name')
-            ->get()
-            ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
-
-        $this->isOpen3 = true;
     }
+
+    // Liste pour le mode projet (inchangée)
+    $excludeIds = array_filter([$currentUser->id, $currentUser->manager_id]);
+    $this->projectUsersList = User::whereNotIn('id', $excludeIds)
+        ->orderBy('last_name')
+        ->get()
+        ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
+
+    $this->isOpen3 = true;
+}
 
     public function sendMemo()
     {
@@ -289,21 +300,25 @@ class IncomingMemos extends Component
         // 3. Déterminer les PROCHAINS détenteurs (Next Holders)
         $nextHolders = [];
         if ($this->memo_type === 'standard') {
-            if ($this->isSecretary) {
+
+             // Si c'est une secrétaire OU un Directeur sans manager (qui a donc utilisé la liste multi-sélection)
+            if ($this->isSecretary || ($user->poste == 'Directeur' && !$user->manager_id)) {
                 $selectedUsers = User::whereIn('id', $this->selected_standard_users)->get();
                 foreach ($selectedUsers as $u) {
                     $avail = $this->resolveUserAvailability($u, $activeReplacements);
                     $nextHolders[] = $avail['effective']->id;
                 }
             } else {
-                // Ici, on prend le manager de l'utilisateur connecté
+                // Manager direct habituel
                 if ($user->manager_id) {
                     $manager = User::find($user->manager_id);
                     $avail = $this->resolveUserAvailability($manager, $activeReplacements);
                     $nextHolders[] = $avail['effective']->id;
                 }
             }
+
         } elseif ($this->memo_type === 'projet') {
+            
             $users = User::whereIn('id', $this->selected_project_users)->get();
             foreach ($users as $u) {
                 $avail = $this->resolveUserAvailability($u, $activeReplacements);
@@ -404,22 +419,41 @@ class IncomingMemos extends Component
     public function transMemo($id)
     {
         $this->memo_id = $id;
+        // On charge le mémo avec ses destinataires
         $memo = Memo::with('destinataires')->findOrFail($id);
         $today = Carbon::now()->format('Y-m-d');
-    
+
+        // 1. On récupère tous les IDs des entités destinataires
         $targetEntityIds = $memo->destinataires->pluck('entity_id')->toArray();
+
+        // 2. On récupère les remplaçants actifs
         $activeReplacements = ReplacesUser::where('date_begin_replace', '<=', $today)
             ->where('date_end_replace', '>=', $today)
             ->get()
             ->keyBy('user_id');
 
-        $this->transRecipients = User::whereIn('entity_id', $targetEntityIds)
-            ->where('poste', 'Secretaire')
+        // 3. REQUÊTE CORRIGÉE :
+        $this->transRecipients = User::where('is_active', true) // Uniquement les comptes actifs
+            ->where(function($q) {
+                // Sécurité pour le poste (si String ou Enum)
+                $q->where('poste', 'Secretaire')
+                ->orWhere('poste', 'like', '%Secretaire%');
+            })
+            ->where(function($query) use ($targetEntityIds) {
+                // Logique croisée : l'entité peut être une Direction OU une Sous-Direction
+                $query->whereIn('dir_id', $targetEntityIds)
+                    ->orWhereIn('sd_id', $targetEntityIds);
+            })
             ->get()
             ->map(fn($u) => $this->resolveUserAvailability($u, $activeReplacements));
 
+        // 4. Vérification si on a trouvé du monde
         if ($this->transRecipients->isEmpty()) {
-            $this->dispatch('notify', message: "Aucun secrétariat cible trouvé."); return; 
+            $this->dispatch('notify', 
+                message: "Aucun secrétariat trouvé pour les entités destinataires.", 
+                type: 'error'
+            ); 
+            return; 
         }
 
         $this->generatedReference = $this->generateSmartReference($memo);
@@ -465,66 +499,82 @@ class IncomingMemos extends Component
         $this->dispatch('notify', message: "Enregistré et transmis !");
     }
 
-    // 3. LOGIQUE INTELLIGENTE DE GÉNÉRATION DE RÉFÉRENCE
+        /**
+     * Génère automatiquement la référence intelligente du mémorandum
+     * Format : Chrono / Direction / Sous-Direction / [Département] / [Service] / [Initiales]
+     */
     private function generateSmartReference($memo)
     {
-        
-
         $currentYear = now()->year;
-    
-        $count = BlocEnregistrements::where('nature_memo', 'Memo Sortant')
+
+        // 1. Calcul du Chrono (formatté sur 4 chiffres : 0001, 0002, etc.)
+        // Basé sur le nombre de mémos enregistrés par l'utilisateur connecté (Secretaire) cette année
+        $count = \App\Models\BlocEnregistrements::where('nature_memo', 'Memo Sortant')
             ->where('user_id', Auth::id())
             ->whereYear('created_at', $currentYear)
             ->count() + 1;
-        
-        // 2. Données de base du créateur du mémo
-        $creator = User::with(['entity', 'sousDirection'])->find($memo->user_id);
-        
-        // Préparation des segments
-        $refEntity = $creator->entity->ref ?? 'ENT';
-        $refSD = $creator->sousDirection->ref ?? 'SD'; // Assure-toi d'avoir la relation dans User
-        $refDept = $creator->departement;
-        $refService = $creator->service;
-        $userInitials = Str::upper(substr($creator->first_name, 0, 1) . substr($creator->last_name, 0, 1));
 
-        // 3. Vérification des Visas dans l'historique
-        // On récupère tous les visas "Vu & Accord" pour ce mémo
-        $validations = Historiques::where('memo_id', $memo->id)
-                                  ->where('visa', 'Vu & Accord')
-                                  ->pluck('user_id')
-                                  ->toArray();
+        $chrono = sprintf("%04d", $count);
 
-        // SCÉNARIO 1 : Le créateur a validé lui-même (Vu & Accord)
-        if (in_array($creator->id, $validations)) {
-            // Format : N°/Entity/SD/Dept/Service/Initiales
-            return sprintf("%04d/%s/%s/%s/%s/%s", $count, $refEntity, $refSD, $refDept, $refService, $userInitials);
+        // 2. Identification de l'initiateur (Celui qui a rédigé le mémo à l'origine)
+        $initiator = \App\Models\User::find($memo->user_id);
+        
+        if (!$initiator) {
+            return $chrono . "/S-GEN/INITIATEUR-INCONNU";
         }
 
-        // Pour les étapes suivantes, on remonte la hiérarchie du créateur
-        // Note: Cela suppose que la hiérarchie est bien définie via manager_id
+        // 3. Récupération des segments de référence depuis la table 'entities'
+        // Direction et Sous-Direction sont toujours considérées comme présentes
+        $dirRef = \App\Models\Entity::find($initiator->dir_id)?->ref ?? 'DIR';
+        $sdRef  = \App\Models\Entity::find($initiator->sd_id)?->ref ?? 'SD';
         
-        $n1 = $creator->manager_id ? User::find($creator->manager_id) : null;
-        
-        // SCÉNARIO 2 : Le N+1 (Chef Service ?) a validé
-        // On vérifie si N1 existe, s'il a validé, et si son poste contient "Service"
-        if ($n1 && in_array($n1->id, $validations) && Str::contains($n1->poste, 'Service')) {
-             // Format : N°/Entity/SD/Dept/Service
-             return sprintf("%04d/%s/%s/%s/%s", $count, $refEntity, $refSD, $refDept, $refService);
+        // Département et Service (Peuvent être null)
+        $depRef = $initiator->dep_id ? \App\Models\Entity::find($initiator->dep_id)?->ref : null;
+        $serRef = $initiator->serv_id ? \App\Models\Entity::find($initiator->serv_id)?->ref : null;
+
+        // 4. Initiales de l'initiateur (Firstname Lastname)
+        $initials = \Illuminate\Support\Str::upper(
+            substr($initiator->first_name, 0, 1) . substr($initiator->last_name, 0, 1)
+        );
+
+        // 5. Normalisation du poste (Gestion du type Enum ou String)
+        $poste = is_object($initiator->poste) ? $initiator->poste->value : (string)$initiator->poste;
+
+        // 6. Construction dynamique des segments
+        // On commence toujours par Chrono / Direction / Sous-Direction
+        $segments = [$chrono, $dirRef, $sdRef];
+
+        switch ($poste) {
+            case 'Directeur':
+            case 'Sous-Directeur':
+                // Règle : Uniquement Direction et Sous-Direction.
+                // On n'ajoute rien d'autre.
+                break;
+
+            case 'Chef-Departement':
+                // Règle : On ajoute le département si renseigné.
+                // Pas de service, pas d'initiales.
+                if ($depRef) $segments[] = $depRef;
+                break;
+
+            case 'Chef-Service':
+                // Règle : On ajoute Département et Service si renseignés.
+                // Pas d'initiales.
+                if ($depRef) $segments[] = $depRef;
+                if ($serRef) $segments[] = $serRef;
+                break;
+
+            default:
+                // Règle pour les autres (Agents, etc.) : Référence complète + Initiales
+                if ($depRef) $segments[] = $depRef;
+                if ($serRef) $segments[] = $serRef;
+                $segments[] = $initials;
+                break;
         }
 
-        // On cherche le N+2 (Chef Département ?)
-        $n2 = $n1 && $n1->manager_id ? User::find($n1->manager_id) : null;
-
-        // SCÉNARIO 3 : Le N+2 (Chef Dept) a validé
-        if ($n2 && in_array($n2->id, $validations) && Str::contains($n2->poste, 'Département')) {
-             // Format : N°/Entity/SD/Dept
-             return sprintf("%04d/%s/%s/%s", $count, $refEntity, $refSD, $refDept);
-        }
-
-        // SCÉNARIO 4 (Par défaut ou Sous-Directeur) : 
-        // Si personne "en bas" n'a validé complètement, on garde la ref haute
-        // Format : N°/Entity/SD
-        return sprintf("%04d/%s/%s", $count, $refEntity, $refSD);
+        // 7. Assemblage final
+        // array_filter permet de nettoyer les segments nulls pour éviter les doubles slashes (//)
+        return implode('/', array_filter($segments));
     }
 
     private function abbreviate($string)

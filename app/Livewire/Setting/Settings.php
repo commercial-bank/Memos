@@ -4,11 +4,12 @@ namespace App\Livewire\Setting;
 
 use App\Models\User;
 use App\Models\Entity;
-use App\Models\Memo;       
 use Livewire\Component;
+use App\Models\Memo;       
 use App\Models\ReplacesUser;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
+use App\Notifications\AdminNotification;
 
 class Settings extends Component
 {
@@ -54,6 +55,10 @@ class Settings extends Component
     public $dep_list = [];
     public $serv_list = [];
 
+    public $showDeleteModal = false;
+    public $structureToDeleteId = null;
+    public $structureToDeleteName = '';
+
     public function updatingActiveTab()
     {
         $this->resetPage();
@@ -91,9 +96,32 @@ class Settings extends Component
 
     public function toggleAdmin($userId)
     {
+        // 1. Trouver l'utilisateur ciblé
         $user = User::findOrFail($userId);
+
+        // 2. Empêcher de s'auto-modifier ses propres droits
         if ($user->id !== auth()->id()) {
+            
+            // 3. Basculer l'état (Toggle)
             $user->update(['is_admin' => !$user->is_admin]);
+
+            // 4. Préparer l'objet de la notification selon le nouvel état
+            $object = $user->is_admin 
+                ? "Attribution des privilèges Administrateur" 
+                : "Révocation des privilèges Administrateur";
+
+            // 5. ENVOYER LA NOTIFICATION
+            try {
+                $user->notify(new \App\Notifications\AdminNotification(
+                    'admin',        // Type
+                    auth()->user(), // Acteur (l'admin qui agit)
+                    $user,          // Auteur (le user qui subit)
+                    $object         // L'objet ajouté
+                ));
+            } catch (\Exception $e) {
+                // Optionnel : \Log::error("Erreur notification admin: " . $e->getMessage());
+            }
+
             $this->dispatch('notify', message: "Droits d'administration mis à jour.");
         }
     }
@@ -130,6 +158,7 @@ class Settings extends Component
         ]);
 
         $user = User::findOrFail($this->itemId);
+        
         $user->update([
             'poste'      => $this->poste,
             'dir_id'     => $this->dir_id,
@@ -139,9 +168,24 @@ class Settings extends Component
             'manager_id' => $this->manager_id,
         ]);
 
-        $this->dispatch('notify', message: "Informations professionnelles mises à jour.");
-    }
+        // 1. Définition de l'objet de la notification
+        $object = "Mise à jour de vos informations professionnelles et de votre affectation";
 
+        // 2. Envoi de la notification
+        try {
+            $user->notify(new AdminNotification(
+                'profil',        // Type
+                auth()->user(),  // Acteur (l'admin)
+                $user,           // Auteur/Sujet (l'agent)
+                $object          // L'objet ajouté
+            ));
+        } catch (\Exception $e) {
+            // Optionnel : \Log::error("Erreur notification profil: " . $e->getMessage());
+        }
+
+        $this->dispatch('notify', message: "Informations professionnelles mises à jour et agent notifié.");
+    }
+    
     // =========================================================
     // LOGIQUE AUDIT
     // =========================================================
@@ -223,11 +267,7 @@ class Settings extends Component
         $this->dispatch('notify', message: "Structure enregistrée avec succès.");
     }
 
-    public function deleteStructure($id)
-    {
-        Entity::findOrFail($id)->delete();
-        $this->dispatch('notify', message: 'Élément supprimé.');
-    }
+   
 
     // =========================================================
     // LOGIQUE REMPLACEMENTS
@@ -250,6 +290,22 @@ class Settings extends Component
             'date_end_replace'   => $this->date_end,
         ]);
 
+        // 2. ENVOI DE LA NOTIFICATION
+        $user = User::find($this->itemId);
+        if ($user) {
+            $object = "Nouvelle délégation d'intérim configurée sur votre compte";
+            try {
+                $user->notify(new \App\Notifications\AdminNotification(
+                    'interims_delegations', 
+                    auth()->user(), 
+                    $user,
+                    $object // 4ème argument ajouté
+                ));
+            } catch (\Exception $e) {
+                // Silence ou log
+            }
+        }
+
         $this->userReplacements = ReplacesUser::where('user_id', $this->itemId)->with('substitute')->get();
         $this->reset(['replace_user_id', 'date_begin', 'date_end', 'replace_actions']);
         $this->dispatch('notify', message: 'Remplaçant ajouté.');
@@ -258,9 +314,60 @@ class Settings extends Component
     public function removeReplacement($replacementId)
     {
         $rep = ReplacesUser::find($replacementId);
+        
         if ($rep && $rep->user_id == $this->itemId) {
+            // 1. On récupère l'utilisateur
+            $user = User::find($this->itemId);
+
+            // 2. Suppression
             $rep->delete();
+
+            // 3. ENVOI DE LA NOTIFICATION
+            if ($user) {
+                $object = "Retrait d'une délégation d'intérim sur votre compte";
+                try {
+                    $user->notify(new \App\Notifications\AdminNotification(
+                        'interims_delegations', 
+                        auth()->user(), 
+                        $user,
+                        $object // 4ème argument ajouté
+                    ));
+                } catch (\Exception $e) {
+                    // Silence
+                }
+            }
+
             $this->userReplacements = ReplacesUser::where('user_id', $this->itemId)->with('substitute')->get();
+            $this->dispatch('notify', message: 'Délégation supprimée.');
+        }
+    }
+
+    // --- Modifiez ou ajoutez ces méthodes ---
+
+    /**
+     * Prépare la suppression et ouvre la modale
+     */
+    public function confirmDeleteStructure($id)
+    {
+        $structure = Entity::findOrFail($id);
+        $this->structureToDeleteId = $id;
+        $this->structureToDeleteName = $structure->name;
+        $this->showDeleteModal = true;
+    }
+
+    /**
+     * Exécute la suppression réelle
+     */
+    public function deleteStructure()
+    {
+        if ($this->structureToDeleteId) {
+            $entity = Entity::find($this->structureToDeleteId);
+            if ($entity) {
+                $entity->delete();
+                $this->dispatch('notify', message: "L'élément '{$this->structureToDeleteName}' a été supprimé.");
+            }
+            
+            $this->reset(['showDeleteModal', 'structureToDeleteId', 'structureToDeleteName']);
         }
     }
 

@@ -22,6 +22,8 @@ class Memos extends Component
     public $activeTab = 'incoming';
     public $darkMode = false; // Ajout pour le Dark Mode
 
+    public $searchEntity = '';
+
     // --- Champs du Mémo ---
     #[Rule('required|min:5')]
     public string $object = '';
@@ -235,8 +237,10 @@ class Memos extends Component
 
     public function render()
     {
-        // On récupère les entités triées pour le formulaire
-        $entities = Entity::orderBy('name', 'asc')->get();
+        $entities = Entity::whereIn('type', ['Direction', 'Sous-Direction'])
+        ->orderBy('type', 'asc') // Optionnel : pour grouper par type
+        ->orderBy('name', 'asc')
+        ->get();
 
         return view('livewire.memos.memos', [
             'entities' => $entities
