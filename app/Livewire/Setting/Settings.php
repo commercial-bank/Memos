@@ -28,8 +28,8 @@ class Settings extends Component
     public $itemId = null;
     public $ref;
     public $name;
-    public $type;       // Nouveau : Gère le type Direction, SD, etc.
-    public $upper_id;   // Nouveau : Gère le lien hiérarchique
+    public $type;       
+    public $upper_id;   
 
     // --- Variables Audit ---
     public $selectedMemo = null;
@@ -41,12 +41,25 @@ class Settings extends Component
     public $date_end;
     public $userReplacements = [];
 
+    // --- NOUVEAU : Variables Infos Professionnelles (Admin) ---
+    public $poste;
+    public $dir_id;
+    public $sd_id;
+    public $dep_id;
+    public $serv_id;
+    public $manager_id;
+
+    public $directions_list = [];
+    public $sd_list = [];
+    public $dep_list = [];
+    public $serv_list = [];
+
     public function updatingActiveTab()
     {
         $this->resetPage();
         $this->search = '';
         $this->resetValidation();
-        $this->reset(['showModal', 'selectedMemo', 'userReplacements', 'viewingMemoId', 'itemId', 'ref', 'name', 'upper_id']); 
+        $this->reset(['showModal', 'selectedMemo', 'userReplacements', 'viewingMemoId', 'itemId', 'ref', 'name', 'upper_id', 'poste', 'dir_id', 'sd_id', 'dep_id', 'serv_id', 'manager_id']); 
     }
 
     public function updatingSearch()
@@ -54,8 +67,26 @@ class Settings extends Component
         $this->resetPage();
     }
 
+    // --- NOUVEAU : Logique de mise à jour dynamique des listes ---
+    public function updatedDirId($value) {
+        $this->sd_list = Entity::where('upper_id', $value)->get();
+        $this->sd_id = $this->dep_id = $this->serv_id = null;
+        $this->dep_list = $this->serv_list = [];
+    }
+
+    public function updatedSdId($value) {
+        $this->dep_list = Entity::where('upper_id', $value)->get();
+        $this->dep_id = $this->serv_id = null;
+        $this->serv_list = [];
+    }
+
+    public function updatedDepId($value) {
+        $this->serv_list = Entity::where('upper_id', $value)->get();
+        $this->serv_id = null;
+    }
+
     // =========================================================
-    // LOGIQUE UTILISATEURS (INCHANGÉE)
+    // LOGIQUE UTILISATEURS
     // =========================================================
 
     public function toggleAdmin($userId)
@@ -90,8 +121,29 @@ class Settings extends Component
         $this->dispatch('notify', message: "Compte suspendu.");
     }
 
+    // NOUVEAU : Sauvegarde des informations pro par l'admin
+    public function saveUserProInfo()
+    {
+        $this->validate([
+            'poste' => 'required',
+            'dir_id' => 'required|exists:entities,id',
+        ]);
+
+        $user = User::findOrFail($this->itemId);
+        $user->update([
+            'poste'      => $this->poste,
+            'dir_id'     => $this->dir_id,
+            'sd_id'      => $this->sd_id,
+            'dep_id'     => $this->dep_id,
+            'serv_id'    => $this->serv_id,
+            'manager_id' => $this->manager_id,
+        ]);
+
+        $this->dispatch('notify', message: "Informations professionnelles mises à jour.");
+    }
+
     // =========================================================
-    // LOGIQUE AUDIT (INCHANGÉE)
+    // LOGIQUE AUDIT
     // =========================================================
 
     public function openAuditDetails($memoId) {
@@ -104,13 +156,12 @@ class Settings extends Component
     }
 
     // =========================================================
-    // LOGIQUE STRUCTURES (MISE À JOUR : TABLE UNIQUE ENTITIES)
+    // LOGIQUE STRUCTURES
     // =========================================================
 
     public function openCreateModal()
     {
         $this->reset(['ref', 'name', 'upper_id', 'itemId', 'isEditing', 'userReplacements']);
-        // Le type est défini par l'onglet actif
         $this->type = $this->activeTab;
         $this->showModal = true;
     }
@@ -121,8 +172,22 @@ class Settings extends Component
         $this->itemId = $id;
 
         if ($this->activeTab === 'users') {
-            $model = User::with('replacements.substitute')->findOrFail($id);
-            $this->userReplacements = $model->replacements; 
+            $user = User::with('replacements.substitute')->findOrFail($id);
+            $this->userReplacements = $user->replacements; 
+            
+            // Initialisation des champs Professionnels
+            $this->poste = $user->poste;
+            $this->dir_id = $user->dir_id;
+            $this->sd_id = $user->sd_id;
+            $this->dep_id = $user->dep_id;
+            $this->serv_id = $user->serv_id;
+            $this->manager_id = $user->manager_id;
+
+            // Chargement des listes initiales
+            $this->directions_list = Entity::where('type', 'Direction')->get();
+            if ($this->dir_id) $this->sd_list = Entity::where('upper_id', $this->dir_id)->get();
+            if ($this->sd_id) $this->dep_list = Entity::where('upper_id', $this->sd_id)->get();
+            if ($this->dep_id) $this->serv_list = Entity::where('upper_id', $this->dep_id)->get();
         } 
         else {
             $model = Entity::findOrFail($id);
@@ -165,7 +230,7 @@ class Settings extends Component
     }
 
     // =========================================================
-    // LOGIQUE REMPLACEMENTS (INCHANGÉE)
+    // LOGIQUE REMPLACEMENTS
     // =========================================================
 
     public function addReplacement()
@@ -199,17 +264,13 @@ class Settings extends Component
         }
     }
 
-    // =========================================================
-    // RENDU (MISE À JOUR : FILTRAGE PAR TYPE)
-    // =========================================================
-
     public function render()
     {
         $searchTerm = '%' . $this->search . '%';
         $stats = [];
 
         if ($this->activeTab === 'users') {
-            $data = User::with('entity')
+            $data = User::with('dir')
                 ->where('last_name', 'like', $searchTerm)
                 ->orWhere('email', 'like', $searchTerm)
                 ->latest()->paginate(10);
@@ -223,7 +284,6 @@ class Settings extends Component
             $data = Memo::with('user')->where('object', 'like', $searchTerm)->latest()->paginate(10);
         } 
         else {
-            // Filtrage dynamique : Direction, Sous-Direction, Departement, Service
             $data = Entity::where('type', $this->activeTab)
                 ->where(function($q) use ($searchTerm) {
                     $q->where('name', 'like', $searchTerm)->orWhere('ref', 'like', $searchTerm);

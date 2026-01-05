@@ -175,47 +175,50 @@
                                         </td>
 
                                         <!-- COLONNE DES STATUS -->
-
-                                        <!-- COLONNE STATUT (Avec Modal au clic) -->
+                                         <!-- COLONNE STATUT (Cherche le motif dans l'historique) -->
                                         <td class="px-6 py-4" x-data="{ openReason: false }">
                                             <div class="flex flex-col items-start gap-1">
                                                 @php
                                                     $statusRaw = Str::lower($memo->status);
-                                                    $hasComment = !empty($memo->workflow_comment) && $memo->workflow_comment !== 'R.A.S';
                                                     
-                                                    // Couleurs
+                                                    // On cherche dans la relation 'historiques' le dernier commentaire qui n'est pas 'R.A.S'
+                                                    $lastHistoryWithComment = $memo->historiques->first(function($h) {
+                                                        return !empty($h->workflow_comment) && !Str::contains(Str::upper($h->workflow_comment), 'R.A.S');
+                                                    });
+
+                                                    $hasComment = (bool)$lastHistoryWithComment;
+                                                    $displayComment = $hasComment ? $lastHistoryWithComment->workflow_comment : '';
+                                                    
+                                                    // Couleurs des badges
                                                     $colors = [
-                                                        'envoyer' => 'bg-green-100 text-green-800 border-green-200',
-                                                        'rejeter' => 'bg-red-100 text-red-800 border-red-200',
-                                                        'document' => 'bg-gray-100 text-gray-800 border-gray-200',
+                                                        'envoyer'   => 'bg-green-100 text-green-800 border-green-200',
+                                                        'retourner' => 'bg-red-100 text-red-800 border-red-200',
+                                                        'transmis'  => 'bg-blue-100 text-blue-800 border-blue-200',
+                                                        'traiter'   => 'bg-indigo-100 text-indigo-800 border-indigo-200',
                                                     ];
                                                     $colorClass = $colors[$statusRaw] ?? 'bg-gray-100 text-gray-800 border-gray-200';
                                                     $label = ucfirst($memo->status);
                                                 @endphp
 
-                                                <!-- 1. LE BADGE (CLIQUABLE) -->
+                                                <!-- 1. LE BADGE (CLIQUABLE s'il y a un commentaire dans l'historique) -->
                                                 <button 
                                                     @if($hasComment) @click="openReason = true" @endif
                                                     type="button"
                                                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $colorClass }} {{ $hasComment ? 'cursor-pointer hover:shadow-md transition-shadow' : 'cursor-default' }}"
-                                                    title="{{ $hasComment ? 'Cliquez pour voir le motif' : '' }}"
+                                                    title="{{ $hasComment ? 'Cliquez pour voir la note de : ' . $lastHistoryWithComment->user->first_name : '' }}"
                                                 >
-                                                    <!-- Icône Statut -->
-                                                    @if($statusRaw == 'rejeter')
+                                                    @if($statusRaw == 'retourner')
                                                         <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                    @elseif($statusRaw == 'envoyer')
-                                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                                     @endif
 
                                                     {{ $label }}
 
-                                                    <!-- Petit indicateur visuel s'il y a un message -->
                                                     @if($hasComment)
                                                         <svg class="w-3 h-3 ml-1.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
                                                     @endif
                                                 </button>
 
-                                                <!-- 2. LE MODAL (MOTIF / COMMENTAIRE) -->
+                                                <!-- 2. LE MODAL (Affiche le commentaire de l'historique) -->
                                                 @if($hasComment)
                                                     <div 
                                                         x-show="openReason" 
@@ -224,39 +227,33 @@
                                                         @click.self="openReason = false"
                                                         x-transition:enter="transition ease-out duration-200"
                                                         x-transition:enter-start="opacity-0 scale-95"
-                                                        x-transition:enter-end="opacity-100 scale-100"
-                                                        x-transition:leave="transition ease-in duration-150"
-                                                        x-transition:leave-start="opacity-100 scale-100"
-                                                        x-transition:leave-end="opacity-0 scale-95">
+                                                        x-transition:enter-end="opacity-100 scale-100">
                                                         
-                                                        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-gray-100 transform transition-all">
-                                                            
-                                                            <!-- En-tête du modal -->
-                                                            <div class="{{ $statusRaw == 'rejeter' ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100' }} px-4 py-3 border-b flex justify-between items-center">
-                                                                <h3 class="text-sm font-bold {{ $statusRaw == 'rejeter' ? 'text-red-800' : 'text-gray-700' }} flex items-center gap-2">
-                                                                    @if($statusRaw == 'rejeter')
-                                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                                                        Motif du Rejet
-                                                                    @else
-                                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
-                                                                        Note du Workflow
-                                                                    @endif
+                                                        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-gray-100">
+                                                            <!-- Header -->
+                                                            <div class="{{ $statusRaw == 'retourner' ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100' }} px-4 py-3 border-b flex justify-between items-center">
+                                                                <h3 class="text-xs font-bold {{ $statusRaw == 'retourner' ? 'text-red-800' : 'text-gray-700' }} flex flex-col">
+                                                                    <span>Note de workflow</span>
+                                                                    <span class="text-[10px] font-normal opacity-70">Par : {{ $lastHistoryWithComment->user->first_name }} {{ $lastHistoryWithComment->user->last_name }}</span>
                                                                 </h3>
                                                                 <button @click="openReason = false" class="text-gray-400 hover:text-gray-600 focus:outline-none">
                                                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                                                 </button>
                                                             </div>
 
-                                                            <!-- Contenu du message -->
+                                                            <!-- Contenu (Le commentaire de la table Historiques) -->
                                                             <div class="p-5">
-                                                                <div class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                                                                    {{ $memo->workflow_comment }}
+                                                                <div class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed italic">
+                                                                    "{{ $displayComment }}"
+                                                                </div>
+                                                                <div class="mt-4 text-[10px] text-gray-400 text-right">
+                                                                    Le {{ $lastHistoryWithComment->created_at->format('d/m/Y à H:i') }}
                                                                 </div>
                                                             </div>
 
-                                                            <!-- Pied du modal -->
-                                                            <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse">
-                                                                <button @click="openReason = false" type="button" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                                                            <!-- Footer -->
+                                                            <div class="bg-gray-50 px-4 py-3 text-right">
+                                                                <button @click="openReason = false" type="button" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
                                                                     Fermer
                                                                 </button>
                                                             </div>
@@ -265,6 +262,8 @@
                                                 @endif
                                             </div>
                                         </td>
+
+                                        
 
                                         <!-- Insérez ceci après le <td> du Statut & Note -->
                                         <td class="px-6 py-4">
@@ -401,7 +400,7 @@
                                                     </svg>
                                                 </button>
 
-                                                @if($memo->status == 'rejeter')
+                                                @if($memo->status == 'retourner')
                                                 
                                                 <button wire:click="assignMemo({{ $memo->id }})" class="text-gray-400 hover:text-green-600 transition-colors" title="Attribuer & Envoyer">
                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>

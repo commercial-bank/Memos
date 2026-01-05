@@ -219,7 +219,7 @@
                     Monsieur {{ $director->first_name }} {{ $director->last_name }}
                 </span>
                 <div class="validator-quality">
-                    en qualité de Directeur {{ $director->entity->ref  }}
+                    en qualité de Directeur {{ $director->dir->ref  }}
                 </div>
             </div>
         @endif
@@ -233,7 +233,7 @@
             @endif
         </div>
         <div class="ref-text">
-            {{ $memo->numero_ref }} | Généré le {{ now()->format('d/m/Y') }}
+            dfdfdf | Généré le {{ now()->format('d/m/Y') }}
         </div>
         
         <!-- NUMÉROTATION DE PAGE -->
@@ -242,7 +242,7 @@
 
     <main>
         <div class="page-one-header">
-            <div class="direction">{{ $memo->user->entity->name }}</div>
+            <div class="direction">{{ $memo->user->dir->name ?? 'Direction non définie' }}</div>
             <div class="main-title">Mémorandum</div>
         </div>
 
@@ -278,7 +278,7 @@
                 </td>
             </tr>
             <tr>
-                <td class="col-label">Emetteur : {{ $memo->reference ? Str::afterLast($memo->reference, '/') : 'DGR' }}</td>
+                <td class="col-label">Emetteur : {{ $memo->reference ? Str::afterLast($memo->reference, '/') : '#' }}</td>
                 <td class="col-check">
                     <span class="checkbox {{ isset($recipientsByAction['Prendre position']) ? 'checked' : '' }}"></span> Prendre position
                 </td>
@@ -289,7 +289,7 @@
                 </td>
             </tr>
             <tr>
-                <td class="col-label">Service : {{ $memo->user->service ?? 'DGR' }}</td>
+                <td class="col-label">Service : {{ $memo->user->serv->ref ?? '#' }}</td>
                 <td class="col-check">
                     <span class="checkbox {{ isset($recipientsByAction['Décider']) ? 'checked' : '' }}"></span> Décider
                 </td>

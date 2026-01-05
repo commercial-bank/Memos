@@ -40,6 +40,7 @@ return new class extends Migration
                 $table->boolean('is_admin')->default(false);
                 $table->boolean('is_active')->default(true);
                 $table->text('blocking_reason')->nullable();
+                $table->boolean('profile_locked')->default(false);
                 $table->unsignedBigInteger('manager_id')->nullable();
                 $table->rememberToken();
                 $table->timestamps();

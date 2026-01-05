@@ -83,7 +83,7 @@
                     <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                         <div class="sm:col-span-6">
                             <label for="poste" class="block text-sm font-medium" style="color: var(--profile-text-muted);">Poste / Fonction <span class="text-[#daaf2c]">*</span></label>
-                            <select id="poste" wire:model="poste" class="mt-1 block w-full rounded-md shadow-sm sm:text-sm p-2 border focus:ring-[#daaf2c]" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
+                            <select id="poste" wire:model="poste" {{ $isLocked ? 'disabled' : '' }}  class="mt-1 block w-full rounded-md shadow-sm sm:text-sm p-2 border focus:ring-[#daaf2c]" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
                                 <option value="">-- Sélectionner --</option>
                                 @foreach(App\Enums\Poste::cases() as $posteCase)
                                     <option value="{{ $posteCase->value }}">{{ $posteCase->label() }}</option>
@@ -94,7 +94,7 @@
 
                         <div class="sm:col-span-3">
                             <label class="block text-sm font-medium" style="color: var(--profile-text-muted);">Direction</label>
-                            <select wire:model.live="dir_id" class="mt-1 block w-full rounded-md shadow-sm p-2 border" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
+                            <select wire:model.live="dir_id" {{ $isLocked ? 'disabled' : '' }} class="mt-1 block w-full rounded-md shadow-sm p-2 border" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
                                 <option value="">-- Sélectionner --</option>
                                 @foreach($entites as $entite)
                                     <option value="{{ $entite->id }}">{{ $entite->name }}</option>
@@ -104,7 +104,7 @@
 
                         <div class="sm:col-span-3">
                             <label class="block text-sm font-medium" style="color: var(--profile-text-muted);">Sous-Direction</label>
-                            <select wire:model.live="sd_id" class="mt-1 block w-full rounded-md shadow-sm p-2 border" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
+                            <select wire:model.live="sd_id" {{ $isLocked ? 'disabled' : '' }} class="mt-1 block w-full rounded-md shadow-sm p-2 border" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
                                 <option value="">-- Sélectionner --</option>
                                 @foreach($sous_directions as $sd)
                                     <option value="{{ $sd->id }}">{{ $sd->name }}</option>
@@ -114,7 +114,7 @@
 
                         <div class="sm:col-span-3">
                             <label class="block text-sm font-medium" style="color: var(--profile-text-muted);">Département</label>
-                            <select wire:model.live="dep_id" class="mt-1 block w-full rounded-md shadow-sm p-2 border" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
+                            <select wire:model.live="dep_id" {{ $isLocked ? 'disabled' : '' }} class="mt-1 block w-full rounded-md shadow-sm p-2 border" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
                                 <option value="">-- Sélectionner --</option>
                                 @foreach($departements as $dept)
                                     <option value="{{ $dept->id }}">{{ $dept->name }}</option>
@@ -124,7 +124,7 @@
 
                         <div class="sm:col-span-3">
                             <label class="block text-sm font-medium" style="color: var(--profile-text-muted);">Service</label>
-                            <select wire:model="serv_id" class="mt-1 block w-full rounded-md shadow-sm p-2 border" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
+                            <select wire:model="serv_id" {{ $isLocked ? 'disabled' : '' }} class="mt-1 block w-full rounded-md shadow-sm p-2 border" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
                                 <option value="">-- Sélectionner --</option>
                                 @foreach($services as $serv)
                                     <option value="{{ $serv->id }}">{{ $serv->name }}</option>
@@ -134,7 +134,7 @@
 
                         <div class="sm:col-span-6">
                             <label for="manager" class="block text-sm font-medium" style="color: var(--profile-text-muted);">Manager (N+1)</label>
-                            <select id="manager" wire:model="manager_id" class="mt-1 block w-full rounded-md shadow-sm p-2 border focus:ring-[#daaf2c]" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
+                            <select id="manager" wire:model="manager_id" {{ $isLocked ? 'disabled' : '' }} class="mt-1 block w-full rounded-md shadow-sm p-2 border focus:ring-[#daaf2c]" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
                                 <option value="">-- Sélectionner --</option> 
                                 @foreach($user_all as $value)
                                     <option value="{{ $value->id }}">{{ $value->first_name }} {{ $value->last_name }}</option>
@@ -143,6 +143,8 @@
                         </div>
                     </div>
                 </div>
+
+                
 
                 <!-- SECTION 3 : INTÉRIMS -->
                 <div class="shadow rounded-xl p-6 mb-6 border transition-all" style="background-color: var(--profile-bg-card); border-color: var(--profile-border);">
@@ -189,16 +191,23 @@
                     </div>
                 </div>
 
-                <!-- ACTIONS -->
+                <!-- SECTION ACTIONS -->
                 <div class="flex justify-end gap-4">
-                    <div wire:loading wire:target="save" class="flex items-center text-[#daaf2c] text-sm font-bold">
-                        <svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        Traitement...
-                    </div>
-                    <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-[#daaf2c] px-6 py-2 text-sm font-bold text-black shadow-sm hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#daaf2c] transition-all">
-                        Enregistrer les modifications
-                    </button>
+                    @if($isLocked)
+                        <div class="flex items-center text-blue-500 text-sm italic font-medium">
+                            <i class="fas fa-info-circle mr-2"></i> Informations verrouillées. Contactez l'administrateur pour toute modification.
+                        </div>
+                    @else
+                        <div wire:loading wire:target="save" class="flex items-center text-[#daaf2c] text-sm font-bold">
+                            <svg class="animate-spin h-5 w-5 mr-2" ...>...</svg>
+                            Traitement...
+                        </div>
+                        <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-[#daaf2c] px-6 py-2 text-sm font-bold text-black shadow-sm hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[#daaf2c] transition-all">
+                            Enregistrer et figer mon profil
+                        </button>
+                    @endif
                 </div>
+                
             </form>
         </div>
     </div>

@@ -2,23 +2,24 @@
 
 namespace App\Livewire\Memos;
 
-use App\Models\Destinataires;
-use App\Models\Entity;
-use App\Models\Historiques;
-use App\Models\Memo;
-use App\Models\ReplacesUser;
-use App\Models\User;
-use App\Notifications\MemoActionNotification;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use App\Models\Memo;
+use App\Models\User;
+use App\Models\Entity;
+use Livewire\Component;
+use App\Models\DraftedMemo;
+use App\Models\Historiques;
+use Illuminate\Support\Str;
+use App\Models\ReplacesUser;
+use Livewire\WithPagination;
+use App\Models\Destinataires;
+use Livewire\Attributes\Rule;
+use Livewire\WithFileUploads;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Livewire\Attributes\Rule;
-use Livewire\Component;
-use Livewire\WithFileUploads;
-use Livewire\WithPagination;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use App\Notifications\MemoActionNotification;
 
 class DraftedMemos extends Component
 {
@@ -93,29 +94,31 @@ class DraftedMemos extends Component
 
     public function editMemo($id)
     {
-        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
+        // On utilise DraftedMemo au lieu de Memo
+        // Note: On ne charge plus 'destinataires.entity' car c'est du JSON maintenant
+        $memo = DraftedMemo::findOrFail($id);
         
         $this->memo_id = $memo->id;
         $this->object = $memo->object;
         $this->concern = $memo->concern ?? '';
         $this->content = $memo->content;
         
-        // Chargement des pièces jointes existantes
+        // Gestion des pièces jointes (Déjà casté en array si configuré dans le Model)
         $pj = $memo->pieces_jointes;
-        if (is_string($pj)) { 
-            $pj = json_decode($pj, true); 
-        }
-        $this->existingAttachments = is_array($pj) ? $pj : [];
+        $this->existingAttachments = is_array($pj) ? $pj : (json_decode($pj, true) ?? []);
         
-        // Réinitialiser les nouveaux uploads
         $this->attachments = [];
 
-        // Chargement des destinataires
-        $this->recipients = $memo->destinataires->map(fn($dest) => [
-            'entity_id'   => $dest->entity_id,
-            'entity_name' => $dest->entity->name ?? 'Inconnu',
-            'action'      => $dest->action
-        ])->toArray();
+        // Chargement des destinataires depuis la colonne JSON
+        // On doit rajouter le nom de l'entité pour l'affichage dans le tableau de l'interface
+        $this->recipients = collect($memo->destinataires ?? [])->map(function($dest) {
+            $entity = \App\Models\Entity::find($dest['entity_id']);
+            return [
+                'entity_id'   => $dest['entity_id'],
+                'entity_name' => $entity->name ?? 'Inconnu',
+                'action'      => $dest['action']
+            ];
+        })->toArray();
 
         $this->date = $memo->created_at->format('d/m/Y');   
         $this->user_entity_name = $memo->user->entity->name ?? 'Entité';
@@ -154,39 +157,37 @@ class DraftedMemos extends Component
     {
         $this->validate();
 
-        // 1. Gérer les fichiers : fusionner les anciens restants et les nouveaux
+        // 1. Gérer les fichiers
         $finalPaths = $this->existingAttachments;
         
         if ($this->attachments) {
             foreach ($this->attachments as $file) {
-                $finalPaths[] = $file->store('attachments/memos', 'public');
+                $finalPaths[] = $file->store('attachments/drafts', 'public');
             }
         }
 
-        // 2. Mise à jour ou Création du Mémo
-        $memo = Memo::updateOrCreate(
+        // 2. Mise à jour ou Création dans DRAFTED_MEMOS
+        // Si votre modèle DraftedMemo a le cast 'array' pour destinataires et pieces_jointes, 
+        // pas besoin de json_encode.
+        DraftedMemo::updateOrCreate(
             ['id' => $this->memo_id],
             [
-                'object'         => $this->object,
-                'concern'        => $this->concern,
-                'content'        => $this->content,
-                'pieces_jointes' => json_encode($finalPaths),
-                'user_id'        => Auth::id()
+                'object'          => $this->object,
+                'concern'         => $this->concern,
+                'content'         => $this->content,
+                'pieces_jointes'  => $finalPaths,
+                'destinataires'   => $this->recipients, // On sauve le tableau directement en JSON
+                'user_id'         => Auth::id(),
+                'status'          => 'brouillon',
+                'workflow_direction' => 'sortant'
             ]
         );
 
-        // 3. Mise à jour des destinataires
-        Destinataires::where('memo_id', $memo->id)->delete();
-        foreach ($this->recipients as $r) {
-            Destinataires::create([
-                'memo_id'    => $memo->id,
-                'entity_id'  => $r['entity_id'],
-                'action'     => $r['action'],
-            ]);
-        }
+        // Suppression de l'ancienne logique de la table 'destinataires' 
+        // car tout est centralisé dans le JSON du brouillon.
 
         $this->isEditing = false;
-        $this->dispatch('notify', message: "Mémo mis à jour avec succès !");
+        $this->dispatch('notify', message: "Brouillon mis à jour avec succès !");
     }
 
     // =========================================================
@@ -196,7 +197,7 @@ class DraftedMemos extends Component
     public function assignMemo($id)
     {
         $this->memo_id = $id;
-        $this->reset(['workflow_comment', 'selected_visa', 'selected_project_users', 'selected_standard_users']);
+        $this->reset(['workflow_comment', 'selected_project_users', 'selected_standard_users']);
         $this->memo_type = 'standard';
 
         $currentUser = Auth::user();
@@ -207,12 +208,14 @@ class DraftedMemos extends Component
             ->get()
             ->keyBy('user_id');
 
-         $this->isSecretary = Str::contains($currentUser->poste, 'Secretaire');
+        $posteString = $currentUser->poste->value ?? (string)$currentUser->poste;
+        $this->isSecretary = Str::contains($posteString, 'Secretaire');
+
 
 
         if ($this->isSecretary) {
             // RÉCUPÉRATION : Manager + tous les Directeurs et Sous-Directeurs de la MÊME entité
-            $this->standardRecipientsList = User::where('entity_id', $currentUser->entity_id)
+            $this->standardRecipientsList = User::where('dir_id', $currentUser->dir_id)
                 ->where('id', '!=', $currentUser->id) // Exclure soi-même
                 ->where(function ($q) use ($currentUser) {
                     $q->where('id', $currentUser->manager_id) // Son manager direct
@@ -242,52 +245,48 @@ class DraftedMemos extends Component
 
     public function sendMemo()
     {
+        // 1. Validation
         $this->validate([
-            'selected_visa' => 'required',
             'workflow_comment' => 'nullable|string|max:1000',
             'selected_project_users' => 'required_if:memo_type,projet|array',
             'selected_standard_users' => 'required_if:isSecretary,true|array', 
         ]);
 
-        $memo = Memo::findOrFail($this->memo_id);
+        // 2. Récupérer le BROUILLON (DraftedMemo)
+        $draft = DraftedMemo::findOrFail($this->memo_id);
         $user = Auth::user();
         $today = Carbon::now()->format('Y-m-d');
         
+        // Gestion des remplacements
         $activeReplacements = ReplacesUser::where('date_begin_replace', '<=', $today)
             ->where('date_end_replace', '>=', $today)
             ->get()
             ->keyBy('user_id');
 
-        $replacementContext = $this->getReplacementRights($memo);
+        // Commentaire spécial si P/O (Par Ordre)
+        $replacementContext = $this->getReplacementRights($draft);
         $finalComment = $this->workflow_comment;
-
         if ($replacementContext && in_array('viser', $replacementContext['actions_allowed'])) {
             $titulaire = $replacementContext['original_user'];
             $finalComment = "[P/O " . $titulaire->poste . "] " . $this->workflow_comment;
         }
 
+        // 3. Déterminer les futurs détenteurs (Next Holders)
         $nextHolders = [];
 
-        // --- LOGIQUE STANDARD MODIFIÉE ---
         if ($this->memo_type === 'standard') {
             if ($this->isSecretary) {
-                // On récupère les IDs sélectionnés parmi le Directeur et Sous-Directeurs
                 $selectedUsers = User::whereIn('id', $this->selected_standard_users)->get();
                 foreach ($selectedUsers as $u) {
                     $avail = $this->resolveUserAvailability($u, $activeReplacements);
                     $nextHolders[] = $avail['effective']->id;
                 }
             } else {
-                // Logique N+1 classique
                 if ($this->managerData) {
                     $nextHolders[] = $this->managerData['effective']->id;
                 }
             }
-        }
-
-        
-
-        if ($this->memo_type === 'projet') {
+        } elseif ($this->memo_type === 'projet') {
             $users = User::whereIn('id', $this->selected_project_users)->get();
             foreach ($users as $u) {
                 $avail = $this->resolveUserAvailability($u, $activeReplacements);
@@ -296,30 +295,68 @@ class DraftedMemos extends Component
         }
 
         if (empty($nextHolders)) {
-            $this->addError('general', 'Destinataire invalide.'); return;
+            $this->addError('general', 'Aucun destinataire sélectionné.');
+            return;
         }
 
-        $memo->update([
-            'previous_holders' => [$user->id],
-            'current_holders' => array_unique($nextHolders),
-            'status' => 'envoyer',
+        // 4. CRÉATION DU MÉMO (Transfert de DraftedMemo vers Memo)
+        // On convertit le brouillon en mémo officiel
+        $memo = Memo::create([
+            'object'             => $draft->object,
+            'reference'          => $draft->reference,
+            'concern'            => $draft->concern,
+            'content'            => $draft->content,
+            'status'             => 'envoyer',
             'workflow_direction' => 'sortant',
-            'workflow_comment' => $finalComment
+            'pieces_jointes'     => $draft->pieces_jointes, // Array ou JSON selon cast
+            'user_id'            => $draft->user_id,
+            'parent_id'          => $draft->parent_id,
+            // Gestion des détenteurs
+            'previous_holders'   => [$user->id], 
+            'current_holders'    => array_unique($nextHolders), // Puisque c'est le 1er envoi
+            'treatment_holders'  => array_unique($nextHolders),
         ]);
 
+        // 5. ENREGISTREMENT DES DESTINATAIRES DANS LA TABLE 'destinataires'
+        // On récupère les destinataires du JSON du brouillon
+        $recipientsData = is_array($draft->destinataires) ? $draft->destinataires : json_decode($draft->destinataires, true);
+        
+        if (!empty($recipientsData)) {
+            foreach ($recipientsData as $dest) {
+                Destinataires::create([
+                    'memo_id'   => $memo->id,
+                    'entity_id' => $dest['entity_id'],
+                    'action'    => $dest['action'],
+                ]);
+            }
+        }
+
+        // 6. CRÉATION DE L'HISTORIQUE
         Historiques::create([
-            'user_id' => $user->id,
-            'memo_id' => $memo->id,
-            'visa'    => $this->selected_visa,
+            'user_id'          => $user->id,
+            'memo_id'          => $memo->id,
+            'visa'             => 'valider', // Forcé en "valider"
             'workflow_comment' => $finalComment ?? 'R.A.S',
         ]);
 
+        // 7. NOTIFICATIONS
         foreach (User::whereIn('id', $nextHolders)->get() as $recipient) {
-            try { $recipient->notify(new MemoActionNotification($memo, 'envoyer', $user)); } catch (\Exception $e) {}
+            try {
+                $recipient->notify(new MemoActionNotification($memo, 'envoyer', $user));
+            } catch (\Exception $e) {
+                // Log error if mail fails
+            }
         }
 
+        // 8. SUPPRESSION DU BROUILLON
+        $draft->delete();
+
+        // 9. FINALISATION
         $this->closeModalTrois();
-        $this->dispatch('notify', message: "Transmis avec succès.");
+        $this->isEditing = false;
+        $this->dispatch('notify', message: "Mémo transmis et brouillon supprimé avec succès.");
+        
+        
     }
 
     public function getReplacementRights($memo)
@@ -355,17 +392,32 @@ class DraftedMemos extends Component
 
     private function getPdfData($memo)
     {
-        // On cherche le directeur de l'entité du créateur du mémo
-        $director = User::where('entity_id', $memo->user->entity_id)
+        // 1. Transformer le JSON des destinataires en collection d'objets pour la vue PDF
+        // La vue PDF attend probablement $dest->entity->name et $dest->action
+        $recipientsJson = is_array($memo->destinataires) 
+            ? $memo->destinataires 
+            : json_decode($memo->destinataires, true) ?? [];
+
+        $formattedRecipients = collect($recipientsJson)->map(function($item) {
+            $entity = Entity::find($item['entity_id']);
+            // On crée un objet "factice" qui imite le comportement du modèle Destinataire
+            return (object)[
+                'action' => $item['action'],
+                'entity' => $entity
+            ];
+        });
+
+        // 2. Trouver le directeur de l'entité
+        $director = User::where('dir_id', $memo->user->dir_id)
                         ->where('poste', 'Directeur')
                         ->first();
 
         return [
             'memo'               => $memo,
-            'recipientsByAction' => $memo->destinataires->groupBy('action'),
-            'date'               => $memo->created_at->format('d/m/Y'),
+            'recipientsByAction' => $formattedRecipients->groupBy('action'),
+            'date'               => $memo->created_at ? $memo->created_at->format('d/m/Y') : now()->format('d/m/Y'),
             'logo'               => $this->getLogoBase64(),
-            'director'           => $director, // On passe l'objet director à la vue
+            'director'           => $director,
         ];
     }
 
@@ -374,12 +426,13 @@ class DraftedMemos extends Component
      */
     public function viewMemo($id)
     {
-        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
+        // On récupère le brouillon (on charge l'utilisateur et son entité pour le header du PDF)
+        $memo = DraftedMemo::with(['user.dir'])->findOrFail($id);
         $this->memo_id = $memo->id;
 
-        // Utilisation de la méthode partagée
+        // Génération du PDF avec les données formatées
         $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo))
-              ->setPaper('a4', 'portrait');
+            ->setPaper('a4', 'portrait');
 
         $this->pdfBase64 = base64_encode($pdf->output());
         $this->isViewingPdf = true;
@@ -394,10 +447,13 @@ class DraftedMemos extends Component
 
     public function downloadMemoPDF()
     {
-        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
+        $memo = DraftedMemo::findOrFail($this->memo_id);
         $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo));
         
-        return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
+        return response()->streamDownload(
+            fn() => print($pdf->output()), 
+            "Brouillon_Memo_{$memo->id}.pdf"
+        );
     }
 
     // =========================================================
@@ -450,7 +506,7 @@ class DraftedMemos extends Component
     public function deleteMemo($id) { $this->memo_id = $id; $this->isOpen4 = true; }
     
     public function del() {
-        Memo::where('id', $this->memo_id)->where('user_id', Auth::id())->delete();
+        DraftedMemo::where('id', $this->memo_id)->where('user_id', Auth::id())->delete();
         $this->isOpen4 = false;
         $this->dispatch('notify', message: "Mémo supprimé.");
     }
@@ -460,9 +516,8 @@ class DraftedMemos extends Component
 
     public function render()
     {
-        $memos = Memo::query()
+        $memos = DraftedMemo::query()
             ->where('user_id', Auth::id())
-            ->where('status', 'document')
             ->when($this->search, function($query) {
                 $query->where('object', 'like', '%'.$this->search.'%')
                       ->orWhere('concern', 'like', '%'.$this->search.'%');

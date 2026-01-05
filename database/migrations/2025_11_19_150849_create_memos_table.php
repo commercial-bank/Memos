@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('status')->default('document'); 
             $table->json('current_holders')->nullable();
             $table->json('previous_holders')->nullable();
+            $table->json('treatment_holders')->nullable();
             $table->string('qr_code')->nullable();
             $table->string('workflow_direction')->default('sortant');
             $table->foreignId('parent_id')->nullable()->constrained('memos')->onDelete('cascade');

@@ -3,14 +3,15 @@
 namespace App\Livewire\Memos;
 
 use App\Models\Memo;
+use App\Models\Entity;
 use Livewire\Component;
+use Livewire\Attributes\On;
+use App\Models\DraftedMemo;
 use App\Models\Destinataires;
 use Livewire\Attributes\Rule;
-use Livewire\Attributes\On;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Models\Entity;
+use Illuminate\Support\Facades\Auth;
 
 class Memos extends Component
 {
@@ -163,19 +164,18 @@ class Memos extends Component
 
     public function save()
     {
+        // 1. Validation
         $this->validate([
             'object'     => 'required|min:5',
             'content'    => 'required',
             'recipients' => 'required|array|min:1',
         ]);
 
-        // OPTIMISATION : On détermine l'action AVANT de modifier le memoId
         $isUpdate = !empty($this->memoId);
-        $textAction = $isUpdate ? 'modifié' : 'créé';
 
         DB::transaction(function () {
+            // 2. Gestion des pièces jointes (JSON)
             $finalAttachments = $this->existingAttachments;
-
             if (!empty($this->attachments)) {
                 foreach ($this->attachments as $file) {
                     $path = $file->store('memos_attachments', 'public');
@@ -188,38 +188,43 @@ class Memos extends Component
                 }
             }
 
-            $memo = Memo::updateOrCreate(
-                ['id' => $this->memoId],
-                [
-                    'object'         => $this->object,
-                    'concern'        => $this->concern,
-                    'content'        => $this->content,
-                    'pieces_jointes' => $finalAttachments,
-                    'user_id'        => Auth::id()
-                ]
-            );
-
-            // Sync Destinataires
-            Destinataires::where('memo_id', $memo->id)->delete();
-            
-            $dataToInsert = array_map(function($recipient) use ($memo) {
+            // 3. Transformation des destinataires pour le champ JSON
+            // On prépare le tableau selon la structure de votre table 'destinataires'
+            $destinatairesJson = array_map(function($recipient) {
                 return [
-                    'memo_id'    => $memo->id,
-                    'entity_id'  => $recipient['entity_id'],
-                    'action'     => $recipient['action'],
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'entity_id'         => $recipient['entity_id'],
+                    'action'            => $recipient['action'],
+                    'processing_status' => 'en_cours', // Statut par défaut demandé
+                    'created_at'        => now()->toDateTimeString(),
                 ];
             }, $this->recipients);
 
-            Destinataires::insert($dataToInsert);
+            // 4. Persistence dans drafted_memos
+            $memo = DraftedMemo::updateOrCreate(
+                ['id' => $this->memoId],
+                [
+                    'object'            => $this->object,
+                    'concern'           => $this->concern,
+                    'content'           => $this->content,
+                    'status'            => 'brouillon',
+                    'workflow_direction'=> 'sortant',
+                    'pieces_jointes'    => $finalAttachments,
+                    'destinataires'     => $destinatairesJson, // Stockage JSON ici
+                    'user_id'           => Auth::id(),
+                    // Initialisation du détenteur actuel (l'auteur)
+                    'current_holders'   => [Auth::id()], 
+                ]
+            );
             
-            // On met à jour l'ID pour le composant
             $this->memoId = $memo->id;
         });
 
         $this->isCreating = false;
-        $this->dispatch('notify', message: "Mémo $textAction avec succès !");
+        
+        $this->dispatch('notify', 
+            message: $isUpdate ? "Brouillon mis à jour !" : "Mémo enregistré en brouillon !",
+            type: 'success'
+        );
         
         $this->reset(['object', 'content', 'concern', 'memoId', 'recipients', 'attachments']);
     }

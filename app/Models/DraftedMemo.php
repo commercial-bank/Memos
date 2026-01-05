@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class DraftedMemos extends Model
+class DraftedMemo extends Model
 {
     protected $fillable = [
         'object',
@@ -45,4 +47,9 @@ class DraftedMemos extends Model
         'destinataires' => 'array',
         'created_at' => 'datetime',
     ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 }

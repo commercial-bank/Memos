@@ -85,6 +85,13 @@ class DocsMemos extends Component
     public $target_users_ids = []; 
     public $reject_comment = '';
 
+    // --- Options Statiques ---
+
+    public $isSecretary = false;
+    public $standardRecipientsList = []; // Liste Director + Sous-directeurs
+    public $selected_standard_users = []; // Les IDs sélectionnés en mode Standard
+
+
     // =========================================================
     // 2. INITIALISATION
     // =========================================================
@@ -106,7 +113,7 @@ class DocsMemos extends Component
     private function getPdfData($memo)
     {
         // On cherche le directeur de l'entité du créateur du mémo
-        $director = User::where('entity_id', $memo->user->entity_id)
+        $director = User::where('dir_id', $memo->user->dir_id)
                         ->where('poste', 'Directeur')
                         ->first();
 
@@ -182,29 +189,44 @@ class DocsMemos extends Component
     public function assignMemo($id)
     {
         $this->memo_id = $id;
-        $this->reset(['workflow_comment', 'selected_visa', 'selected_project_users']);
+        $this->reset(['workflow_comment', 'selected_project_users', 'selected_standard_users']);
         $this->memo_type = 'standard';
 
         $currentUser = Auth::user();
         $today = Carbon::now()->format('Y-m-d');
-
-        // Optimisation : une seule requête pour tous les remplacements
+        
         $activeReplacements = ReplacesUser::where('date_begin_replace', '<=', $today)
             ->where('date_end_replace', '>=', $today)
             ->get()
             ->keyBy('user_id');
 
-        if ($currentUser->manager_id) {
-            $manager = User::find($currentUser->manager_id);
-            // On garde la structure attendue par le Blade : $managerData['effective']->...
-            $this->managerData = $this->resolveUserAvailability($manager, $activeReplacements);
+        $posteString = $currentUser->poste->value ?? (string)$currentUser->poste;
+        $this->isSecretary = Str::contains($posteString, 'Secretaire');
+
+
+
+        if ($this->isSecretary) {
+            // RÉCUPÉRATION : Manager + tous les Directeurs et Sous-Directeurs de la MÊME entité
+            $this->standardRecipientsList = User::where('dir_id', $currentUser->dir_id)
+                ->where('id', '!=', $currentUser->id) // Exclure soi-même
+                ->where(function ($q) use ($currentUser) {
+                    $q->where('id', $currentUser->manager_id) // Son manager direct
+                    ->orWhere('poste', 'like', '%Directeur%') // Tous les Directeurs
+                    ->orWhere('poste', 'like', '%Sous-Directeur%'); // Tous les Sous-Directeurs
+            })
+            ->orderBy('last_name')
+            ->get()
+            ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
         } else {
-            $this->managerData = null;
+            // Logique classique pour les autres postes
+            if ($currentUser->manager_id) {
+                $manager = User::find($currentUser->manager_id);
+                $this->managerData = $this->resolveUserAvailability($manager, $activeReplacements);
+            }
         }
 
-        $excludeIds = array_filter([$currentUser->id, $currentUser->manager_id]);
 
-        // IMPORTANT : projectUsersList doit rester une Collection pour le ->first() du Blade
+        $excludeIds = array_filter([$currentUser->id, $currentUser->manager_id]);
         $this->projectUsersList = User::whereNotIn('id', $excludeIds)
             ->orderBy('last_name')
             ->get()
@@ -215,36 +237,48 @@ class DocsMemos extends Component
 
     public function sendMemo()
     {
+        // 1. Validation
         $this->validate([
-            'selected_visa' => 'required',
             'workflow_comment' => 'nullable|string|max:1000',
             'selected_project_users' => 'required_if:memo_type,projet|array',
+            'selected_standard_users' => 'required_if:isSecretary,true|array', 
         ]);
 
-        $memo = Memo::findOrFail($this->memo_id);
+        // 2. Récupérer le BROUILLON (DraftedMemo)
+        $draft = DraftedMemo::findOrFail($this->memo_id);
         $user = Auth::user();
         $today = Carbon::now()->format('Y-m-d');
         
+        // Gestion des remplacements
         $activeReplacements = ReplacesUser::where('date_begin_replace', '<=', $today)
             ->where('date_end_replace', '>=', $today)
             ->get()
             ->keyBy('user_id');
 
-        $replacementContext = $this->getReplacementRights($memo);
+        // Commentaire spécial si P/O (Par Ordre)
+        $replacementContext = $this->getReplacementRights($draft);
         $finalComment = $this->workflow_comment;
-
         if ($replacementContext && in_array('viser', $replacementContext['actions_allowed'])) {
             $titulaire = $replacementContext['original_user'];
             $finalComment = "[P/O " . $titulaire->poste . "] " . $this->workflow_comment;
         }
 
+        // 3. Déterminer les futurs détenteurs (Next Holders)
         $nextHolders = [];
 
-        if ($this->memo_type === 'standard' && $this->managerData) {
-            $nextHolders[] = $this->managerData['effective']->id;
-        }
-
-        if ($this->memo_type === 'projet') {
+        if ($this->memo_type === 'standard') {
+            if ($this->isSecretary) {
+                $selectedUsers = User::whereIn('id', $this->selected_standard_users)->get();
+                foreach ($selectedUsers as $u) {
+                    $avail = $this->resolveUserAvailability($u, $activeReplacements);
+                    $nextHolders[] = $avail['effective']->id;
+                }
+            } else {
+                if ($this->managerData) {
+                    $nextHolders[] = $this->managerData['effective']->id;
+                }
+            }
+        } elseif ($this->memo_type === 'projet') {
             $users = User::whereIn('id', $this->selected_project_users)->get();
             foreach ($users as $u) {
                 $avail = $this->resolveUserAvailability($u, $activeReplacements);
@@ -253,30 +287,68 @@ class DocsMemos extends Component
         }
 
         if (empty($nextHolders)) {
-            $this->addError('general', 'Destinataire invalide.'); return;
+            $this->addError('general', 'Aucun destinataire sélectionné.');
+            return;
         }
 
-        $memo->update([
-            'previous_holders' => [$user->id],
-            'current_holders' => array_unique($nextHolders),
-            'status' => 'envoyer',
+        // 4. CRÉATION DU MÉMO (Transfert de DraftedMemo vers Memo)
+        // On convertit le brouillon en mémo officiel
+        $memo = Memo::create([
+            'object'             => $draft->object,
+            'reference'          => $draft->reference,
+            'concern'            => $draft->concern,
+            'content'            => $draft->content,
+            'status'             => 'envoyer',
             'workflow_direction' => 'sortant',
-            'workflow_comment' => $finalComment
+            'pieces_jointes'     => $draft->pieces_jointes, // Array ou JSON selon cast
+            'user_id'            => $draft->user_id,
+            'parent_id'          => $draft->parent_id,
+            // Gestion des détenteurs
+            'previous_holders'   => [$user->id], 
+            'current_holders'    => array_unique($nextHolders), // Puisque c'est le 1er envoi
+            'treatment_holders'  => array_unique($nextHolders),
         ]);
 
+        // 5. ENREGISTREMENT DES DESTINATAIRES DANS LA TABLE 'destinataires'
+        // On récupère les destinataires du JSON du brouillon
+        $recipientsData = is_array($draft->destinataires) ? $draft->destinataires : json_decode($draft->destinataires, true);
+        
+        if (!empty($recipientsData)) {
+            foreach ($recipientsData as $dest) {
+                Destinataires::create([
+                    'memo_id'   => $memo->id,
+                    'entity_id' => $dest['entity_id'],
+                    'action'    => $dest['action'],
+                ]);
+            }
+        }
+
+        // 6. CRÉATION DE L'HISTORIQUE
         Historiques::create([
-            'user_id' => $user->id,
-            'memo_id' => $memo->id,
-            'visa'    => $this->selected_visa,
+            'user_id'          => $user->id,
+            'memo_id'          => $memo->id,
+            'visa'             => 'valider', // Forcé en "valider"
             'workflow_comment' => $finalComment ?? 'R.A.S',
         ]);
 
+        // 7. NOTIFICATIONS
         foreach (User::whereIn('id', $nextHolders)->get() as $recipient) {
-            try { $recipient->notify(new MemoActionNotification($memo, 'envoyer', $user)); } catch (\Exception $e) {}
+            try {
+                $recipient->notify(new MemoActionNotification($memo, 'envoyer', $user));
+            } catch (\Exception $e) {
+                // Log error if mail fails
+            }
         }
 
+        // 8. SUPPRESSION DU BROUILLON
+        $draft->delete();
+
+        // 9. FINALISATION
         $this->closeModalTrois();
-        $this->dispatch('notify', message: "Transmis avec succès.");
+        $this->isEditing = false;
+        $this->dispatch('notify', message: "Mémo transmis et brouillon supprimé avec succès.");
+        
+        
     }
 
     public function getReplacementRights($memo)
@@ -493,9 +565,9 @@ class DocsMemos extends Component
     public function render()
     {
         $memos = Memo::query()
-            ->with(['destinataires.entity'])
+            ->with(['destinataires.entity', 'historiques.user']) 
             ->where('user_id', Auth::id())
-            ->whereIn('status', ['envoyer', 'rejeter', 'transmis', 'coter', 'repondu', 'terminer', 'traiter']) 
+            ->whereIn('status', ['envoyer', 'retourner','rejeter', 'transmis', 'coter', 'repondu', 'terminer', 'traiter']) 
             ->when($this->search, function($query) {
                 $term = '%'.$this->search.'%';
                 $query->where(function($q) use ($term) {

@@ -85,10 +85,10 @@
                 <nav class="-mb-px flex space-x-8 overflow-x-auto custom-scrollbar" aria-label="Tabs">
                     @php
                         $tabs = [
+                            'drafted' => 'Brouillons',
+                            'document' => 'Mémos Envoyés',
                             'incoming' => 'Mémos Sortants',
-                            'incoming2' => 'Mémos Entrants',
-                            'drafted' => 'Mes Mémos',
-                            'document' => 'Mémos Envoyés'
+                            'incoming2' => 'Mémos Entrants'
                         ];
 
                         if(auth()->user()->poste == 'Secretaire') { 
@@ -115,10 +115,10 @@
             <!-- Contenu dynamique des listes -->
             <div class="rounded-xl shadow-sm border min-h-[400px] p-6 transition-all" style="background-color: var(--c-bg-card); border-color: var(--c-border);">
                 @switch($activeTab)
-                    @case('incoming') <livewire:memos.incoming-memos wire:key="tab-incoming"/> @break
-                    @case('incoming2') <livewire:memos.incoming2-memos wire:key="tab-incoming2"/> @break
                     @case('drafted') <livewire:memos.drafted-memos wire:key="tab-drafted"/> @break
                     @case('document') <livewire:memos.docs-memos wire:key="tab-document"/> @break
+                    @case('incoming') <livewire:memos.incoming-memos wire:key="tab-incoming"/> @break
+                    @case('incoming2') <livewire:memos.incoming2-memos wire:key="tab-incoming2"/> @break
                     @case('blockout') <livewire:memos.blockout-memos wire:key="tab-blockout"/> @break
                     @case('blockint') <livewire:memos.blockint-memos wire:key="tab-blockint"/> @break
                     @case('favorites') <livewire:favorites.favorite-memos wire:key="tab-favorites"/> @break

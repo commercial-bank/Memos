@@ -45,6 +45,7 @@ class User extends Authenticatable implements LdapAuthenticatable
         'is_admin',
         'is_active',
         'blocking_reason',
+        'profile_locked',
         'manager_id',
     ];
 
@@ -87,17 +88,39 @@ class User extends Authenticatable implements LdapAuthenticatable
         return $this->belongsToMany(Memo::class, 'favoris', 'user_id', 'memo_id')->withTimestamps();
     }
 
-    public function sousDirection() {
-         return $this->belongsTo(SousDirection::class); // Ou le nom exact de ta classe
-    }
+   
 
      /**
      * Relation avec l'Entité (table entities)
      */
+
     public function entity()
     {
-        // Laravel va chercher automatiquement la colonne 'entity_id'
-        return $this->belongsTo(Entity::class);
+        return $this->belongsTo(Entity::class, 'entity_id');
+    } 
+    
+    public function dir()
+    {
+        
+       return $this->belongsTo(Entity::class, 'dir_id'); 
+    }
+
+    public function sd()
+    {
+        
+       return $this->belongsTo(Entity::class, 'sd_id'); 
+    }
+
+    public function dep()
+    {
+        
+       return $this->belongsTo(Entity::class, 'dep_id'); 
+    }
+
+    public function serv()
+    {
+        
+       return $this->belongsTo(Entity::class, 'serv_id'); 
     }
 
      /**

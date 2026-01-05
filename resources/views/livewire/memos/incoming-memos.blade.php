@@ -48,9 +48,376 @@
                             </div>
                         </div>
                     </div>
+                
+                @elseif($isEditing)
+
+                    <!-- ========================================== -->
+                    <!-- VUE : ÉDITION DU MÉMO (Style Papier A4) -->
+                    <!-- ========================================== -->
+                    <div class="max-w-5xl mx-auto animate-fade-in-up">
+                        
+                        <!-- Barre d'actions supérieure -->
+                        <div class="mb-8 bg-white border border-gray-100 rounded-xl shadow-sm p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <button wire:click="cancelEdit" type="button" class="group flex items-center text-gray-500 hover:text-black transition-colors">
+                                <div class="mr-3 h-10 w-10 rounded-full bg-gray-100 group-hover:bg-yellow-100 group-hover:text-yellow-700 flex items-center justify-center transition-colors">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                                </div>
+                                <div class="flex flex-col items-start text-left">
+                                    <span class="font-bold text-base text-black">Retour</span>
+                                    <span class="text-xs text-gray-400">Annuler les modifications</span>
+                                </div>
+                            </button>
+                            
+                            <div class="flex items-center space-x-3">
+                                <button wire:click="cancelEdit" type="button" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                                    Annuler
+                                </button>
+                                
+                                <button wire:click="save" wire:loading.attr="disabled" type="button" 
+                                    class="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-lg shadow-md text-white bg-yellow-500 hover:bg-yellow-600 transition-all">
+                                    <span wire:loading.remove wire:target="save">Mettre à jour le dossier</span>
+                                    <span wire:loading wire:target="save">Traitement...</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- LE FORMULAIRE STYLE MÉMORANDUM -->
+                        <div class="bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-200">
+                            
+                            <!-- Entête Papier -->
+                            <div class="px-8 py-6 flex justify-between items-center bg-gray-900 text-white border-b-4 border-yellow-500">
+                                <div>
+                                    <h2 class="text-2xl font-bold uppercase" style="font-family: 'Times New Roman', serif;">Mémorandum</h2>
+                                    <p class="text-xs font-bold tracking-widest mt-1 text-yellow-500">MODE ÉDITION - RÉF: {{ $memo_id }}</p>
+                                </div>
+                                <div class="text-right opacity-80 text-sm">
+                                    Date initiale : {{ $date }}
+                                </div>
+                            </div>
+
+                            <div class="p-8 md:p-12 space-y-10">
+                                <!-- Concern & Objet -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                    <div class="space-y-1">
+                                        <label class="block text-xs font-bold uppercase text-gray-400">Pour (Concerne)</label>
+                                        <input type="text" wire:model="concern" class="w-full border-0 border-b-2 border-gray-200 bg-transparent py-2 px-0 text-black focus:ring-0 focus:border-yellow-500 sm:text-lg transition-colors">
+                                        @error('concern') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div class="space-y-1">
+                                        <label class="block text-xs font-bold uppercase text-gray-400">Objet</label>
+                                        <input type="text" wire:model="object" class="w-full border-0 border-b-2 border-gray-200 bg-transparent py-2 px-0 text-black font-bold focus:ring-0 focus:border-yellow-500 sm:text-lg transition-colors">
+                                        @error('object') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+
+                                <!-- Liste de Distribution -->
+                                <div class="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                                    <h3 class="text-sm font-bold uppercase mb-4 text-gray-700 flex items-center">
+                                        <svg class="w-4 h-4 mr-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                                        Liste de Distribution
+                                    </h3>
+                                    <div class="flex flex-col md:flex-row gap-3 mb-4">
+                                        <select wire:model="newRecipientEntity" class="flex-1 rounded-md border-gray-300 text-sm focus:ring-yellow-500">
+                                            <option value="">-- Choisir Entité --</option>
+                                            @foreach($entities as $entity) <option value="{{ $entity->id }}">{{ $entity->name }}</option> @endforeach
+                                        </select>
+                                        <select wire:model="newRecipientAction" class="flex-1 rounded-md border-gray-300 text-sm focus:ring-yellow-500">
+                                            <option value="">-- Choisir Action --</option>
+                                            @foreach($actionsList as $act) <option value="{{ $act }}">{{ $act }}</option> @endforeach
+                                        </select>
+                                        <button wire:click="addRecipient" type="button" class="px-4 py-2 bg-gray-900 text-white rounded-md text-sm font-bold">Ajouter</button>
+                                    </div>
+
+                                    @if(count($recipients) > 0)
+                                        <div class="bg-white border border-gray-200 rounded-md overflow-hidden shadow-sm">
+                                            <table class="min-w-full divide-y divide-gray-200">
+                                                <tbody class="divide-y divide-gray-200">
+                                                    @foreach($recipients as $idx => $r)
+                                                        <tr>
+                                                            <td class="px-4 py-2 text-sm font-medium text-gray-900">{{ $r['entity_name'] }}</td>
+                                                            <td class="px-4 py-2 text-sm text-yellow-700 font-bold italic">{{ $r['action'] }}</td>
+                                                            <td class="px-4 py-2 text-right">
+                                                                <button wire:click="removeRecipient({{ $idx }})" class="text-gray-400 hover:text-red-600"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    @endif
+                                </div>
+
+
+                                <!-- ÉDITEUR QUILL (Type Word) -->
+                                <div class="pt-2">
+                                    <!-- Label avec info utilisateur -->
+                                    <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex justify-between items-center text-gray-500">
+                                        <span class="flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                            Corps du Document
+                                        </span>
+                                        <span class="text-[10px] font-normal normal-case italic opacity-60">
+                                            Les lignes rouges indiquent les sauts de page (Format A4)
+                                        </span>
+                                    </label>
+
+                                    <div wire:ignore 
+                                        class="flex flex-col items-center bg-gray-100 rounded-xl p-4 border border-gray-200 shadow-inner"
+                                        x-data="{
+                                            content: @entangle('content'),
+                                            quill: null,
+                                            initQuill() {
+                                                // Enregistrement des Polices
+                                                const Font = Quill.import('formats/font');
+                                                Font.whitelist = ['helvetica', 'arial', 'roboto', 'tahoma', 'timesnewroman', 'georgia', 'inter'];
+                                                Quill.register(Font, true);
+
+                                                // Configuration Tailles
+                                                const Size = Quill.import('attributors/style/size');
+                                                Size.whitelist = ['10px', '12px', '14px', '16px', '18px', '20px', '24px'];
+                                                Quill.register(Size, true);
+
+                                                this.quill = new Quill(this.$refs.quillEditor, {
+                                                    theme: 'snow',
+                                                    placeholder: 'Commencez à rédiger votre mémorandum...',
+                                                    modules: { toolbar: '#toolbar-container' }
+                                                });
+
+                                                if (this.content) { this.quill.root.innerHTML = this.content; }
+                                                this.quill.on('text-change', () => { this.content = this.quill.root.innerHTML; });
+                                            }
+                                        }"
+                                        x-init="initQuill()">
+                                        
+                                        <!-- BARRE D'OUTILS TAILWIND -->
+                                        <div id="toolbar-container" class="w-full max-w-4xl mb-6 bg-white rounded-t-lg shadow-sm flex flex-wrap items-center justify-center gap-1 border border-gray-200 p-2 z-20 sticky top-0">
+                                            <span class="ql-formats">
+                                                <select class="ql-font">
+                                                    <option value="tahoma" selected>Tahoma</option>
+                                                    <option value="arial">Arial</option>
+                                                    <option value="timesnewroman">Times New Roman</option>
+                                                </select>
+                                                <select class="ql-size">
+                                                    <option value="12px">12px</option>
+                                                    <option value="14px" selected>14px</option>
+                                                    <option value="16px">16px</option>
+                                                    <option value="18px">18px</option>
+                                                </select>
+                                            </span>
+                                            <span class="ql-formats border-l border-gray-200 pl-2">
+                                                <button class="ql-bold"></button>
+                                                <button class="ql-italic"></button>
+                                                <button class="ql-underline"></button>
+                                                <select class="ql-color"></select>
+                                            </span>
+                                            <span class="ql-formats border-l border-gray-200 pl-2">
+                                                <button class="ql-align" value=""></button>
+                                                <button class="ql-align" value="center"></button>
+                                                <button class="ql-align" value="justify"></button>
+                                            </span>
+                                            <span class="ql-formats border-l border-gray-200 pl-2">
+                                                <button class="ql-list" value="ordered"></button>
+                                                <button class="ql-list" value="bullet"></button>
+                                            </span>
+                                        </div>
+
+                                        <!-- ZONE D'ÉDITION (FEUILLE A4) -->
+                                        <div class="relative w-full max-w-[21cm] bg-white shadow-2xl border border-gray-300 transition-all duration-300">
+                                            
+                                            <!-- CALQUE DES LIGNES DE SAUT DE PAGE (Tailwind) -->
+                                            <!-- 1080px est une estimation de la hauteur utile A4 en tenant compte des marges -->
+                                            <div class="absolute inset-0 pointer-events-none z-10 overflow-hidden" aria-hidden="true">
+                                                
+                                                <!-- Page 1 -> 2 -->
+                                                <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 1080px;">
+                                                    <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase tracking-wider shadow-md rounded-bl-md">
+                                                        Début Page 2
+                                                    </span>
+                                                </div>
+
+                                                <!-- Page 2 -> 3 -->
+                                                <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 2160px;">
+                                                    <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase shadow-md rounded-bl-md">
+                                                        Début Page 3
+                                                    </span>
+                                                </div>
+
+                                                <!-- Page 3 -> 4 -->
+                                                <div class="absolute w-full border-t-2 border-dashed border-red-400 flex justify-end items-start" style="top: 3240px;">
+                                                    <span class="bg-red-500 text-white text-[9px] px-2 py-0.5 font-bold uppercase shadow-md rounded-bl-md">
+                                                        Début Page 4
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <!-- ÉDITEUR RÉEL -->
+                                            <div x-ref="quillEditor" class="text-gray-900 min-h-[29.7cm]"></div>
+                                        </div>
+
+                                        <!-- Footer Info -->
+                                        <div class="w-full max-w-[21cm] mt-4 flex justify-between text-[10px] text-gray-400 font-medium px-2">
+                                            <span>Format : A4 Portrait (210 x 297 mm)</span>
+                                            <span>Police recommandée : Tahoma / 11-12pt</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <style>
+                                    /* Intégration fine des styles Quill non gérables par Tailwind */
+                                    .ql-container.ql-snow {
+                                        border: none !important;
+                                    }
+                                    
+                                    .ql-editor {
+                                        padding: 50px 70px !important; /* Marges type Word */
+                                        min-height: 29.7cm;
+                                        font-family: 'Tahoma', sans-serif;
+                                        line-height: 1.5;
+                                        font-size: 14px;
+                                    }
+
+                                    /* Support des polices personnalisées dans la barre Quill */
+                                    .ql-font-tahoma { font-family: 'Tahoma', sans-serif !important; }
+                                    .ql-font-timesnewroman { font-family: 'Times New Roman', serif !important; }
+                                    .ql-font-arial { font-family: 'Arial', sans-serif !important; }
+
+                                    /* Forcer l'affichage des noms de tailles dans la barre d'outils */
+                                    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="12px"]::before,
+                                    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="12px"]::before { content: '12px'; }
+                                    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="14px"]::before,
+                                    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="14px"]::before { content: '14px'; }
+                                    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="16px"]::before,
+                                    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="16px"]::before { content: '16px'; }
+                                    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="18px"]::before,
+                                    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="18px"]::before { content: '18px'; }
+                                </style>
+
+                                
+
+                                <!-- ATTACHMENTS SECTION -->
+                                <div class="mt-8 border-t border-gray-100 pt-6">
+                                    <label class="block text-xs font-bold uppercase tracking-wide mb-3 flex items-center gap-2" style="color: var(--c-grey);">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                                        </svg>
+                                        Pièces Jointes (P.J.)
+                                    </label>
+
+                                    <div class="space-y-4">
+                                        <!-- Zone de Drop/Upload -->
+                                        <div class="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-yellow-50/20 hover:border-[#daaf2c] transition-colors relative">
+                                            <div class="space-y-1 text-center">
+                                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                </svg>
+                                                <div class="flex text-sm text-gray-600 justify-center">
+                                                    <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-bold text-charte-gold focus-within:ring-2 focus-within:ring-[#daaf2c]">
+                                                        <span>Téléverser des fichiers</span>
+                                                        <input id="file-upload" wire:model="attachments" type="file" class="sr-only" multiple>
+                                                    </label>
+                                                </div>
+                                                <p class="text-xs text-gray-500">PDF, DOCX, PNG, JPG jusqu'à 10MB</p>
+                                            </div>
+
+                                            <div wire:loading wire:target="attachments" class="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+                                                <div class="flex items-center font-semibold text-charte-gold">
+                                                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
+                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Upload en cours...
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @error('attachments.*') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+
+                                        <!-- LISTE DES FICHIERS -->
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            
+                                            <!-- 1. AFFICHAGE DES FICHIERS DÉJÀ ENREGISTRÉS (Base de données) -->
+                                            @foreach($existingAttachments as $index => $item)
+                                                @php
+                                                    // On extrait le chemin (string) que l'item soit une chaîne ou un tableau
+                                                    $filePath = is_string($item) ? $item : ($item['path'] ?? '');
+                                                    // On récupère l'extension de manière sécurisée
+                                                    $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+                                                    // On récupère le nom du fichier pour l'affichage
+                                                    $fileName = basename($filePath);
+                                                @endphp
+                                                
+                                                <div class="relative flex items-center p-3 border border-blue-200 rounded-lg bg-blue-50/30 group hover:border-blue-400 transition-colors">
+                                                    <div class="flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center bg-white border border-blue-100 text-blue-500 font-bold text-[10px] uppercase">
+                                                        {{ $extension ?: '?' }}
+                                                    </div>
+                                                    <div class="ml-4 flex-1 min-w-0">
+                                                        <p class="text-sm font-medium text-gray-900 truncate" title="{{ $fileName }}">
+                                                            {{ $fileName }}
+                                                        </p>
+                                                        <p class="text-[10px] text-blue-600 font-bold uppercase tracking-tighter">Fichier déjà enregistré</p>
+                                                    </div>
+                                                    
+                                                    <button type="button" 
+                                                        wire:click="removeExistingAttachment({{ $index }})" 
+                                                        class="ml-2 inline-flex items-center p-1.5 border border-transparent rounded-full shadow-sm text-white bg-gray-400 hover:bg-red-500 transition-colors">
+                                                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            @endforeach
+
+                                            <!-- 2. AFFICHAGE DES NOUVEAUX FICHIERS (En cours d'upload) -->
+                                            @if($attachments)
+                                                @foreach($attachments as $index => $file)
+                                                    <div class="relative flex items-center p-3 border border-yellow-200 rounded-lg bg-yellow-50/30 group hover:border-[#daaf2c] transition-colors">
+                                                        <div class="flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center bg-white border border-gray-200 text-gray-500 font-bold text-[10px] uppercase">
+                                                            {{ $file->extension() }}
+                                                        </div>
+                                                        <div class="ml-4 flex-1 min-w-0">
+                                                            <p class="text-sm font-medium text-gray-900 truncate">{{ $file->getClientOriginalName() }}</p>
+                                                            <p class="text-[10px] text-green-600 font-bold uppercase">Nouveau fichier</p>
+                                                        </div>
+                                                        <button type="button" wire:click="removeAttachment({{ $index }})" class="ml-2 inline-flex items-center p-1.5 border border-transparent rounded-full shadow-sm text-white bg-gray-300 hover:bg-red-500 transition-colors">
+                                                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                @endforeach
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                 @else
-        
+                    <!-- EN-TÊTE & RECHERCHE -->
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Mémos Sortants</h2>
+                            <p class="text-sm text-gray-500">Mémos pour lesquels votre validation est requise.</p>
+                        </div>
+
+                        <div class="relative w-full md:w-96">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </div>
+                            <input 
+                                wire:model.live.debounce.300ms="search" 
+                                type="text" 
+                                class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm transition duration-150 ease-in-out shadow-sm" 
+                                placeholder="Rechercher par objet, concerné..."
+                            >
+                            <!-- Spinner de chargement -->
+                            <div wire:loading wire:target="search" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                <svg class="animate-spin h-5 w-5 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- TABLEAU MODERNE -->
                     <div class="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-200">
@@ -217,129 +584,91 @@
                                                     
                                                     <!-- CALCUL DES DROITS POUR CETTE LIGNE -->
                                                     @php
-                                                        // On appelle la méthode du composant PHP
+                                                        // 1. Vérification si l'utilisateur a le droit de traiter le mémo (présence dans treatment_holders)
+                                                        $isTreatmentHolder = false;
+                                                        if ($memo->treatment_holders) {
+                                                            $isTreatmentHolder = in_array(auth()->id(), (array)$memo->treatment_holders);
+                                                        }
+
+                                                        // 2. Logique de remplacement (pour les badges P/O et droits spécifiques)
                                                         $repRights = $this->getReplacementRights($memo);
-                                                        
-                                                        // Est-ce un utilisateur standard (titulaire) ?
-                                                        $isStandardSD = (auth()->user()->poste == "Sous-Directeur");
-                                                        $isStandardDir = (auth()->user()->poste == "Directeur");
-                                                        
-                                                        // Est-ce un remplaçant ?
                                                         $isRep = ($repRights !== null && $repRights['is_active']);
-                                                        
-                                                        // Droits spécifiques du remplaçant (tableau simple ex: ['viser', 'signer'])
                                                         $repActions = $isRep ? $repRights['actions_allowed'] : [];
                                                     @endphp
 
-                                                    <!-- 1. ACTION : VOIR (Toujours dispo) -->
+                                                    <!-- =========================================================== -->
+                                                    <!-- ACTIONS TOUJOURS VISIBLES (CONSULTATION)                    -->
+                                                    <!-- =========================================================== -->
+
+                                                    <!-- 1. ACTION : VOIR -->
                                                     <button wire:click="viewMemo({{ $memo->id }})" class="text-gray-400 hover:text-blue-600 transition-colors" title="Aperçu">
                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                                     </button>
 
-                                                    <!-- FAVORIS -->
-                                                    <button 
-                                                        wire:click="toggleFavorite({{ $memo->id }})" 
+                                                    <!-- 2. ACTION : FAVORIS -->
+                                                    <button wire:click="toggleFavorite({{ $memo->id }})" 
                                                         class="transition-colors duration-200 {{ $memo->is_favorited ? 'text-yellow-400 hover:text-yellow-500' : 'text-gray-300 hover:text-yellow-400' }}" 
                                                         title="{{ $memo->is_favorited ? 'Retirer des favoris' : 'Ajouter aux favoris' }}">
-                                                        
-                                                        <!-- L'icône change selon l'état -->
                                                         @if($memo->is_favorited)
-                                                            <!-- Étoile PLEINE (Solid) -->
-                                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                                            </svg>
+                                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
                                                         @else
-                                                            <!-- Étoile VIDE (Outline) -->
-                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
-                                                            </svg>
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
                                                         @endif
                                                     </button>
 
-                                                    <!-- 2. ACTIONS : SIGNER / VISER / REJETER -->
+                                                   
 
-                                                    {{-- CAS 1 : C'est une SECRÉTAIRE --}}
-                                                    @if(auth()->user()->poste == "Secretaire")
-                                                        <button 
-                                                            wire:click="transMemo({{ $memo->id }})" 
-                                                            class="p-2 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 transition" 
-                                                            title="Enregistrer">
-                                                            
-                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
-                                                            </svg>
-                                                        </button>  
 
-                                                    {{-- CAS 2 : C'est un MANAGER (SD, DIR ou leur REMPLAÇANT) --}}
-                                                    @else
+                                                    <!-- =========================================================== -->
+                                                    <!-- ACTIONS CONDITIONNELLES (UNIQUEMENT SI DROIT DE TRAITER)    -->
+                                                    <!-- =========================================================== -->
+                                                    @if($isTreatmentHolder)
 
-                                                        <!-- A. BOUTON ATTRIBUER & ENVOYER (VISER) -->
-                                                        <!-- Condition : Si je suis titulaire (pas SD ni Dir qui signent d'abord) OU Si je suis remplaçant avec droit 'viser' -->
-                                                        @if( (!$isStandardSD && !$isStandardDir) || ($isRep && in_array('viser', $repActions)) )
+                                                        <!-- 3. ACTION : MODIFIER -->
+                                                        <button wire:click="editMemo({{ $memo->id }})" class="text-gray-400 hover:text-yellow-600 transition-colors" title="Modifier">
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                                        </button>
+
+                                                        {{-- CAS SECRÉTAIRE --}}
+                                                        @if(auth()->user()->poste == "Secretaire")
+                                                            <button wire:click="transMemo({{ $memo->id }})" class="p-2 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 transition" title="Enregistrer et Transmettre">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                                                            </button>  
+
+                                                        {{-- CAS MANAGER / DÉCIDEUR --}}
+                                                        @else
+                                                            <!-- ATTRIBUER & ENVOYER -->
                                                             <button wire:click="assignMemo({{ $memo->id }})" class="text-gray-400 hover:text-green-600 transition-colors relative group" title="Attribuer & Envoyer">
                                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                                                                 @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-orange-100 text-orange-600 px-1 rounded border border-orange-200">P/O</span>@endif
                                                             </button>
-                                                        @endif
+                                                    
+                                                            <!-- RETOURNER -->
+                                                            <button wire:click="askReject({{ $memo->id }}, 'return')" class="text-gray-400 hover:text-orange-500 transition-colors relative" title="Retourner à l'auteur">
+                                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 0118 0z"></path></svg>
+                                                                @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-orange-100 text-orange-600 px-1 rounded border border-orange-200">P/O</span>@endif
+                                                            </button>
 
-                                                        <!-- B. BOUTON REJETER -->
-                                                        <!-- Condition : Tout le monde peut rejeter SAUF si remplaçant sans droit 'rejeter' -->
-                                                        @if( !$isRep || ($isRep && in_array('rejeter', $repActions)) )
-                                                            <button wire:click="askReject({{ $memo->id }})" class="text-gray-400 hover:text-red-600 transition-colors relative" title="Rejeter">
+                                                            <!-- REJETER (ARCHIVER) -->
+                                                            <button wire:click="askReject({{ $memo->id }}, 'archive')" class="text-gray-400 hover:text-red-600 transition-colors relative" title="Rejeter et Archiver">
                                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                                                 @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-red-100 text-red-600 px-1 rounded border border-red-200">P/O</span>@endif
                                                             </button>
                                                         @endif
 
-                                                        <!-- C. LOGIQUE SIGNATURE SOUS-DIRECTEUR (Titulaire OU Remplaçant d'un SD avec droit signer) -->
-                                                        @php
-                                                            // Le titulaire est SD OU Je remplace un user qui est SD ET j'ai le droit signer
-                                                            $showSignSD = $isStandardSD || ($isRep && in_array('signer', $repActions) && optional($repRights['original_user'])->poste == 'Sous-Directeur');
-                                                        @endphp
+                                                    @else {{-- Fin du check isTreatmentHolder --}}
 
-                                                        @if($showSignSD)
-                                                            @if($memo->signature_sd != null )
-                                                                <!-- Déjà signé => Bouton Envoyer -->
-                                                                <button wire:click="assignMemo({{ $memo->id }})" class="text-green-500 hover:text-green-700 transition-colors" title="Envoyer (Signé)">
-                                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                                                                </button>
-                                                            @else
-                                                                <!-- Pas signé => Bouton Signer -->
-                                                                <button wire:click="sign({{ $memo->id }})" class="text-gray-400 hover:text-blue-600 transition-colors relative" title="Apposer signature SD">
-                                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                                                    @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-blue-100 text-blue-600 px-1 rounded border border-blue-200 font-bold">P/O</span>@endif
-                                                                </button>
-                                                            @endif
-                                                        @endif
-
-
-                                                        <!-- D. LOGIQUE SIGNATURE DIRECTEUR (Titulaire OU Remplaçant d'un DIR avec droit signer) -->
-                                                        @php
-                                                            $showSignDir = $isStandardDir || ($isRep && in_array('signer', $repActions) && optional($repRights['original_user'])->poste == 'Directeur');
-                                                        @endphp
-
-                                                        @if($showSignDir)
-                                                            @if($memo->signature_dir != null )
-                                                                <!-- Déjà signé => Bouton Envoyer -->
-                                                                <button wire:click="assignMemo({{ $memo->id }})" class="text-green-500 hover:text-green-700 transition-colors" title="Envoyer (Signé)">
-                                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                                                                </button>
-                                                            @else
-                                                                <!-- Pas signé => Bouton Signer -->
-                                                                <button wire:click="sign({{ $memo->id }})" class="text-gray-400 hover:text-purple-600 transition-colors relative" title="Apposer signature DIR">
-                                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                                                    @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-purple-100 text-purple-600 px-1 rounded border border-purple-200 font-bold">P/O</span>@endif
-                                                                </button>
-                                                            @endif
-                                                        @endif
-
-                                                    @endif <!-- Fin condition Secretaire/Autres -->
-
-                                                    <!-- FAVORIS (Commun) -->
-                                                    <!-- ... code favoris existant ... -->
+                                                        <!-- HISTORIQUE -->
+                                                        <button wire:click="viewHistory({{ $memo->id }})" class="text-gray-400 hover:text-purple-600 transition-colors" title="Historique & Workflow">
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                            </svg>
+                                                        </button>
+                                                    @endif
 
                                                 </div>
                                             </td>
+                                            
                                         </tr>
                                     @empty
                                         <tr>
@@ -367,202 +696,66 @@
 
     {{-- MODALS --}}
     
-     @if($isOpen)
-        <!-- Modal Aperçu -->
+     
+
+    @if($isOpenReject)
+        <!-- Modal Rejet / Retour -->
         <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" wire:click="closeRejectModal"></div>
             
-            <!-- Overlay -->
-            <div wire:click="closeModal" class="fixed inset-0 bg-gray-900 bg-opacity-90 transition-opacity backdrop-blur-sm cursor-pointer"></div>
-
-            <!-- Toolbar -->
-            <div class="fixed top-0 left-0 w-full z-50 pointer-events-none p-4 flex justify-between items-start print:hidden">
-                <button wire:click="closeModal" class="pointer-events-auto bg-gray-800 text-white hover:bg-gray-700 px-6 py-2 rounded-full shadow-xl font-bold flex items-center gap-2 border border-gray-600">
-                    <span>&larr; Retour</span>
-                </button>
-            </div>
-
-            <!-- LOGIQUE BACKEND POUR RÉCUPÉRER LES DONNÉES MANQUANTES -->
-            @php
-                // Récupération du mémo complet avec les relations pour l'affichage
-                $currentMemo = \App\Models\Memo::with('destinataires.entity')->find($memo_id);
-                
-                // Groupement des destinataires par leur Action
-                $recipientsByAction = $currentMemo 
-                    ? $currentMemo->destinataires->groupBy('action') 
-                    : collect([]);
-
-                // Helper pour formater la liste des entités (REF ou Nom)
-                $formatRecipients = function($group) {
-                    return $group->map(function($dest) {
-                        // Utilise 'ref' (acronyme) sinon 'name'
-                        return $dest->entity->ref ?? Str::limit($dest->entity->name, 15);
-                    })->join(', ');
-                };
-            @endphp
-
-            <!-- Conteneur Scrollable -->
-            <div class="fixed inset-0 z-10 w-screen overflow-y-auto pt-20 pb-10">
-                <div class="flex min-h-full items-start justify-center p-4 text-center sm:p-0">
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
                     
-                    <div class="relative flex flex-col items-center font-sans w-full max-w-[210mm]">
+                    <!-- Bordure dynamique : rouge pour rejet, orange pour retour -->
+                    <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border {{ $reject_mode === 'archive' ? 'border-red-200' : 'border-orange-200' }}">
+                        
+                        <!-- Header Dynamique -->
+                        <div class="{{ $reject_mode === 'archive' ? 'bg-red-50 border-red-100' : 'bg-orange-50 border-orange-100' }} px-4 py-4 border-b flex items-center gap-3">
+                            <div class="{{ $reject_mode === 'archive' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600' }} rounded-full p-2">
+                                @if($reject_mode === 'archive')
+                                    <!-- Icône Stop/Attention -->
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                @else
+                                    <!-- Icône Flèche Retour -->
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 0118 0z"></path></svg>
+                                @endif
+                            </div>
+                            <h3 class="text-lg font-bold {{ $reject_mode === 'archive' ? 'text-red-800' : 'text-orange-800' }}">
+                                {{ $reject_mode === 'archive' ? 'Rejeter et Archiver' : 'Retourner pour correction' }}
+                            </h3>
+                        </div>
 
-                            <!-- ========================================== -->
-                        <!-- BOUTON TÉLÉCHARGER (AJOUTER ICI)           -->
-                        <!-- ========================================== -->
-                        <button 
-                            wire:click="downloadMemoPDF" 
-                            wire:loading.attr="disabled"
-                            type="button" 
-                            class="mb-4 pointer-events-auto bg-red-600 text-white hover:bg-red-700 px-6 py-2.5 rounded-full shadow-lg font-bold flex items-center gap-3 border border-red-500 transition-transform transform hover:scale-105 disabled:opacity-50">
-                            
-                            <!-- Icone -->
-                            <svg wire:loading.remove wire:target="downloadMemoPDF" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            
-                            <!-- Spinner -->
-                            <svg wire:loading wire:target="downloadMemoPDF" class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            
-                            <span>Télécharger PDF</span>
-                        </button>
-
-                        <!-- ID GLOBAL POUR HTML2PDF -->
-                        <div id="export-container">
-
-                            <!-- PAGE 1 -->
-                            <div id="page-1" class="page-a4 bg-white w-[210mm] h-[297mm] shadow-2xl p-[10mm] text-black text-[13px] leading-snug relative text-left mx-auto mb-8">
-                                
-                                <!-- CADRE DORÉ -->
-                                <div class="gold-frame border-[3px] border-[#D4AF37] rounded-tr-[60px] rounded-bl-[60px] p-8 h-full flex flex-col relative">
-
-                                    <!-- EN-TÊTE LOGO + MEMORANDUM -->
-                                    <div class="header-section flex flex-col items-center justify-center mb-6 text-center">
-                                        <div class="mb-2">
-                                            <div class="w-17 h-16 flex items-center justify-center mx-auto mb-1">
-                                                <!-- Assurez-vous que l'image existe dans public/images/logo.jpg -->
-                                                <img src="{{ asset('images/logo.jpg') }}" alt="logo" class="w-full h-full object-contain">
-                                            </div>
-                                        </div>
-                                        <!-- Nom de l'entité de l'utilisateur connecté -->
-                                        <h2 class="font-bold text-xs uppercase text-gray-800">{{ $user_entity_name }}</h2>
-                                        <h1 class="font-['Arial'] font-extrabold text-2xl uppercase mt-2 italic inline-block">
-                                            Memorandum
-                                        </h1>
-                                    </div>
-
-                                    <!-- TABLEAU DESTINATAIRES -->
-                                    <div id="recipient-table" class="mb-6 text-sm w-full">
-                                        
-                                        <!-- LIGNE D'ALIGNEMENT -->
-                                        <div class="flex w-full text-[13px] font-bold font-['Arial'] pb-1 text-black">
-                                            <div class="w-[35%]"></div>
-                                            <div class="w-[30%] text-center">Prière de :</div>
-                                            <div class="w-[35%] pl-8">Destinataires :</div>
-                                        </div>
-                                        
-                                        <!-- TABLEAU COMPLET -->
-                                        <table class="w-full border-collapse border border-black text-[13px] font-['Arial'] text-black">
-                                            
-                                            <!-- LIGNE 1 : Faire le nécessaire -->
-                                            @php $recipients1 = $recipientsByAction['Faire le nécessaire'] ?? collect([]); @endphp
-                                            <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold w-[35%] align-top">
-                                                    Date : {{ $date }}
-                                                </td>
-                                                <td class="border border-black p-1 pl-2 w-[30%]">
-                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients1->count() > 0 ? 'bg-green-600' : '' }}"></span> 
-                                                    <span class="{{ $recipients1->count() > 0 ? 'font-bold' : '' }}">Faire le nécessaire</span>
-                                                </td>
-                                                <td class="border border-black p-1 text-center w-[35%] {{ $recipients1->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    {{ $recipients1->count() > 0 ? $formatRecipients($recipients1) : '' }}
-                                                </td>
-                                            </tr>
-
-                                            <!-- LIGNE 2 : Prendre connaissance -->
-                                            @php $recipients2 = $recipientsByAction['Prendre connaissance'] ?? collect([]); @endphp
-                                            <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">
-                                                    N° : {{ $currentMemo->reference ?? 'En attente' }}
-                                                </td>
-                                                <td class="border border-black p-1 pl-2">
-                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients2->count() > 0 ? 'bg-blue-600' : '' }}"></span> 
-                                                    <span class="{{ $recipients2->count() > 0 ? 'font-bold' : '' }}">Prendre connaissance</span>
-                                                </td>
-                                                <td class="border border-black p-1 text-center {{ $recipients2->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    {{ $recipients2->count() > 0 ? $formatRecipients($recipients2) : '' }}
-                                                </td>
-                                            </tr>
-
-                                            <!-- LIGNE 3 : Prendre position (Optionnel si vous l'utilisez) -->
-                                            @php $recipients3 = $recipientsByAction['Prendre position'] ?? collect([]); @endphp
-                                            <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">
-                                                    <!-- On affiche le nom de l'utilisateur ici ou son entité -->
-                                                    Emetteur : #
-                                                </td>
-                                                <td class="border border-black p-1 pl-2">
-                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients3->count() > 0 ? 'bg-orange-500' : '' }}"></span> 
-                                                    <span class="{{ $recipients3->count() > 0 ? 'font-bold' : '' }}">Prendre position</span>
-                                                </td>
-                                                <td class="border border-black p-1 text-center {{ $recipients3->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    {{ $recipients3->count() > 0 ? $formatRecipients($recipients3) : '' }}
-                                                </td>
-                                            </tr>
-
-                                            <!-- LIGNE 4 : Décider (ou autre action) -->
-                                            @php $recipients4 = $recipientsByAction['Décider'] ?? collect([]); @endphp
-                                            <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">
-                                                    Service : {{ $user_service }}
-                                                </td>
-                                                <td class="border border-black p-1 pl-2">
-                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients4->count() > 0 ? 'bg-yellow-400' : '' }}"></span> 
-                                                    <span class="{{ $recipients4->count() > 0 ? 'font-bold' : '' }}">Décider</span>
-                                                </td>
-                                                <td class="border border-black p-1 text-center {{ $recipients4->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    {{ $recipients4->count() > 0 ? $formatRecipients($recipients4) : '' }}
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </div>
-
-                                    <!-- OBJET & CONCERNE -->
-                                    <div class="mb-4">
-                                        <div class="mb-6">
-                                            <p class="mb-1">
-                                                <span class="font-bold text-[15px] underline">Objet :</span> 
-                                                <span class="uppercase font-bold"> {{ $object }} </span>
-                                            </p>
-                                        </div>
-                                        <div class="mb-6">
-                                            <p class="mb-1">
-                                                <span class="font-bold text-[15px] underline">Concerne :</span> 
-                                                <span class="lowercase text-gray-800"> {{ $concern }} </span>
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <!-- CORPS DU TEXTE -->
-                                    <div id="content-area" class="flex-grow px-2">
-                                        <div class="text-justify space-y-3 text-[14px] leading-relaxed font-serif text-gray-900">
-                                            {!! $content !!}
-                                        </div>
-                                    </div>
-
-                                    <!-- PIED DE PAGE AVEC QR CODE -->
-                                    <div class="absolute bottom-4 left-0 w-full flex flex-col items-center justify-center">
-                                        @if($currentMemo && $currentMemo->qr_code)
-                                            <div class="bg-white p-0.5 border border-gray-200 inline-block mb-2">
-                                                <!-- Génération du QR Code -->
-                                                {{ QrCode::size(50)->generate(route('memo.verify', $currentMemo->qr_code)) }}
-                                            </div>
-                                        @endif
-                                        
-                                        <!-- Numéro de version du formulaire -->
-                                        <div class="text-[10px] text-gray-500 italic">{{ $currentMemo->numero_ref }}</div>
-                                    </div>
-
-                                </div> 
+                        <div class="p-6">
+                            <div class="text-sm text-gray-500 mb-4">
+                                @if($reject_mode === 'archive')
+                                    <p>Vous êtes sur le point de <span class="font-bold text-red-600">rejeter définitivement</span> ce mémo. Il sera archivé et le circuit sera interrompu.</p>
+                                @else
+                                    <p>Vous allez renvoyer ce mémo à <span class="font-bold text-orange-600">son initiateur</span>. Il pourra apporter des corrections et  le transmettre à nouveau dans le circuit de validation.</p>
+                                @endif
+                                <p class="mt-2 font-bold text-gray-700 italic">Cette action nécessite un motif explicite.</p>
                             </div>
 
+                            <!-- Champ Motif -->
+                            <div>
+                                <label for="reject_reason" class="block text-sm font-bold text-gray-700 mb-1">
+                                    Motif du {{ $reject_mode === 'archive' ? 'rejet' : 'retour' }} <span class="text-red-500">*</span>
+                                </label>
+                                <textarea wire:model="reject_comment" id="reject_reason" rows="4" 
+                                    class="w-full rounded-md border-gray-300 shadow-sm focus:ring-1 {{ $reject_mode === 'archive' ? 'focus:border-red-500 focus:ring-red-500' : 'focus:border-orange-500 focus:ring-orange-500' }} sm:text-sm placeholder-gray-400" 
+                                    placeholder="{{ $reject_mode === 'archive' ? 'Ex: Projet annulé par la direction...' : 'Ex: Veuillez corriger la pièce jointe n°2...' }}"></textarea>
+                                @error('reject_comment') <span class="text-red-500 text-xs font-bold mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
+                        <!-- Footer Actions -->
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                            <button wire:click="processReject" type="button" 
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white sm:ml-3 sm:w-auto sm:text-sm transition-colors {{ $reject_mode === 'archive' ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' : 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-500' }}">
+                                Confirmer le {{ $reject_mode === 'archive' ? 'Rejet' : 'Retour' }}
+                            </button>
+                            <button wire:click="closeRejectModal" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-colors">
+                                Annuler
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -570,51 +763,97 @@
         </div>
     @endif
 
-    @if($isOpenReject)
-       <!-- Modal Rejet -->
-       <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" wire:click="closeRejectModal"></div>
+    {{-- MODAL HISTORIQUE --}}
+    @if($isOpenHistory)
+        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" wire:click="closeHistoryModal"></div>
             
             <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
                 <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-                    
-                    <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-red-200">
+                    <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border border-gray-200">
                         
-                        <!-- Header Rouge -->
-                        <div class="bg-red-50 px-4 py-4 border-b border-red-100 flex items-center gap-3">
-                            <div class="bg-red-100 rounded-full p-2">
-                                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                            </div>
-                            <h3 class="text-lg font-bold text-red-800">Rejeter le Mémo</h3>
+                        <div class="bg-gray-50 px-4 py-4 border-b border-gray-200 flex justify-between items-center">
+                            <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                Fil de discussion & Historique global
+                            </h3>
+                            <button type="button" wire:click="closeHistoryModal" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                         </div>
 
-                        <div class="p-6">
-                            <p class="text-sm text-gray-500 mb-4">
-                                Vous êtes sur le point de renvoyer ce mémo à son créateur initial. <br>
-                                <span class="font-bold text-gray-700">Cette action nécessite un motif valable.</span>
-                            </p>
+                        <div class="px-6 py-6 bg-white max-h-[70vh] overflow-y-auto">
+                            @forelse($memoHistory as $log)
+                                @php
+                                    // On vérifie si ce log appartient au mémo d'origine ou à une réponse
+                                    $isReply = ($log->memo_id != $this->memo_id);
+                                    
+                                    // Logique de couleur pour les points de la timeline
+                                    $dotColor = 'bg-blue-500'; // Défaut
+                                    $visa = Str::lower($log->visa);
+                                    if(Str::contains($visa, 'accord') || Str::contains($visa, 'signé')) $dotColor = 'bg-green-500';
+                                    if(Str::contains($visa, 'rejeter') || Str::contains($visa, 'clôturé')) $dotColor = 'bg-red-500';
+                                    if(Str::contains($visa, 'réponse')) $dotColor = 'bg-purple-600';
+                                @endphp
 
-                            <!-- Champ Motif -->
-                            <div>
-                                <label for="reject_reason" class="block text-sm font-bold text-gray-700 mb-1">Motif du rejet <span class="text-red-500">*</span></label>
-                                <textarea wire:model="reject_comment" id="reject_reason" rows="4" class="w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm placeholder-gray-400" placeholder="Ex: Informations manquantes, document non conforme, à corriger..."></textarea>
-                                @error('reject_comment') <span class="text-red-500 text-xs font-bold mt-1 block">{{ $message }}</span> @enderror
-                            </div>
+                                <div class="relative pl-8 pb-8 group last:pb-0 border-l-2 border-gray-100 ml-2">
+                                    
+                                    <!-- Point sur la timeline -->
+                                    <div class="absolute -left-[9px] top-0 h-4 w-4 rounded-full border-2 border-white {{ $dotColor }} shadow-sm"></div>
+
+                                    <div class="flex flex-col mb-1">
+                                        <div class="flex justify-between items-center">
+                                            <!-- Indicateur : Original vs Réponse -->
+                                            @if($isReply)
+                                                <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded border border-purple-200">
+                                                    ↪ Élément de Réponse
+                                                </span>
+                                            @else
+                                                <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded border border-gray-200">
+                                                    Mémo Principal
+                                                </span>
+                                            @endif
+                                            <span class="text-[11px] text-gray-400 font-mono">{{ $log->created_at->format('d/m/Y H:i') }}</span>
+                                        </div>
+
+                                        <h4 class="text-sm font-bold text-gray-900 mt-1">
+                                            {{ $log->user->first_name }} {{ $log->user->last_name }}
+                                            <span class="text-xs font-normal text-gray-500"> — {{ $log->user->poste }}</span>
+                                        </h4>
+                                    </div>
+
+                                    <!-- Action / Visa -->
+                                    <div class="mb-2">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold {{ $dotColor }} text-white">
+                                            {{ $log->visa }}
+                                        </span>
+                                        
+                                        @if($isReply)
+                                            <span class="ml-2 text-[10px] text-gray-400 italic">
+                                                (Sur mémo réponse ID #{{ $log->memo_id }})
+                                            </span>
+                                        @endif
+                                    </div>
+
+                                    <!-- Commentaire -->
+                                    @if($log->workflow_comment && $log->workflow_comment !== 'R.A.S')
+                                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-600 leading-relaxed shadow-sm">
+                                            <p>{{ $log->workflow_comment }}</p>
+                                        </div>
+                                    @endif
+                                </div>
+                            @empty
+                                <div class="text-center py-10">
+                                    <p class="text-gray-400 italic">Aucun historique trouvé pour ce dossier.</p>
+                                </div>
+                            @endforelse
                         </div>
 
-                        <!-- Footer Actions -->
-                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
-                            <button wire:click="processReject" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm transition-colors">
-                                Confirmer le Rejet
-                            </button>
-                            <button wire:click="closeRejectModal" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-colors">
-                                Annuler
-                            </button>
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t">
+                            <button type="button" wire:click="closeHistoryModal" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:w-auto sm:text-sm">Fermer</button>
                         </div>
                     </div>
                 </div>
             </div>
-       </div>
+        </div>
     @endif
 
     @if($isOpen2)
@@ -1045,20 +1284,7 @@
                                     <hr class="border-gray-100">
                                     
                                     <!-- Visa -->
-                                    <div>
-                                        <label class="block text-sm font-bold text-gray-700 mb-2">Votre Visa / Action</label>
-                                        <div class="grid grid-cols-3 gap-3">
-                                            @foreach(['Vu' => 'gray', 'Vu & Accord' => 'green', "Vu & Pas d'accord" => 'red'] as $visa => $color)
-                                                <label class="cursor-pointer">
-                                                    <input type="radio" wire:model="selected_visa" value="{{ $visa }}" class="peer sr-only">
-                                                    <div class="rounded-md border border-gray-200 p-2 hover:bg-{{ $color }}-50 peer-checked:border-{{ $color }}-500 peer-checked:bg-{{ $color }}-50 peer-checked:ring-1 peer-checked:ring-{{ $color }}-500 transition-all text-center">
-                                                        <span class="text-xs font-medium text-{{ $color }}-900">{{ $visa }}</span>
-                                                    </div>
-                                                </label>
-                                            @endforeach
-                                        </div>
-                                        @error('selected_visa') <span class="text-red-500 text-xs mt-1">Le visa est obligatoire.</span> @enderror
-                                    </div>
+                                    
 
                                     <!-- Commentaire -->
                                     <div>

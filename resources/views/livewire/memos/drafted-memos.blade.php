@@ -513,15 +513,37 @@
                                     <td class="px-6 py-4">
                                         <div class="flex flex-col max-w-xs md:max-w-md"><span class="text-sm font-bold text-gray-800 truncate">{{ $memo->object }}</span><span class="text-xs text-gray-500 truncate mt-1">Concerne: {{ $memo->concern }}</span></div>
                                     </td>
+
                                     <td class="px-6 py-4">
                                         <div class="flex flex-wrap gap-2">
-                                            @foreach($memo->destinataires->take(3) as $dest)
-                                                @php $badgeClasses = Str::contains(Str::lower($dest->action), 'nécessaire') ? 'bg-orange-100 text-orange-800 border border-orange-200' : 'bg-blue-100 text-blue-800 border border-blue-200'; @endphp
-                                                <div class="inline-flex flex-col items-start px-2.5 py-1 rounded-md text-xs font-medium {{ $badgeClasses }}"><span class="font-bold">{{ $dest->entity->ref ?? 'N/A' }}</span><span class="text-[10px] opacity-80 leading-tight">{{ Str::limit($dest->action, 15) }}</span></div>
+                                            {{-- On traite l'array JSON au lieu de la relation --}}
+                                            @php 
+                                                $dests = is_array($memo->destinataires) ? $memo->destinataires : json_decode($memo->destinataires, true) ?? [];
+                                            @endphp
+
+                                            @foreach(collect($dests)->take(3) as $dest)
+                                                @php 
+                                                    $badgeClasses = Str::contains(Str::lower($dest['action']), 'nécessaire') 
+                                                        ? 'bg-orange-100 text-orange-800 border border-orange-200' 
+                                                        : 'bg-blue-100 text-blue-800 border border-blue-200';
+                                                    
+                                                    // On récupère le nom de l'entité car on n'a que l'ID dans le JSON
+                                                    $ent = $entities->firstWhere('id', $dest['entity_id']);
+                                                @endphp
+                                                <div class="inline-flex flex-col items-start px-2.5 py-1 rounded-md text-xs font-medium {{ $badgeClasses }}">
+                                                    <span class="font-bold">{{ $ent->ref ?? 'N/A' }}</span>
+                                                    <span class="text-[10px] opacity-80 leading-tight">{{ Str::limit($dest['action'], 15) }}</span>
+                                                </div>
                                             @endforeach
-                                            @if($memo->destinataires->count() > 3) <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">+{{ $memo->destinataires->count() - 3 }}</span> @endif
+
+                                            @if(count($dests) > 3) 
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                                    +{{ count($dests) - 3 }}
+                                                </span> 
+                                            @endif
                                         </div>
                                     </td>
+
                                     <td class="px-6 py-4 whitespace-nowrap" x-data="{ openFiles: false }">
                                         @php $pj = is_string($memo->pieces_jointes) ? json_decode($memo->pieces_jointes, true) : ($memo->pieces_jointes ?? []); @endphp
                                         @if(count($pj) > 0)
@@ -634,7 +656,7 @@
                                             <input type="radio" wire:model.live="memo_type" value="projet" class="peer sr-only">
                                             <div class="p-4 rounded-lg border-2 border-gray-200 hover:border-purple-300 peer-checked:border-purple-600 peer-checked:bg-purple-50 transition-all text-center h-full flex flex-col items-center justify-center">
                                                 <svg class="w-6 h-6 text-gray-400 peer-checked:text-purple-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                                                <span class="block text-sm font-bold text-gray-700 peer-checked:text-purple-800">Mode Projet</span>
+                                                <span class="block text-sm font-bold text-gray-700 peer-checked:text-purple-800">Particulier</span>
                                                 <span class="block text-[10px] text-gray-500 mt-1">Multi-collaborateurs (hors N+1)</span>
                                             </div>
                                         </label>
@@ -805,21 +827,8 @@
                                     <hr class="border-gray-100">
                                     
                                     <!-- Visa -->
-                                    <div>
-                                        <label class="block text-sm font-bold text-gray-700 mb-2">Votre Visa / Action</label>
-                                        <div class="grid grid-cols-3 gap-3">
-                                            @foreach(['Vu' => 'gray', 'Vu & Accord' => 'green', "Vu & Pas d'accord" => 'red'] as $visa => $color)
-                                                <label class="cursor-pointer">
-                                                    <input type="radio" wire:model="selected_visa" value="{{ $visa }}" class="peer sr-only">
-                                                    <div class="rounded-md border border-gray-200 p-2 hover:bg-{{ $color }}-50 peer-checked:border-{{ $color }}-500 peer-checked:bg-{{ $color }}-50 peer-checked:ring-1 peer-checked:ring-{{ $color }}-500 transition-all text-center">
-                                                        <span class="text-xs font-medium text-{{ $color }}-900">{{ $visa }}</span>
-                                                    </div>
-                                                </label>
-                                            @endforeach
-                                        </div>
-                                        @error('selected_visa') <span class="text-red-500 text-xs mt-1">Le visa est obligatoire.</span> @enderror
-                                    </div>
-
+                                    
+    
                                     <!-- Commentaire -->
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">Commentaire</label>

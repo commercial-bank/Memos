@@ -17,12 +17,11 @@ return new class extends Migration
             $table->string('reference')->nullable();
             $table->string('concern')->nullable();
             $table->longText('content');
-            $table->string('status')->default('document'); 
+            $table->string('status')->default('brouillon'); 
             $table->json('current_holders')->nullable();
             $table->json('previous_holders')->nullable();
             $table->string('qr_code')->nullable();
             $table->string('workflow_direction')->default('sortant');
-            $table->foreignId('parent_id')->nullable()->constrained('memos')->onDelete('cascade');
             $table->json('pieces_jointes')->nullable();
             $table->json('destinataires')->nullable();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');

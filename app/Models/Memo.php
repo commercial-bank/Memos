@@ -20,10 +20,9 @@ class Memo extends Model
         // GESTION DES DÉTENTEURS
         'current_holders',   // L'ID du détenteur actuel (ou tableau d'IDs si JSON)
         'previous_holders',    // L'historique des anciens (Array/JSON)
+        'treatment_holders',
         
         // SIGNATURES & WF
-        'signature_sd',
-        'signature_dir',
         'qr_code',
         'workflow_direction',
         'workflow_comment',
@@ -46,6 +45,8 @@ class Memo extends Model
 
         // Convertit automatiquement le JSON de la BDD en tableau PHP
         'previous_holders'  => 'array',
+
+        'treatment_holders' => 'array',
 
         // Conversion automatique JSON <-> Array
         'pieces_jointes' => 'array',
@@ -125,8 +126,10 @@ class Memo extends Model
      // === C'EST CETTE FONCTION QUI MANQUAIT ===
     public function historiques()
     {
-        return $this->hasMany(Historiques::class, 'memo_id');
+        return $this->hasMany(Historiques::class, 'memo_id')->latest();
     }
+
+ 
 
  
     

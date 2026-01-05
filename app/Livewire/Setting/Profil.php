@@ -26,6 +26,7 @@ class Profil extends Component
     public $serv_id;
     public $poste;
     public $manager_id;
+    public $isLocked = false;
 
     public $darkMode = false; // État du mode sombre
 
@@ -36,6 +37,12 @@ class Profil extends Component
     {
         $this->darkMode = session()->get('dark_mode', false);
         $this->user = Auth::user()->load(['replacements.substitute', 'replacing.user']);
+
+        // LOGIQUE DE VERROUILLAGE : 
+        // Si le profil est marqué comme verrouillé ET que l'utilisateur n'est PAS admin
+        if ($this->user->profile_locked && !$this->user->is_admin) {
+            $this->isLocked = true;
+        }
 
         $this->entites = Entity::whereNull('upper_id')->orWhere('type', 'direction')->get();
         $this->user_all = User::select('id', 'first_name', 'last_name')
@@ -91,6 +98,12 @@ class Profil extends Component
      */
     public function save()
     {
+        // Sécurité supplémentaire côté serveur
+        if ($this->isLocked) {
+            $this->dispatch('notify', message: "Action non autorisée. Votre profil est verrouillé.", type: 'error');
+            return;
+        }
+
         $this->validate([
             'dir_id'  => 'required|exists:entities,id',
             'poste'   => 'required',
@@ -103,7 +116,13 @@ class Profil extends Component
             'serv_id'    => $this->serv_id,
             'poste'      => $this->poste,
             'manager_id' => $this->manager_id,
+            'profile_locked' => true, 
         ]);
+
+        // Une fois enregistré, on fige immédiatement pour l'interface
+        if (!$this->user->is_admin) {
+            $this->isLocked = true;
+        }
 
         $this->dispatch('notify', message: "Profil mis à jour !");
     }
