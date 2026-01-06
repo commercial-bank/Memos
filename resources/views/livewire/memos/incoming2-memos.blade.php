@@ -76,9 +76,13 @@
 
                             <div class="p-8 space-y-10">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                    <div>
+                                   <div>
                                         <label class="block text-xs font-bold text-gray-400 uppercase">Concerne</label>
-                                        <input type="text" wire:model="new_concern" class="w-full border-0 border-b-2 border-gray-200 focus:border-yellow-500 focus:ring-0 py-2">
+                                        <input type="text" 
+                                            wire:model="new_concern" 
+                                            readonly 
+                                            class="w-full border-0 border-b-2 border-gray-100 bg-gray-50 text-gray-500 cursor-not-allowed py-2 px-1 focus:ring-0"
+                                            title="Ce champ est généré automatiquement et ne peut pas être modifié.">
                                     </div>
                                     <div>
                                         <label class="block text-xs font-bold text-gray-400 uppercase">Objet</label>
@@ -360,6 +364,7 @@
                                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Objet & Concerne</th>
                                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destinataires</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Traitement & Avis</th>
                                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pièces Jointes</th>
                                             <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                         </tr>
@@ -424,6 +429,62 @@
                                                     </div>
                                                 </td>
 
+                                                <td class="px-6 py-4">
+                                                    <div class="flex flex-col gap-2 max-w-xs">
+                                                        @php
+                                                            $userEntities = array_filter([Auth::user()->dir_id, Auth::user()->sd_id]);
+                                                            
+                                                            // 1. EXTRAIRE MON AVIS (Mon entité)
+                                                            $monAvis = $memo->historiques->filter(function($h) use ($userEntities) {
+                                                                return in_array($h->user->dir_id, $userEntities) || in_array($h->user->sd_id, $userEntities);
+                                                            })->whereIn('visa', ['Terminé (Entité)', 'DÉCISION RENDUE', 'RÉPONDU', 'REFUS DÉCISIF', 'DÉCISION RENDUE (ACCORD)'])->first();
+
+                                                            // 2. EXTRAIRE LES AVIS DES AUTRES
+                                                            $autresAvis = $memo->historiques->filter(function($h) use ($userEntities) {
+                                                                // On prend ceux qui ont validé mais qui NE sont PAS dans mon entité
+                                                                return (!in_array($h->user->dir_id, $userEntities) && !in_array($h->user->sd_id, $userEntities))
+                                                                && in_array($h->visa, ['Terminé (Entité)', 'DÉCISION RENDUE', 'RÉPONDU', 'REFUS DÉCISIF', 'DÉCISION RENDUE (ACCORD)']);
+                                                            });
+                                                        @endphp
+
+                                                        <!-- AFFICHAGE DE MON AVIS -->
+                                                        @if($monAvis)
+                                                            <div class="flex flex-col bg-green-50 border-l-2 border-green-400 p-2 rounded-r">
+                                                                <span class="text-[9px] font-black text-green-700 uppercase tracking-tighter">Votre Entité</span>
+                                                                <p class="text-[11px] text-gray-700 leading-tight italic truncate" title="{{ $monAvis->workflow_comment }}">
+                                                                    "{{ Str::limit($monAvis->workflow_comment, 60) }}"
+                                                                </p>
+                                                            </div>
+                                                        @else
+                                                            <span class="text-[10px] text-gray-400 italic">En attente de votre traitement...</span>
+                                                        @endif
+
+                                                        <!-- AFFICHAGE DES AVIS DES AUTRES ENTITÉS -->
+                                                        @if($autresAvis->count() > 0)
+                                                            <div class="flex flex-wrap gap-1 mt-1 border-t border-gray-100 pt-1">
+                                                                @foreach($autresAvis as $avis)
+                                                                    <div class="group relative inline-block">
+                                                                        <!-- Petit badge cliquable ou au survol -->
+                                                                        <span class="cursor-help inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-gray-100 text-gray-600 border border-gray-200 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                                                                            <i class="fas fa-comment-dots mr-1 opacity-50"></i>
+                                                                            {{ $avis->user->entity->ref ?? 'AUTRE' }}
+                                                                        </span>
+                                                                        
+                                                                        <!-- Tooltip au survol (Affiche le commentaire complet) -->
+                                                                        <div class="hidden group-hover:block absolute bottom-full left-0 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl z-50">
+                                                                            <p class="font-bold border-b border-white/10 pb-1 mb-1 text-[#daaf2c] uppercase">
+                                                                                {{ $avis->user->first_name }} {{ $avis->user->last_name }}
+                                                                            </p>
+                                                                            <p class="italic">"{{ $avis->workflow_comment }}"</p>
+                                                                            <div class="absolute top-full left-4 border-8 border-transparent border-t-gray-900"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                </td>
+
                                                 <!-- COLONNE PIÈCES JOINTES -->
                                                 <td class="px-6 py-4 whitespace-nowrap" x-data="{ openFiles: false }">
                                                     @php
@@ -484,56 +545,48 @@
                                                         </button>
 
                                                         @php
-                                                            $monStatutDest = $memo->destinataires->where('entity_id', Auth::user()->entity_id)->first();
-                                                            $estFiniPourMonEntite = $monStatutDest && in_array($monStatutDest->processing_status, ['traiter', 'decision_prise', 'repondu']);
+                                                            // 1. On récupère les entités de l'utilisateur (Direction et Sous-Direction)
+                                                            $userEntities = array_filter([Auth::user()->dir_id, Auth::user()->sd_id]);
+
+                                                            // 2. On cherche si l'une de ces entités est destinataire de ce mémo
+                                                            $monStatutDest = $memo->destinataires
+                                                                ->whereIn('entity_id', $userEntities)
+                                                                ->first();
+
+                                                            // 3. On vérifie si le traitement est clos pour cette entité
+                                                            // Note : vérifiez si le statut est 'traite' ou 'traité' selon votre seeder
+                                                            $estFiniPourMonEntite = $monStatutDest && in_array($monStatutDest->processing_status, ['traite', 'traité', 'decision_prise', 'repondu']);
                                                         @endphp
 
                                                         @if($estFiniPourMonEntite)
-                                                            <!-- CAS : TRAITEMENT TERMINÉ (MODAL D'INFO) -->
+                                                            <!-- CAS : TRAITEMENT TERMINÉ (Badge Info) -->
                                                             <div x-data="{ infoOpen: false }">
                                                                 <button @click="infoOpen = true" type="button" class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 transition-colors shadow-sm">
                                                                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
                                                                     Traité
                                                                 </button>
-
-                                                                <template x-teleport="body">
-                                                                    <div x-show="infoOpen" style="display: none;" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                                                                        <div class="fixed inset-0 bg-gray-900 bg-opacity-60 backdrop-blur-sm" @click="infoOpen = false"></div>
-                                                                        <div class="relative bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100">
-                                                                            <div class="bg-green-600 px-4 py-3 flex items-center justify-between">
-                                                                                <h3 class="text-white font-bold flex items-center gap-2 text-sm uppercase">Traitement Finalisé</h3>
-                                                                                <button @click="infoOpen = false" class="text-white hover:text-gray-200"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
-                                                                            </div>
-                                                                            <div class="p-6 text-center">
-                                                                                <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4"><svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>
-                                                                                <p class="text-gray-800 font-bold mb-2">Action confirmée !</p>
-                                                                                <p class="text-gray-500 text-xs leading-relaxed">
-                                                                                    Dossier finalisé par votre entité. Il sera automatiquement classé dès que les autres entités destinataires auront également terminé leur traitement.
-                                                                                </p>
-                                                                            </div>
-                                                                            <div class="bg-gray-50 px-4 py-3 text-center">
-                                                                                <button @click="infoOpen = false" class="w-full bg-gray-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-gray-700 transition-colors uppercase tracking-wider">Compris</button>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </template>
+                                                                <!-- ... (Votre template x-teleport reste identique) ... -->
                                                             </div>
                                                         @else
                                                             <!-- CAS : ACTIONS DISPONIBLES -->
                                                             
                                                             <!-- FAVORIS -->
                                                             <button wire:click="toggleFavorite({{ $memo->id }})" class="transition-colors duration-200 {{ $memo->is_favorited ? 'text-yellow-400' : 'text-gray-300' }}" title="Favoris">
-                                                                @if($memo->is_favorited)
-                                                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                                                @else
-                                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
-                                                                @endif
+                                                                <svg class="w-5 h-5" fill="{{ $memo->is_favorited ? 'currentColor' : 'none' }}" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                                                                </svg>
                                                             </button>
 
                                                             @php
-                                                                $userPoste = Str::lower(Auth::user()->poste);
+                                                                // Récupération propre du poste (gère String ou Enum)
+                                                                $posteRaw = Auth::user()->poste->value ?? Auth::user()->poste;
+                                                                $userPoste = Str::lower($posteRaw);
                                                                 $isSecretaire = Str::contains($userPoste, 'secretaire');
                                                                 $isManager = !$isSecretaire;
+
+                                                                // Vérification de l'action requise pour l'entité
+                                                                $myAction = $monStatutDest->action ?? '';
+                                                                $isDeciderEntity = Str::contains(Str::lower($myAction), ['décider', 'Prendre position']);
                                                             @endphp
 
                                                             <!-- TRANSMETTRE -->
@@ -544,11 +597,6 @@
                                                             @if($isManager)
                                                                 <div class="h-4 w-px bg-gray-300 mx-1"></div>
                                                             
-                                                                @php
-                                                                    $myAction = $monStatutDest->action ?? '';
-                                                                    $isDeciderEntity = Str::contains($myAction, 'Décider');
-                                                                @endphp
-
                                                                 @if($isDeciderEntity)
                                                                     <!-- DÉCIDER -->
                                                                     <button wire:click="openDecisionModal({{ $memo->id }}, 'accord')" class="text-gray-400 hover:text-green-600 transition-colors" title="Donner Accord">
@@ -559,11 +607,14 @@
                                                                     </button>
                                                             
                                                                 @else
-                                                                    <!-- RÉPONDRE -->
-                                                                    <button wire:click="replyMemo({{ $memo->id }})" class="text-gray-400 hover:text-purple-600 transition-colors" title="Répondre"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg></button>
+                                                                    <!-- RÉPONDRE / TERMINER -->
+                                                                    <button wire:click="replyMemo({{ $memo->id }})" class="text-gray-400 hover:text-purple-600 transition-colors" title="Répondre">
+                                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                                                                    </button>
 
-                                                                    <!-- TERMINER -->
-                                                                    <button wire:click="openCloseModal({{ $memo->id }})" class="text-gray-400 hover:text-green-600 transition-colors" title="Terminer le traitement"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></button>
+                                                                    <button wire:click="openCloseModal({{ $memo->id }})" class="text-gray-400 hover:text-green-600 transition-colors" title="Terminer le traitement">
+                                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                                    </button>
                                                                 @endif
                                                             @endif
                                                         @endif

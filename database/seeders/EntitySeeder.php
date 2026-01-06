@@ -14,30 +14,67 @@ class EntitySeeder extends Seeder
    
 
     public function run()
-    {
-        // Tableau associatif : 'SIGLE' => 'Nom de la direction'
-        $directions = [
-            'DTDSI' => 'Direction Transformation Digital Et systeme information',
-            'DG'    => 'Direction Générale', // J'ai ajouté le sigle DG qui manquait
-            'DRH'   => 'Direction des Ressources Humaines',
-            'DAF'   => 'Direction Administrative et Financière',
-            'DCM'   => 'Direction Commerciale et Marketing',
-            'DL'    => 'Direction de la Logistique',
-            'DCOM'  => 'Direction de la Communication', // J'ai mis DCOM pour éviter la confusion avec DC (Commerciale)
-            'DJ'    => 'Direction Juridique',
-        ];
+{
+    // Structure : 'SIGLE_DIR' => ['Nom complet', 'Sous-directions' => ['SIGLE_SD' => 'Nom SD']]
+    $structure = [
+        'DTDSI' => [
+            'name' => 'Direction Transformation Digital Et systeme information',
+            'subs' => [
+                'SDTDSI'   => 'Sous Direction Transformation Digital Et systeme information',
+            ]
+        ],
+        'DRH' => [
+            'name' => 'Direction des Ressources Humaines',
+            'subs' => [
+                'SD-GRH'  => 'Sous-Direction Gestion des Ressources Humaines',
+                'SD-FPS'  => 'Sous-Direction Formation et Paie',
+            ]
+        ],
+        'DAF' => [
+            'name' => 'Direction Administrative et Financière',
+            'subs' => [
+                'SD-COMPTA' => 'Sous-Direction Comptabilité',
+                'SD-BUDGET' => 'Sous-Direction Budget et Finances',
+            ]
+        ],
+        'DG' => [
+            'name' => 'Direction Générale',
+            'subs' => [
+                'SD-AUDIT' => 'Sous-Direction Audit Interne',
+            ]
+        ],
+        // Vous pouvez ajouter les autres directions ici...
+    ];
 
-        foreach ($directions as $ref => $name) {
-            
-            // On utilise firstOrCreate pour éviter les doublons si on lance le seeder 2 fois
-            Entity::firstOrCreate(
-                ['ref' => $ref], // On vérifie si ce SIGLE existe déjà
-                [
-                    'name' => $name,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
+    foreach ($structure as $dirRef => $info) {
+        
+        // 1. Création ou récupération de la Direction
+        $direction = Entity::firstOrCreate(
+            ['ref' => $dirRef],
+            [
+                'name' => $info['name'],
+                'type' => 'Direction',
+                'upper_id' => null, // Niveau racine
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        // 2. Création des Sous-Directions rattachées
+        if (isset($info['subs'])) {
+            foreach ($info['subs'] as $subRef => $subName) {
+                Entity::firstOrCreate(
+                    ['ref' => $subRef],
+                    [
+                        'name' => $subName,
+                        'type' => 'Sous-Direction',
+                        'upper_id' => $direction->id, // On lie la SD à la Direction via l'ID
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
+            }
         }
     }
+}
 }

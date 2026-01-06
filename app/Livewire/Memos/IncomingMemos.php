@@ -47,6 +47,8 @@ class IncomingMemos extends Component
     public $isOpenTrans = false;   
     public $selectedMemo = null;
     
+    public $selected_project_path = []; 
+    
 
     // --- Données du Formulaire ---
     public $memo_id = null;
@@ -104,16 +106,7 @@ class IncomingMemos extends Component
 
     public $pdfBase64 = '';
 
-
-    // =========================================================
-    // 2. INITIALISATION
-    // =========================================================
-
-    public function mount()
-    {
-        $this->allEntities = Entity::orderBy('name')->get();
-    }
-
+    
     // --- Options Statiques ---
     public $visaOptions = [
         'Vu' => 'Vu (Simple transmission)',
@@ -124,6 +117,17 @@ class IncomingMemos extends Component
     public $isSecretary = false;
     public $standardRecipientsList = []; // Liste Director + Sous-directeurs
     public $selected_standard_users = []; // Les IDs sélectionnés en mode Standard
+
+
+    // =========================================================
+    // 2. INITIALISATION
+    // =========================================================
+
+    public function mount()
+    {
+        $this->allEntities = Entity::orderBy('name')->get();
+    }
+
 
     // =========================================================
     // 2. ACTIONS DE NAVIGATION
@@ -219,64 +223,64 @@ class IncomingMemos extends Component
     // =========================================================
 
     public function assignMemo($id)
-{
-    $this->memo_id = $id;
-    $this->reset(['workflow_comment', 'selected_project_users', 'selected_standard_users', 'managerData']);
-    $this->memo_type = 'standard';
+    {
+        $this->memo_id = $id;
+        $this->reset(['workflow_comment', 'selected_project_users', 'selected_standard_users', 'managerData']);
+        $this->memo_type = 'standard';
 
-    $currentUser = Auth::user();
-    $today = Carbon::now()->format('Y-m-d');
-    
-    $activeReplacements = ReplacesUser::where('date_begin_replace', '<=', $today)
-        ->where('date_end_replace', '>=', $today)
-        ->get()
-        ->keyBy('user_id');
+        $currentUser = Auth::user();
+        $today = Carbon::now()->format('Y-m-d');
+        
+        $activeReplacements = ReplacesUser::where('date_begin_replace', '<=', $today)
+            ->where('date_end_replace', '>=', $today)
+            ->get()
+            ->keyBy('user_id');
 
-    $posteString = is_object($currentUser->poste) ? $currentUser->poste->value : (string)$currentUser->poste;
-    
-    // --- NOUVELLE LOGIQUE : Directeur sans Manager ---
-    if ($posteString == 'Directeur' && !$currentUser->manager_id) {
-        // On bascule sur le mode "Liste" (comme pour la secrétaire)
-        $this->isSecretary = true; 
-        $this->standardRecipientsList = User::where('dir_id', $currentUser->dir_id)
-            ->where('poste', 'Secretaire') // On cible les secrétaires de sa direction
-            ->where('id', '!=', $currentUser->id)
-            ->orderBy('last_name')
-            ->get()
-            ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
-    } 
-    // --- Logique Secrétaire existante ---
-    elseif (Str::contains($posteString, 'Secretaire')) {
-        $this->isSecretary = true;
-        $this->standardRecipientsList = User::where('dir_id', $currentUser->dir_id)
-            ->where('id', '!=', $currentUser->id)
-            ->where(function ($q) use ($currentUser) {
-                $q->where('id', $currentUser->manager_id)
-                ->orWhere('poste', 'like', '%Directeur%')
-                ->orWhere('poste', 'like', '%Sous-Directeur%');
-            })
-            ->orderBy('last_name')
-            ->get()
-            ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
-    } 
-    // --- Cas Standard avec Manager direct ---
-    else {
-        $this->isSecretary = false;
-        if ($currentUser->manager_id) {
-            $manager = User::find($currentUser->manager_id);
-            $this->managerData = $this->resolveUserAvailability($manager, $activeReplacements);
+        $posteString = is_object($currentUser->poste) ? $currentUser->poste->value : (string)$currentUser->poste;
+        
+        // --- NOUVELLE LOGIQUE : Directeur sans Manager ---
+        if ($posteString == 'Directeur' && !$currentUser->manager_id) {
+            // On bascule sur le mode "Liste" (comme pour la secrétaire)
+            $this->isSecretary = true; 
+            $this->standardRecipientsList = User::where('dir_id', $currentUser->dir_id)
+                ->where('poste', 'Secretaire') // On cible les secrétaires de sa direction
+                ->where('id', '!=', $currentUser->id)
+                ->orderBy('last_name')
+                ->get()
+                ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
+        } 
+        // --- Logique Secrétaire existante ---
+        elseif (Str::contains($posteString, 'Secretaire')) {
+            $this->isSecretary = true;
+            $this->standardRecipientsList = User::where('dir_id', $currentUser->dir_id)
+                ->where('id', '!=', $currentUser->id)
+                ->where(function ($q) use ($currentUser) {
+                    $q->where('id', $currentUser->manager_id)
+                    ->orWhere('poste', 'like', '%Directeur%')
+                    ->orWhere('poste', 'like', '%Sous-Directeur%');
+                })
+                ->orderBy('last_name')
+                ->get()
+                ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
+        } 
+        // --- Cas Standard avec Manager direct ---
+        else {
+            $this->isSecretary = false;
+            if ($currentUser->manager_id) {
+                $manager = User::find($currentUser->manager_id);
+                $this->managerData = $this->resolveUserAvailability($manager, $activeReplacements);
+            }
         }
+
+        // Liste pour le mode projet (inchangée)
+        $excludeIds = array_filter([$currentUser->id, $currentUser->manager_id]);
+        $this->projectUsersList = User::whereNotIn('id', $excludeIds)
+            ->orderBy('last_name')
+            ->get()
+            ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
+
+        $this->isOpen3 = true;
     }
-
-    // Liste pour le mode projet (inchangée)
-    $excludeIds = array_filter([$currentUser->id, $currentUser->manager_id]);
-    $this->projectUsersList = User::whereNotIn('id', $excludeIds)
-        ->orderBy('last_name')
-        ->get()
-        ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
-
-    $this->isOpen3 = true;
-}
 
     public function sendMemo()
     {
@@ -285,6 +289,7 @@ class IncomingMemos extends Component
             'workflow_comment' => 'nullable|string|max:1000',
             'selected_project_users' => 'required_if:memo_type,projet|array',
             'selected_standard_users' => 'required_if:isSecretary,true|array', 
+            
         ]);
 
         $memo = Memo::findOrFail($this->memo_id);
@@ -472,9 +477,23 @@ class IncomingMemos extends Component
 
         $memo = Memo::findOrFail($this->memo_id);
         $user = Auth::user();
-        $nextHoldersIds = collect($this->transRecipients)->pluck('effective.id')->unique()->toArray();
+
+        // IDs des secrétaires cibles (nouveaux détenteurs)
+        $nextHoldersIds = collect($this->transRecipients)
+            ->pluck('effective.id')
+            ->unique()
+            ->toArray();
+
 
         DB::transaction(function () use ($memo, $user, $nextHoldersIds) {
+            
+            $qrToken = (string) \Illuminate\Support\Str::uuid();
+
+            // 2. Calcul des nouveaux 'current_holders' (AJOUT sans écraser)
+            // On récupère les anciens, on fusionne avec les nouveaux, et on garde les IDs uniques
+            $oldCurrentHolders = is_array($memo->current_holders) ? $memo->current_holders : [];
+            $updatedCurrentHolders = array_values(array_unique(array_merge($oldCurrentHolders, $nextHoldersIds)));
+
             BlocEnregistrements::create([
                 'nature_memo' => 'Memo Sortant',
                 'date_enreg' => now()->format('d/m/Y'),
@@ -485,15 +504,39 @@ class IncomingMemos extends Component
 
             $memo->update([
                 'workflow_direction' => 'entrant', 
-                'current_holders' => $nextHoldersIds,
+                'current_holders'    => $updatedCurrentHolders, // Liste cumulée (Historique des mains)
+                'treatment_holders'  => $nextHoldersIds,       // Liste remplacée (Qui a la main maintenant)
                 'status' => 'transmis',
+                'qr_code' => $qrToken, 
                 'reference' => $this->generatedReference,
             ]);
 
             Historiques::create([
-                'user_id' => $user->id, 'memo_id' => $memo->id, 'visa' => 'Enregistré', 'workflow_comment' => "Réf: " . $this->generatedReference
+                'user_id' => $user->id, 
+                'memo_id' => $memo->id, 
+                'visa' => 'Enregistré', 
+                'workflow_comment' => "Réf: " . $this->generatedReference
             ]);
+
         });
+
+         // E. NOTIFICATION DES SECRÉTAIRES DESTINATAIRES
+        $recipients = \App\Models\User::whereIn('id', $nextHoldersIds)->get();
+
+        foreach ($recipients as $recipient) {
+            try {
+                // On utilise votre système MemoActionNotification
+                // Le type 'transmis' affichera le message avec la référence officielle
+                $recipient->notify(new \App\Notifications\MemoActionNotification(
+                    $memo, 
+                    'transmis', 
+                    $user
+                ));
+            } catch (\Exception $e) {
+                // Log de l'erreur si la notification échoue, mais on ne bloque pas le processus
+                \Illuminate\Support\Facades\Log::error("Échec notification secrétaire ID {$recipient->id} : " . $e->getMessage());
+            }
+        }
 
         $this->closeTransModal();
         $this->dispatch('notify', message: "Enregistré et transmis !");
@@ -608,6 +651,8 @@ class IncomingMemos extends Component
         $memo = Memo::findOrFail($this->memo_id);
         $user = Auth::user();
 
+        $authorId = [$memo->user_id];
+
         if ($this->reject_mode === 'archive') {
             // CAS 1 : REJETER (ARCHIVAGE DÉFINITIF)
             $memo->update([
@@ -622,8 +667,7 @@ class IncomingMemos extends Component
             $memo->update([
                 'status' => 'retourner',
                 'workflow_direction' => 'sortant',   // Revient dans le flux de départ
-                'current_holders' => [], // Retour à l'auteur initial
-                'treatment_holders' => [],
+                'treatment_holders' => $authorId,
             ]);
             $actionLabel = "Retourné pour correction";
             $notifType = "retourner";
@@ -846,17 +890,31 @@ class IncomingMemos extends Component
 
     public function render()
     {
+        $user = Auth::user();
+
         $memos = Memo::with(['user.entity', 'destinataires.entity'])
-            ->where('workflow_direction', 'sortant')
-            ->whereNotIn('status', ['transmis', 'rejeter']) 
-            ->whereJsonContains('current_holders', Auth::id())
-            ->when($this->search, function($q) {
+            // 1. Filtrer par la direction du créateur (initiateur) du mémo
+            ->whereHas('user', function($query) use ($user) {
+                $query->where('dir_id', $user->dir_id);
+            })
+            // 4. L'utilisateur connecté doit faire partie des détenteurs (circuit de validation)
+            ->whereJsonContains('current_holders', $user->id)
+                // 5. Recherche textuelle
+                ->when($this->search, function($q) {
                 $term = '%'.$this->search.'%';
-                $q->where(fn($sub) => $sub->where('object', 'like', $term)->orWhere('concern', 'like', $term));
+                
+                // CORRECTION ICI : Ajouter "use ($term)" pour transmettre la variable
+                $q->where(function($sub) use ($term) {
+                    $sub->where('object', 'like', $term)
+                        ->orWhere('concern', 'like', $term);
+                });
             })
             ->orderBy('updated_at', 'desc')
             ->paginate(9);
 
-        return view('livewire.memos.incoming-memos', ['memos' => $memos, 'entities' => $this->allEntities]); 
+        return view('livewire.memos.incoming-memos', [
+            'memos' => $memos, 
+            'entities' => $this->allEntities
+        ]); 
     }
 }

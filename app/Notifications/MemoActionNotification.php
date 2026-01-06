@@ -56,7 +56,7 @@ class MemoActionNotification extends Notification
                 break;
 
             case 'transmis':
-                $message = "Mémo enregistré et transmit aux destinataires";
+                $message = "Mémo officiel reçu à traiter";
                 $iconBg = 'bg-green-100';
                 $iconColor = 'text-green-600';
                 // Icone "Check"

@@ -428,6 +428,7 @@
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Objet & Concerne</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destinataires</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut Workflow</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pièces Jointes</th>
                                         <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
@@ -500,6 +501,13 @@
                                                     @endif
                                                 </div>
                                             </td>
+                                            <td class="px-6 py-4" x-data="{ openReason: false }">
+                                                <div class="flex flex-col items-start gap-1">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border  cursor-default">
+                                                        {{ $memo->status }}
+                                                    </span>
+                                                </div>
+                                            </td>    
 
                                             <!-- COLONNE PIÈCES JOINTES -->
                                             <td class="px-6 py-4 whitespace-nowrap" x-data="{ openFiles: false }">
@@ -617,8 +625,6 @@
                                                     </button>
                                                     
 
-                                                   
-
 
                                                     <!-- =========================================================== -->
                                                     <!-- ACTIONS CONDITIONNELLES (UNIQUEMENT SI DROIT DE TRAITER)    -->
@@ -631,7 +637,7 @@
                                                         </button>
 
                                                         {{-- CAS SECRÉTAIRE --}}
-                                                        @if(auth()->user()->poste->value === "Secretaire")
+                                                        @if(auth()->user()->poste?->value == "Secretaire")
                                                             <button wire:click="transMemo({{ $memo->id }})" class="p-2 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 transition" title="Enregistrer et Transmettre">
                                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
                                                             </button>  

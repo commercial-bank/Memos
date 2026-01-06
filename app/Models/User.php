@@ -171,6 +171,8 @@ class User extends Authenticatable implements LdapAuthenticatable
         // Liste des champs OBLIGATOIRES pour utiliser l'app
         $requiredFields = [
             'poste',
+            'dir_id',
+            'sd_id'
         ];
 
         foreach ($requiredFields as $field) {
