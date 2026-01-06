@@ -47,8 +47,6 @@ class IncomingMemos extends Component
     public $isOpenTrans = false;   
     public $selectedMemo = null;
     
-    public $selected_project_path = []; 
-    
 
     // --- Données du Formulaire ---
     public $memo_id = null;
@@ -289,7 +287,6 @@ class IncomingMemos extends Component
             'workflow_comment' => 'nullable|string|max:1000',
             'selected_project_users' => 'required_if:memo_type,projet|array',
             'selected_standard_users' => 'required_if:isSecretary,true|array', 
-            
         ]);
 
         $memo = Memo::findOrFail($this->memo_id);

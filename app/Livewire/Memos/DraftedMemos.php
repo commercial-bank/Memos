@@ -37,6 +37,10 @@ class DraftedMemos extends Component
     // --- Données du Mémo (Formulaire) ---
     public $memo_id = null;
 
+    // --- Propriétés pour le circuit particulier ---
+    public $selected_project_path = []; // Tableau d'IDs ordonnés [ID_1, ID_2, ID_3]
+    public $search_project_user = '';   // Pour la recherche de membres
+
     #[Rule('required|string|max:255')]
     public string $object = '';
 
@@ -243,6 +247,35 @@ class DraftedMemos extends Component
         $this->isOpen3 = true;
     }
 
+    // --- Méthodes de gestion de la liste ---
+    public function addToPath($userId)
+    {
+        if (!in_array($userId, $this->selected_project_path)) {
+            $this->selected_project_path[] = $userId;
+        }
+        $this->search_project_user = '';
+    }
+
+    public function removeFromPath($index)
+    {
+        unset($this->selected_project_path[$index]);
+        $this->selected_project_path = array_values($this->selected_project_path);
+    }
+
+    // Recherche filtrée pour le circuit particulier
+    public function getAvailableProjectUsersProperty()
+    {
+        if (strlen($this->search_project_user) < 2) return [];
+
+        return User::where('id', '!=', Auth::id())
+            ->where(function($q) {
+                $q->where('first_name', 'like', '%'.$this->search_project_user.'%')
+                ->orWhere('last_name', 'like', '%'.$this->search_project_user.'%');
+            })
+            ->whereNotIn('id', $this->selected_project_path)
+            ->limit(5)->get();
+    }
+
     public function sendMemo()
     {
         // 1. Validation
@@ -275,6 +308,7 @@ class DraftedMemos extends Component
         $nextHolders = [];
 
         if ($this->memo_type === 'standard') {
+
             if ($this->isSecretary) {
                 $selectedUsers = User::whereIn('id', $this->selected_standard_users)->get();
                 foreach ($selectedUsers as $u) {
@@ -286,15 +320,9 @@ class DraftedMemos extends Component
                     $nextHolders[] = $this->managerData['effective']->id;
                 }
             }
-        } elseif ($this->memo_type === 'projet') {
-            $users = User::whereIn('id', $this->selected_project_users)->get();
-            foreach ($users as $u) {
-                $avail = $this->resolveUserAvailability($u, $activeReplacements);
-                if ($avail) $nextHolders[] = $avail['effective']->id;
-            }
-        }
 
-        if (empty($nextHolders)) {
+
+            if (empty($nextHolders)) {
             $this->addError('general', 'Aucun destinataire sélectionné.');
             return;
         }
@@ -355,6 +383,90 @@ class DraftedMemos extends Component
         $this->closeModalTrois();
         $this->isEditing = false;
         $this->dispatch('notify', message: "Mémo transmis et brouillon supprimé avec succès.");
+
+
+
+        } elseif ($this->memo_type === 'projet') {
+
+        // 1. Identification de la secrétaire de direction (Dernier maillon par défaut)
+        $directionSecretary = User::where('dir_id', $user->dir_id)
+            ->where('poste', 'like', '%Secretaire%')
+            ->first();
+
+        // 2. Construction de la chaîne complète (Ordre choisi + Secrétaire à la fin)
+        $fullChainIds = $this->selected_project_path;
+
+        if ($directionSecretary && !in_array($directionSecretary->id, $fullChainIds)) {
+            $fullChainIds[] = $directionSecretary->id; // On l'ajoute à la fin
+        }
+
+        // 3. Le premier intervenant de la chaîne reçoit le mémo en premier (Logique Séquentielle)
+        $firstUserId = $fullChainIds[0];
+        $firstInLine = User::find($firstUserId);
+        
+        if ($firstInLine) {
+            $avail = $this->resolveUserAvailability($firstInLine, $activeReplacements);
+            $nextHolders = [$avail['effective']->id];
+        }
+
+        if (empty($nextHolders)) {
+            $this->addError('general', 'Impossible de déterminer le premier destinataire du circuit.');
+            return;
+        }
+
+        // 4. Création du mémo officiel (Projet)
+        $memo = Memo::create([
+            'object'             => $draft->object,
+            'reference'          => $draft->reference,
+            'concern'            => $draft->concern,
+            'content'            => $draft->content,
+            'status'             => 'envoyer',
+            'workflow_direction' => 'sortant',
+            'pieces_jointes'     => $draft->pieces_jointes,
+            'user_id'            => $draft->user_id,
+            'parent_id'          => $draft->parent_id,
+            'previous_holders'   => [$user->id], 
+            // On met TOUTE la chaîne dans current_holders pour que tout le monde puisse suivre le mémo
+            'current_holders'    => array_values(array_unique(array_merge([$user->id], $fullChainIds))),
+            // Seul le PREMIER maillon peut traiter pour l'instant
+            'treatment_holders'  => $nextHolders, 
+        ]);
+
+        // 5. Enregistrement des destinataires (Entités finales)
+        $recipientsData = is_array($draft->destinataires) ? $draft->destinataires : json_decode($draft->destinataires, true);
+        if (!empty($recipientsData)) {
+            foreach ($recipientsData as $dest) {
+                Destinataires::create([
+                    'memo_id'   => $memo->id,
+                    'entity_id' => $dest['entity_id'],
+                    'action'    => $dest['action'],
+                ]);
+            }
+        }
+
+        // 6. Création de l'historique spécifique au circuit particulier
+        Historiques::create([
+            'user_id'          => $user->id,
+            'memo_id'          => $memo->id,
+            'visa'             => 'Initialisation Circuit Particulier', 
+            'workflow_comment' => $finalComment ?? 'Démarrage de la chaîne de validation personnalisée',
+        ]);
+
+        // 7. Notification uniquement au premier maillon de la chaîne
+        foreach (User::whereIn('id', $nextHolders)->get() as $recipient) {
+            try {
+                $recipient->notify(new MemoActionNotification($memo, 'envoyer', $user));
+            } catch (\Exception $e) {}
+        }
+
+        // 8. Suppression du brouillon et finalisation
+        $draft->delete();
+        $this->closeModalTrois();
+        $this->isEditing = false;
+        $this->dispatch('notify', message: "Circuit particulier initié et transmis au premier intervenant.");
+    }
+
+        
         
         
     }

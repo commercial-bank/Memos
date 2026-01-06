@@ -762,63 +762,87 @@
 
                                     <!-- B. AFFICHAGE PROJET (LISTE SANS N+1) -->
                                     @if($memo_type === 'projet')
-                                        <div class="bg-purple-50 rounded-lg p-4 border border-purple-100 animate-fade-in-down">
-                                            <p class="text-xs font-bold text-purple-600 uppercase mb-2">Collaborateurs du projet</p>
-                                            
-                                            <label class="block text-xs text-gray-500 mb-1">Sélectionnez les destinataires (Maintenez Ctrl pour plusieurs)</label>
-                                            
-                                            <select wire:model.live="selected_project_users" multiple class="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm h-32">
-                                                @foreach($projectUsersList as $userData)
-                                                    <option value="{{ $userData['original']->id }}">
-                                                        {{ $userData['original']->first_name }} {{ $userData['original']->last_name }} 
-                                                        ({{ $userData['original']->departement ?? 'N/A' }})
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('selected_project_users') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+    <div class="bg-purple-50 rounded-xl p-5 border border-purple-100 animate-fade-in-down">
+        <p class="text-xs font-black text-purple-600 uppercase mb-4 tracking-widest">Définir l'ordre hiérarchique de validation</p>
+        
+        <!-- 1. Recherche et Ajout -->
+        <div class="relative mb-6">
+            <input type="text" wire:model.live.debounce.300ms="search_project_user" 
+                placeholder="Rechercher un collaborateur par nom..."
+                class="w-full rounded-lg border-gray-200 text-sm focus:ring-purple-500 pr-10 shadow-sm">
+            <div class="absolute right-3 top-2.5 text-gray-400">
+                <i class="fas fa-search text-xs"></i>
+            </div>
 
-                                            <!-- Récapitulatif avec alertes remplacements -->
-                                            @if(!empty($selected_project_users))
-                                                <div class="mt-3 space-y-2 max-h-32 overflow-y-auto">
-                                                    <p class="text-[10px] font-bold text-gray-400 uppercase">Destinataires réels :</p>
-                                                    
-                                                    @foreach($selected_project_users as $selectedId)
-                                                        @php
-                                                            // On retrouve les données dans la collection préparée
-                                                            $uInfo = $projectUsersList->first(function($item) use ($selectedId) {
-                                                                return $item['original']->id == $selectedId;
-                                                            });
-                                                        @endphp
+            <!-- Liste des résultats de recherche -->
+            @if(!empty($search_project_user))
+                <div class="absolute z-[100] w-full mt-1 bg-white border border-gray-100 rounded-lg shadow-2xl max-h-48 overflow-y-auto custom-scrollbar">
+                    @foreach($this->availableProjectUsers as $u)
+                        <button type="button" wire:click="addToPath({{ $u->id }})" 
+                            class="w-full text-left px-4 py-3 hover:bg-purple-50 flex items-center justify-between group transition-colors border-b last:border-0 border-gray-50">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-bold text-gray-800">{{ $u->first_name }} {{ $u->last_name }}</span>
+                                <span class="text-[10px] text-gray-500 uppercase">{{ $u->poste->value ?? $u->poste }}</span>
+                            </div>
+                            <i class="fas fa-plus-circle text-purple-300 group-hover:text-purple-600 transition-colors"></i>
+                        </button>
+                    @endforeach
+                </div>
+            @endif
+        </div>
 
-                                                        @if($uInfo)
-                                                            <div class="flex items-center justify-between bg-white p-2 rounded border {{ $uInfo['is_replaced'] ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200' }}">
-                                                                <div class="flex items-center gap-2">
-                                                                    <div class="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold">
-                                                                        {{ substr($uInfo['original']->first_name, 0, 1) }}
-                                                                    </div>
-                                                                    <span class="text-xs font-medium text-gray-700">
-                                                                        {{ $uInfo['original']->first_name }} {{ $uInfo['original']->last_name }}
-                                                                    </span>
-                                                                </div>
+        <!-- 2. Visualisation de la Chaîne choisie (Design Timeline) -->
+        <div class="space-y-3">
+            <div class="flex items-center gap-2 mb-2">
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Chaîne de validation personnalisée</p>
+                <div class="h-px bg-gray-200 flex-1"></div>
+            </div>
+            
+            @if(empty($selected_project_path))
+                <div class="border-2 border-dashed border-purple-200 rounded-xl p-8 text-center bg-white/50">
+                    <p class="text-xs text-purple-400 italic">Aucun intervenant sélectionné. Commencez par en ajouter un ci-dessus.</p>
+                </div>
+            @else
+                <div class="relative pl-8 space-y-3">
+                    <!-- Ligne verticale DNA -->
+                    <div class="absolute left-[15px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-purple-500 to-purple-200"></div>
 
-                                                                @if($uInfo['is_replaced'])
-                                                                    <div class="text-[10px] text-right">
-                                                                        <span class="text-yellow-600 font-bold flex items-center gap-1">
-                                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                                                                            Remplacé par
-                                                                        </span>
-                                                                        <span class="text-gray-900">{{ $uInfo['effective']->first_name }} {{ $uInfo['effective']->last_name }}</span>
-                                                                    </div>
-                                                                @else
-                                                                    <span class="text-[10px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded">Dispo</span>
-                                                                @endif
-                                                            </div>
-                                                        @endif
-                                                    @endforeach
-                                                </div>
-                                            @endif
-                                        </div>
-                                    @endif
+                    @foreach($selected_project_path as $index => $pathUserId)
+                        @php $uPath = \App\Models\User::find($pathUserId); @endphp
+                        <div class="relative flex items-center justify-between bg-white p-3 rounded-xl border border-purple-100 shadow-sm group hover:border-purple-300 transition-all">
+                            <!-- Badge Numéro (Point Timeline) -->
+                            <div class="absolute -left-[28px] h-6 w-6 rounded-full bg-purple-600 border-4 border-white flex items-center justify-center text-[10px] text-white font-black shadow-sm">
+                                {{ $index + 1 }}
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <div class="h-8 w-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xs font-black">
+                                    {{ substr($uPath->first_name, 0, 1) }}
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-gray-800">{{ $uPath->first_name }} {{ $uPath->last_name }}</p>
+                                    <p class="text-[9px] text-gray-400 uppercase">{{ $uPath->poste->value ?? $uPath->poste }}</p>
+                                </div>
+                            </div>
+
+                            <button type="button" wire:click="removeFromPath({{ $index }})" class="text-red-300 hover:text-red-500 transition-colors">
+                                <i class="fas fa-times-circle"></i>
+                            </button>
+                        </div>
+                    @endforeach
+
+                    <!-- Maillon final automatique (Secrétariat) -->
+                    <div class="relative flex items-center gap-3 opacity-40 pt-2">
+                         <div class="absolute -left-[24px] h-4 w-4 rounded-full bg-gray-300 border-2 border-white"></div>
+                         <i class="fas fa-paper-plane text-xs text-gray-400"></i>
+                         <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest">Enregistrement Secrétariat (Automatique)</p>
+                    </div>
+                </div>
+            @endif
+        </div>
+        @error('selected_project_path') <span class="text-red-500 text-xs mt-2 block">{{ $message }}</span> @enderror
+    </div>
+@endif
 
                                 </div>
 
