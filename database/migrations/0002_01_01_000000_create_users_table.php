@@ -21,7 +21,7 @@ return new class extends Migration
                 // IMPORTANT : Il faut que le login soit unique !
                 $table->string('user_name')->unique(); 
                 
-                $table->string('email')->unique()->nullable();
+                $table->string('email')->nullable();
                 $table->timestamp('email_verified_at')->nullable();
                 
                 // LDAP

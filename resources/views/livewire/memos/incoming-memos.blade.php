@@ -867,7 +867,7 @@
 
     
 
-    @if($isOpen3)
+     @if($isOpen3)
        <!-- Modal Envoi & Workflow -->
        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" wire:click="closeModalTrois"></div>
@@ -925,13 +925,11 @@
                                     <!-- A. AFFICHAGE STANDARD (N+1) -->
                                     @if($memo_type === 'standard')
                                         <div class="bg-blue-50 rounded-lg p-4 border border-blue-100 animate-fade-in-down">
-                                            
-                                            @if($isSecretary || (auth()->user()->poste == 'Directeur' && !auth()->user()->manager_id))
-                                                <!-- CAS : Secrétaire OU Directeur sans Manager (Liste de sélection) -->
+                                            <!-- ... (Affichage standard inchangé) ... -->
+                                             @if($isSecretary || (auth()->user()->poste == 'Directeur' && !auth()->user()->manager_id))
                                                 <p class="text-xs font-bold text-blue-500 uppercase mb-3">
                                                     {{ auth()->user()->poste == 'Directeur' ? 'Transmettre aux Secrétariats' : 'Destinataire(s) du circuit standard' }}
                                                 </p>
-                                                
                                                 <select wire:model.live="selected_standard_users" multiple class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm h-32">
                                                     @foreach($standardRecipientsList as $uData)
                                                         <option value="{{ $uData['original']->id }}">
@@ -942,9 +940,7 @@
                                                 </select>
                                                 <p class="mt-2 text-[10px] text-blue-400 italic">Maintenez Ctrl pour sélectionner plusieurs personnes.</p>
                                                 @error('selected_standard_users') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-
                                             @elseif($managerData)
-                                                <!-- CAS : Manager Direct classique -->
                                                 <p class="text-xs font-bold text-blue-500 uppercase mb-3">Destinataire Final (N+1)</p>
                                                 <div class="flex items-start">
                                                     <div class="flex-shrink-0">
@@ -965,7 +961,6 @@
                                                     </div>
                                                 </div>
                                             @else
-                                                <!-- CAS : Erreur / Aucun destinataire -->
                                                 <div class="text-red-500 text-sm bg-red-50 p-3 rounded border border-red-100 flex items-center gap-2">
                                                     <i class="fas fa-exclamation-circle"></i>
                                                     Aucun destinataire ou manager configuré pour votre compte.
@@ -979,58 +974,26 @@
                                         <div class="bg-purple-50 rounded-lg p-4 border border-purple-100 animate-fade-in-down">
                                             <p class="text-xs font-bold text-purple-600 uppercase mb-2">Collaborateurs du projet</p>
                                             
-                                            <label class="block text-xs text-gray-500 mb-1">Sélectionnez les destinataires (Maintenez Ctrl pour plusieurs)</label>
-                                            
-                                            <select wire:model.live="selected_project_users" multiple class="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm h-32">
-                                                @foreach($projectUsersList as $userData)
-                                                    <option value="{{ $userData['original']->id }}">
-                                                        {{ $userData['original']->first_name }} {{ $userData['original']->last_name }} 
-                                                        ({{ $userData['original']->departement ?? 'N/A' }})
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('selected_project_users') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-
-                                            <!-- Récapitulatif avec alertes remplacements -->
-                                            @if(!empty($selected_project_users))
-                                                <div class="mt-3 space-y-2 max-h-32 overflow-y-auto">
-                                                    <p class="text-[10px] font-bold text-gray-400 uppercase">Destinataires réels :</p>
-                                                    
-                                                    @foreach($selected_project_users as $selectedId)
-                                                        @php
-                                                            // On retrouve les données dans la collection préparée
-                                                            $uInfo = $projectUsersList->first(function($item) use ($selectedId) {
-                                                                return $item['original']->id == $selectedId;
-                                                            });
-                                                        @endphp
-
-                                                        @if($uInfo)
-                                                            <div class="flex items-center justify-between bg-white p-2 rounded border {{ $uInfo['is_replaced'] ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200' }}">
-                                                                <div class="flex items-center gap-2">
-                                                                    <div class="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold">
-                                                                        {{ substr($uInfo['original']->first_name, 0, 1) }}
-                                                                    </div>
-                                                                    <span class="text-xs font-medium text-gray-700">
-                                                                        {{ $uInfo['original']->first_name }} {{ $uInfo['original']->last_name }}
-                                                                    </span>
-                                                                </div>
-
-                                                                @if($uInfo['is_replaced'])
-                                                                    <div class="text-[10px] text-right">
-                                                                        <span class="text-yellow-600 font-bold flex items-center gap-1">
-                                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                                                                            Remplacé par
-                                                                        </span>
-                                                                        <span class="text-gray-900">{{ $uInfo['effective']->first_name }} {{ $uInfo['effective']->last_name }}</span>
-                                                                    </div>
-                                                                @else
-                                                                    <span class="text-[10px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded">Dispo</span>
-                                                                @endif
-                                                            </div>
-                                                        @endif
-                                                    @endforeach
+                                            <!-- AFFICHAGE AUTOMATIQUE DU PROCHAIN UTILISATEUR SI DÉTECTÉ -->
+                                            @if($suggestedNextUser)
+                                                <div class="mb-4 bg-white p-3 rounded-lg border border-purple-200 shadow-sm">
+                                                    <p class="text-[10px] text-purple-400 font-bold uppercase mb-1">Prochain intervenant suggéré (Circuit)</p>
+                                                    <div class="flex items-center gap-3">
+                                                        <div class="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold">
+                                                            {{ substr($suggestedNextUser->first_name, 0, 1) }}
+                                                        </div>
+                                                        <div>
+                                                            <p class="text-sm font-bold text-gray-800">{{ $suggestedNextUser->first_name }} {{ $suggestedNextUser->last_name }}</p>
+                                                            <p class="text-xs text-gray-500">{{ $suggestedNextUser->poste ?? 'Collaborateur' }}</p>
+                                                        </div>
+                                                        <div class="ml-auto text-green-500">
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             @endif
+
+                                            
                                         </div>
                                     @endif
 
@@ -1040,9 +1003,6 @@
                                 <div class="space-y-4 pt-2">
                                     <hr class="border-gray-100">
                                     
-                                    <!-- Visa -->
-                                    
-
                                     <!-- Commentaire -->
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">Commentaire</label>

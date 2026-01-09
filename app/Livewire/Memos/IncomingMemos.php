@@ -38,6 +38,9 @@ class IncomingMemos extends Component
     public $isViewingPdf = false;
     public $isEditing = false;
 
+    // === AJOUTEZ CETTE LIGNE ICI ===
+    public $suggestedNextUser = null; 
+
     // --- États des Modals ---
     public $isOpen = false;        
     public $isOpen2 = false;       
@@ -220,62 +223,130 @@ class IncomingMemos extends Component
     // 3. LOGIQUE D'ASSIGNATION & WORKFLOW
     // =========================================================
 
-    public function assignMemo($id)
+     public function assignMemo($id)
     {
         $this->memo_id = $id;
-        $this->reset(['workflow_comment', 'selected_project_users', 'selected_standard_users', 'managerData']);
-        $this->memo_type = 'standard';
-
+        $this->reset(['workflow_comment', 'selected_project_users', 'selected_standard_users', 'managerData', 'suggestedNextUser']);
+        
+        $memo = Memo::findOrFail($id);
         $currentUser = Auth::user();
         $today = Carbon::now()->format('Y-m-d');
-        
+
+        // Récupération des remplacements
         $activeReplacements = ReplacesUser::where('date_begin_replace', '<=', $today)
             ->where('date_end_replace', '>=', $today)
             ->get()
             ->keyBy('user_id');
 
-        $posteString = is_object($currentUser->poste) ? $currentUser->poste->value : (string)$currentUser->poste;
+        // --- 1. DÉTECTION INTELLIGENTE DE LA SUITE DU CIRCUIT (PROJET) ---
+        // On regarde la liste globale des participants (current_holders) et l'historique (previous_holders)
         
-        // --- NOUVELLE LOGIQUE : Directeur sans Manager ---
-        if ($posteString == 'Directeur' && !$currentUser->manager_id) {
-            // On bascule sur le mode "Liste" (comme pour la secrétaire)
-            $this->isSecretary = true; 
-            $this->standardRecipientsList = User::where('dir_id', $currentUser->dir_id)
-                ->where('poste', 'Secretaire') // On cible les secrétaires de sa direction
-                ->where('id', '!=', $currentUser->id)
-                ->orderBy('last_name')
-                ->get()
-                ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
-        } 
-        // --- Logique Secrétaire existante ---
-        elseif (Str::contains($posteString, 'Secretaire')) {
-            $this->isSecretary = true;
-            $this->standardRecipientsList = User::where('dir_id', $currentUser->dir_id)
-                ->where('id', '!=', $currentUser->id)
-                ->where(function ($q) use ($currentUser) {
-                    $q->where('id', $currentUser->manager_id)
-                    ->orWhere('poste', 'like', '%Directeur%')
-                    ->orWhere('poste', 'like', '%Sous-Directeur%');
-                })
-                ->orderBy('last_name')
-                ->get()
-                ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
-        } 
-        // --- Cas Standard avec Manager direct ---
-        else {
-            $this->isSecretary = false;
-            if ($currentUser->manager_id) {
-                $manager = User::find($currentUser->manager_id);
-                $this->managerData = $this->resolveUserAvailability($manager, $activeReplacements);
+        $currentHolders  = is_array($memo->current_holders) ? $memo->current_holders : json_decode($memo->current_holders, true) ?? [];
+        $previousHolders = is_array($memo->previous_holders) ? $memo->previous_holders : json_decode($memo->previous_holders, true) ?? [];
+
+        // IDs déjà traités (Historique + Moi-même)
+        $processedIds = array_merge($previousHolders, [$currentUser->id]);
+
+        // Prochains potentiels = Tous les participants MOINS ceux qui ont déjà traité
+        $remainingIds = array_diff($currentHolders, $processedIds);
+        
+        // On réindexe le tableau (0, 1, 2...)
+        $remainingIds = array_values($remainingIds);
+        
+        $nextUserId = null;
+        $isProjectMode = false;
+
+        // Si current_holders contient plus que juste l'expéditeur et moi, c'est probablement un circuit
+        if (count($currentHolders) > 2 || count($remainingIds) > 0) {
+            
+            if (!empty($remainingIds)) {
+                // CAS 1: Il reste des gens dans la chaîne (Ex: B vers C)
+                $nextUserId = $remainingIds[0]; // On prend le premier de la liste restante
+                $isProjectMode = true;
+            } else {
+                // CAS 2: Fin de chaîne, mais c'était un projet.
+                // Logique demandée : "User C dernier maillon -> Envoyer à la Secrétaire de sa direction"
+                
+                // On vérifie si le mémo avait plusieurs détenteurs (donc mode projet)
+                if (count($currentHolders) > 1) {
+                    $secretary = User::where('dir_id', $currentUser->dir_id)
+                        ->where('poste', 'like', '%Secretaire%')
+                        ->first();
+                    
+                    if ($secretary) {
+                        $nextUserId = $secretary->id;
+                        $isProjectMode = true;
+                    }
+                }
             }
         }
 
-        // Liste pour le mode projet (inchangée)
-        $excludeIds = array_filter([$currentUser->id, $currentUser->manager_id]);
-        $this->projectUsersList = User::whereNotIn('id', $excludeIds)
-            ->orderBy('last_name')
-            ->get()
-            ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
+        // --- 2. CONFIGURATION DE L'INTERFACE SELON LA DÉTECTION ---
+
+        if ($isProjectMode && $nextUserId) {
+            // Mode PROJET détecté
+            $this->memo_type = 'projet';
+            $this->selected_project_users = [$nextUserId];
+            
+            // On récupère l'info utilisateur pour l'afficher joliment dans la vue
+            $nextUser = User::find($nextUserId);
+            if ($nextUser) {
+                $this->suggestedNextUser = $nextUser;
+            }
+
+            // On s'assure que cet utilisateur est dans la liste déroulante (projectUsersList)
+            // On charge TOUS les utilisateurs sauf moi et mon manager pour la liste de recherche
+            $excludeIds = array_filter([$currentUser->id, $currentUser->manager_id]);
+            $this->projectUsersList = User::whereNotIn('id', $excludeIds)
+                ->orderBy('last_name')
+                ->get()
+                ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
+
+        } else {
+            // Mode STANDARD (Comportement par défaut)
+            $this->memo_type = 'standard';
+            $this->suggestedNextUser = null;
+            
+            // Chargement normal des listes Standard
+            $posteString = is_object($currentUser->poste) ? $currentUser->poste->value : (string)$currentUser->poste;
+            
+            if ($posteString == 'Directeur' && !$currentUser->manager_id) {
+                $this->isSecretary = true; 
+                $this->standardRecipientsList = User::where('dir_id', $currentUser->dir_id)
+                    ->where('poste', 'Secretaire') 
+                    ->where('id', '!=', $currentUser->id)
+                    ->orderBy('last_name')
+                    ->get()
+                    ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
+            } 
+            elseif (Str::contains($posteString, 'Secretaire')) {
+                $this->isSecretary = true;
+                $this->standardRecipientsList = User::where('dir_id', $currentUser->dir_id)
+                    ->where('id', '!=', $currentUser->id)
+                    ->where(function ($q) use ($currentUser) {
+                        $q->where('id', $currentUser->manager_id)
+                        ->orWhere('poste', 'like', '%Directeur%')
+                        ->orWhere('poste', 'like', '%Sous-Directeur%');
+                    })
+                    ->orderBy('last_name')
+                    ->get()
+                    ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
+            } 
+            else {
+                $this->isSecretary = false;
+                if ($currentUser->manager_id) {
+                    $manager = User::find($currentUser->manager_id);
+                    $this->managerData = $this->resolveUserAvailability($manager, $activeReplacements);
+                }
+            }
+
+            // Chargement de la liste projet standard (pour recherche manuelle si besoin)
+            $excludeIds = array_filter([$currentUser->id, $currentUser->manager_id]);
+            $this->projectUsersList = User::whereNotIn('id', $excludeIds)
+                ->orderBy('last_name')
+                ->get()
+                ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
+        }
 
         $this->isOpen3 = true;
     }
