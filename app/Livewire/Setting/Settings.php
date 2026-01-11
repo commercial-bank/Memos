@@ -158,6 +158,10 @@ class Settings extends Component
         ]);
 
         $user = User::findOrFail($this->itemId);
+
+        $managerId = empty($this->manager_id) || $this->manager_id === 'null'
+        ? null
+        : $this->manager_id;
         
         $user->update([
             'poste'      => $this->poste,
@@ -165,7 +169,7 @@ class Settings extends Component
             'sd_id'      => $this->sd_id,
             'dep_id'     => $this->dep_id,
             'serv_id'    => $this->serv_id,
-            'manager_id' => $this->manager_id,
+            'manager_id' => $managerId
         ]);
 
         // 1. Définition de l'objet de la notification

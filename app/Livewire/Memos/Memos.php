@@ -12,6 +12,7 @@ use Livewire\Attributes\Rule;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Url;
 
 class Memos extends Component
 {
@@ -19,10 +20,19 @@ class Memos extends Component
 
     // --- État de la vue ---
     public $isCreating = false;
-    public $activeTab = 'incoming';
-    public $darkMode = false; // Ajout pour le Dark Mode
 
-    public $searchEntity = '';
+     // 2. AJOUTER L'ATTRIBUT #[Url]
+    // 'keep: true' permet de garder le paramètre dans l'URL même après des actions Ajax
+    #[Url(keep: true)] 
+    public $activeTab = 'incoming';
+    public $darkMode = false;
+
+    // --- Recherche Destinataire ---
+    public $searchRecipient = '';
+    public $newRecipientEntity = null; // ID de l'entité sélectionnée
+    
+    // DRAPEAU CRUCIAL : Empêche le reset lors de la sélection
+    protected $isSelection = false; 
 
     // --- Champs du Mémo ---
     #[Rule('required|min:5')]
@@ -42,12 +52,10 @@ class Memos extends Component
 
     public $existingAttachments = []; 
 
-    // --- Gestion des Destinataires ---
+    // --- Gestion des Destinataires (Liste finale) ---
     public $recipients = []; 
-    public $newRecipientEntity = ''; 
     public $newRecipientAction = '';
 
-    // Liste des actions possibles
     public $actionsList = [
         'Faire le nécessaire',
         'Prendre connaissance',
@@ -56,7 +64,7 @@ class Memos extends Component
     ];
 
     // =========================================================
-    // 0. GESTION DARK MODE
+    // INITIALISATION
     // =========================================================
     
     public function mount()
@@ -70,103 +78,133 @@ class Memos extends Component
         $this->darkMode = $darkMode;
     }
 
-    // =========================================================
-    // 1. NAVIGATION
-    // =========================================================
-
     public function selectTab(string $tab)
     {
         $this->activeTab = $tab;
         $this->isCreating = false;
     }
 
-    /**
-     * Initialise le formulaire de création
-     */
     public function createMemo()
     {
         $this->reset([
             'object', 'content', 'concern', 'memoId', 'recipients', 
-            'newRecipientEntity', 'newRecipientAction', 'attachments', 'existingAttachments'
+            'newRecipientEntity', 'newRecipientAction', 'attachments', 'existingAttachments', 'searchRecipient'
         ]);
         $this->resetValidation();
         $this->isCreating = true;
     }
 
-    /**
-     * Annule et réinitialise le formulaire
-     */
     public function cancelCreation()
     {
         $this->isCreating = false;
         $this->reset([
             'object', 'content', 'concern', 'memoId', 'recipients', 
-            'attachments', 'existingAttachments'
+            'attachments', 'existingAttachments', 'searchRecipient'
         ]);
     }
 
     // =========================================================
-    // 2. LOGIQUE DESTINATAIRES
+    // LOGIQUE DE RECHERCHE ET SELECTION (CORRIGÉE)
     // =========================================================
 
     /**
-     * Ajoute un destinataire à la liste temporaire
+     * 1. Détecte quand l'utilisateur tape dans le champ
+     */
+    public function updatedSearchRecipient()
+    {
+        // Si le changement vient d'un clic (flag true), on ne fait rien
+        // et on remet le flag à false pour la prochaine frappe.
+        if ($this->isSelection) {
+            $this->isSelection = false;
+            return;
+        }
+
+        // Sinon, c'est que l'utilisateur tape : on invalide l'ID précédent
+        $this->newRecipientEntity = null;
+    }
+
+    /**
+     * 2. Sélectionne une entité depuis la liste
+     */
+    public function selectRecipientEntity($id, $name)
+    {
+        $this->isSelection = true; // On active le drapeau
+        $this->newRecipientEntity = $id;
+        $this->searchRecipient = $name; // Met à jour le texte affiché
+    }
+
+    /**
+     * 3. Filtre dynamique (Propriété calculée)
+     */
+    public function getFilteredEntitiesProperty()
+    {
+        if (empty($this->searchRecipient)) {
+            return [];
+        }
+
+        $term = '%' . $this->searchRecipient . '%';
+
+        return Entity::whereIn('type', ['Direction', 'Sous-Direction'])
+            ->where(function($q) use ($term) {
+                $q->where('name', 'like', $term)
+                  ->orWhere('ref', 'like', $term);
+            })
+            ->orderBy('name', 'asc')
+            ->limit(10)
+            ->get();
+    }
+
+    /**
+     * 4. Ajoute à la liste temporaire
      */
     public function addRecipient()
     {
+        // Validation
         $this->validate([
-            'newRecipientEntity' => 'required|exists:entities,id',
+            'newRecipientEntity' => 'required|integer|exists:entities,id',
             'newRecipientAction' => 'required|string'
         ], [
-            'newRecipientEntity.required' => 'Veuillez sélectionner une entité.',
-            'newRecipientAction.required' => 'Veuillez sélectionner une action.'
+            'newRecipientEntity.required' => 'Veuillez sélectionner une entité valide dans la liste.', 
+            'newRecipientAction.required' => 'Veuillez choisir une action.'
         ]);
 
-        // Vérification des doublons de manière performante
+        // Vérification doublon
         if (collect($this->recipients)->contains('entity_id', $this->newRecipientEntity)) {
             $this->addError('newRecipientEntity', 'Cette entité est déjà dans la liste.');
             return;
         }
 
-        // Récupération de l'entité
-        $entityModel = Entity::find($this->newRecipientEntity);
+        $entity = Entity::find($this->newRecipientEntity);
 
-        if ($entityModel) {
+        if ($entity) {
             $this->recipients[] = [
-                'entity_id'   => $entityModel->id,
-                'entity_name' => $entityModel->name,
+                'entity_id'   => $entity->id,
+                'entity_name' => $entity->name,
                 'action'      => $this->newRecipientAction
             ];
-        }
 
-        // Reset des champs de saisie uniquement
-        $this->reset(['newRecipientEntity', 'newRecipientAction']);
+            // Reset complet pour la prochaine entrée
+            $this->reset(['newRecipientEntity', 'newRecipientAction', 'searchRecipient']);
+        }
     }
 
-    /**
-     * Retire un destinataire de la liste temporaire
-     */
     public function removeRecipient($index)
     {
         unset($this->recipients[$index]);
-        $this->recipients = array_values($this->recipients); // Réindexation
+        $this->recipients = array_values($this->recipients);
     }
 
-    /**
-     * Supprime un fichier de la liste d'upload
-     */
     public function removeAttachment($index)
     {
         array_splice($this->attachments, $index, 1);
     }
 
     // =========================================================
-    // 3. SAUVEGARDE ET PERSISTENCE
+    // SAUVEGARDE
     // =========================================================
 
     public function save()
     {
-        // 1. Validation
         $this->validate([
             'object'     => 'required|min:5',
             'content'    => 'required',
@@ -176,7 +214,7 @@ class Memos extends Component
         $isUpdate = !empty($this->memoId);
 
         DB::transaction(function () {
-            // 2. Gestion des pièces jointes (JSON)
+            // Fichiers
             $finalAttachments = $this->existingAttachments;
             if (!empty($this->attachments)) {
                 foreach ($this->attachments as $file) {
@@ -190,18 +228,17 @@ class Memos extends Component
                 }
             }
 
-            // 3. Transformation des destinataires pour le champ JSON
-            // On prépare le tableau selon la structure de votre table 'destinataires'
+            // Destinataires JSON
             $destinatairesJson = array_map(function($recipient) {
                 return [
                     'entity_id'         => $recipient['entity_id'],
                     'action'            => $recipient['action'],
-                    'processing_status' => 'en_cours', // Statut par défaut demandé
+                    'processing_status' => 'en_cours',
                     'created_at'        => now()->toDateTimeString(),
                 ];
             }, $this->recipients);
 
-            // 4. Persistence dans drafted_memos
+            // DB Update/Create
             $memo = DraftedMemo::updateOrCreate(
                 ['id' => $this->memoId],
                 [
@@ -211,9 +248,8 @@ class Memos extends Component
                     'status'            => 'brouillon',
                     'workflow_direction'=> 'sortant',
                     'pieces_jointes'    => $finalAttachments,
-                    'destinataires'     => $destinatairesJson, // Stockage JSON ici
+                    'destinataires'     => $destinatairesJson,
                     'user_id'           => Auth::id(),
-                    // Initialisation du détenteur actuel (l'auteur)
                     'current_holders'   => [Auth::id()], 
                 ]
             );
@@ -228,22 +264,11 @@ class Memos extends Component
             type: 'success'
         );
         
-        $this->reset(['object', 'content', 'concern', 'memoId', 'recipients', 'attachments']);
+        $this->reset(['object', 'content', 'concern', 'memoId', 'recipients', 'attachments', 'searchRecipient']);
     }
-
-    // =========================================================
-    // 4. RENDU
-    // =========================================================
 
     public function render()
     {
-        $entities = Entity::whereIn('type', ['Direction', 'Sous-Direction'])
-        ->orderBy('type', 'asc') // Optionnel : pour grouper par type
-        ->orderBy('name', 'asc')
-        ->get();
-
-        return view('livewire.memos.memos', [
-            'entities' => $entities
-        ]);
+        return view('livewire.memos.memos');
     }
 }

@@ -23,6 +23,10 @@ return new class extends Migration
             $table->json('treatment_holders')->nullable();
             $table->string('qr_code')->nullable();
             $table->string('workflow_direction')->default('sortant');
+            // 'standard' ou 'projet'
+            $table->string('circuit_type')->default('standard');
+            // Stockera l'array JSON des IDs ordonnés [UserA, UserB, UserC]
+            $table->json('circuit_path')->nullable();
             $table->foreignId('parent_id')->nullable()->constrained('memos')->onDelete('cascade');
             $table->json('pieces_jointes')->nullable();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');

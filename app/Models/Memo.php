@@ -36,6 +36,9 @@ class Memo extends Model
         'user_id',
 
         'parent_id',
+
+        'circuit_type' ,
+        'circuit_path' 
     ];
 
     protected $casts = [
@@ -50,6 +53,7 @@ class Memo extends Model
 
         // Conversion automatique JSON <-> Array
         'pieces_jointes' => 'array',
+        'circuit_path'  => 'array',
         'created_at' => 'datetime',
     ];
 

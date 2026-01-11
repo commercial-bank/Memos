@@ -93,117 +93,326 @@
                         </div>
 
                         <div class="sm:col-span-3">
-                            <label class="block text-sm font-medium" style="color: var(--profile-text-muted);">Direction</label>
-                            <select wire:model.live="dir_id" {{ $isLocked ? 'disabled' : '' }} class="mt-1 block w-full rounded-md shadow-sm p-2 border" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
-                                <option value="">-- Sélectionner --</option>
-                                @foreach($entites as $entite)
-                                    <option value="{{ $entite->id }}">{{ $entite->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="sm:col-span-3">
-                            <label class="block text-sm font-medium" style="color: var(--profile-text-muted);">Sous-Direction</label>
-                            <select wire:model.live="sd_id" {{ $isLocked ? 'disabled' : '' }} class="mt-1 block w-full rounded-md shadow-sm p-2 border" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
-                                <option value="">-- Sélectionner --</option>
-                                @foreach($sous_directions as $sd)
-                                    <option value="{{ $sd->id }}">{{ $sd->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="sm:col-span-3">
-                            <label class="block text-sm font-medium" style="color: var(--profile-text-muted);">Département</label>
-                            <select wire:model.live="dep_id" {{ $isLocked ? 'disabled' : '' }} class="mt-1 block w-full rounded-md shadow-sm p-2 border" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
-                                <option value="">-- Sélectionner --</option>
-                                @foreach($departements as $dept)
-                                    <option value="{{ $dept->id }}">{{ $dept->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="sm:col-span-3">
-                            <label class="block text-sm font-medium" style="color: var(--profile-text-muted);">Service</label>
-                            <select wire:model="serv_id" {{ $isLocked ? 'disabled' : '' }} class="mt-1 block w-full rounded-md shadow-sm p-2 border" style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);">
-                                <option value="">-- Sélectionner --</option>
-                                @foreach($services as $serv)
-                                    <option value="{{ $serv->id }}">{{ $serv->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="sm:col-span-6">
-                            <label for="manager" class="block text-sm font-medium" style="color: var(--profile-text-muted);">
-                                Manager (N+1)
+                            <label class="block text-sm font-medium" style="color: var(--profile-text-muted);">
+                                Direction <span class="text-[#daaf2c]">*</span>
                             </label>
 
-                            <!-- Conteneur de recherche avec Alpine.js -->
-                            <div x-data="{ open: false, selectedName: '{{ $user->manager ? $user->manager->first_name . ' ' . $user->manager->last_name : '-- Sélectionner --' }}' }" class="relative mt-1">
+                            <!-- Conteneur Alpine.js pour gérer l'ouverture/fermeture -->
+                            <div x-data="{ open: false }" class="relative mt-1">
                                 
                                 <!-- Champ de saisie (Recherche) -->
                                 <div class="relative">
                                     <input 
                                         type="text" 
-                                        class="block w-full rounded-md shadow-sm p-2 border sm:text-sm transition-all"
+                                        class="block w-full rounded-md shadow-sm p-2 border sm:text-sm transition-all focus:ring-[#daaf2c] focus:border-[#daaf2c]"
                                         style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);"
-                                        placeholder="Rechercher un manager..."
-                                        wire:model.live.debounce.300ms="searchManager"
+                                        placeholder="Rechercher une direction..."
+                                        wire:model.live.debounce.300ms="searchDirection"
                                         @focus="open = true"
                                         @click.away="open = false"
-                                        {{ $isLocked ? 'disabled' : '' }}
-                                        x-model="selectedName"
                                         @input="open = true"
+                                        {{ $isLocked ? 'disabled' : '' }}
                                     >
                                     
-                                    <!-- Icône flèche -->
+                                    <!-- Icône flèche ou loupe -->
                                     <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                                        <i class="fas fa-chevron-down text-xs" style="color: var(--profile-text-muted);"></i>
+                                        @if($dir_id)
+                                            <!-- Petite croix pour vider si sélectionné (optionnel) -->
+                                            <i class="fas fa-check text-green-500 text-xs"></i>
+                                        @else
+                                            <i class="fas fa-search text-xs" style="color: var(--profile-text-muted);"></i>
+                                        @endif
                                     </div>
                                 </div>
 
-                                <!-- Liste déroulante -->
+                                <!-- Liste déroulante des résultats -->
                                 <div 
                                     x-show="open" 
-                                    x-transition
-                                    class="absolute z-10 mt-1 w-full rounded-md shadow-lg border max-h-60 overflow-auto"
+                                    x-transition:enter="transition ease-out duration-100"
+                                    x-transition:enter-start="opacity-100 scale-95"
+                                    x-transition:enter-end="opacity-100 scale-100"
+                                    x-transition:leave="transition ease-in duration-75"
+                                    x-transition:leave-start="opacity-100 scale-100"
+                                    x-transition:leave-end="opacity-0 scale-95"
+                                    class="absolute z-50 mt-1 w-full rounded-md shadow-lg border max-h-60 overflow-auto"
                                     style="background-color: var(--profile-bg-card); border-color: var(--profile-border);"
+                                    style="display: none;" 
                                 >
                                     <ul class="py-1 text-sm">
+                                        <!-- Option vide / Reset -->
                                         <li 
-                                            @click="open = false; $wire.set('manager_id', null); selectedName = '-- Sélectionner --'"
-                                            class="cursor-pointer px-4 py-2 hover:bg-[#daaf2c] hover:text-black"
+                                            wire:click="selectDirection(null, '')"
+                                            @click="open = false"
+                                            class="cursor-pointer px-4 py-2 hover:bg-[#daaf2c] hover:text-black transition-colors"
                                             style="color: var(--profile-text-main);"
                                         >
-                                            -- Aucun --
+                                            -- Aucune / Réinitialiser --
                                         </li>
 
-                                        @forelse($this->filteredManagers as $m)
+                                        <!-- Liste filtrée -->
+                                        @forelse($this->filteredDirections as $entite)
                                             <li 
-                                                @click="
-                                                    open = false; 
-                                                    $wire.set('manager_id', {{ $m->id }}); 
-                                                    selectedName = '{{ $m->first_name }} {{ $m->last_name }}';
-                                                "
-                                                class="cursor-pointer px-4 py-2 hover:bg-[#daaf2c] hover:text-black transition-colors"
-                                                style="color: var(--profile-text-main);"
+                                                wire:click="selectDirection({{ $entite->id }}, '{{ $entite->name }}')"
+                                                @click="open = false"
+                                                class="cursor-pointer px-4 py-2 hover:bg-[#daaf2c] hover:text-black transition-colors border-b last:border-0 border-gray-700/10"
+                                                style="color: var(--profile-text-main); border-color: var(--profile-border);"
                                             >
                                                 <div class="flex flex-col">
-                                                    <span class="font-bold">{{ $m->first_name }} {{ $m->last_name }}</span>
+                                                    <span class="font-bold">{{ $entite->name }}</span>
+                                                    @if($entite->ref)
+                                                        <span class="text-[10px] uppercase opacity-70">{{ $entite->ref }}</span>
+                                                    @endif
                                                 </div>
                                             </li>
                                         @empty
-                                            <li class="px-4 py-2 text-xs italic" style="color: var(--profile-text-muted);">
-                                                Aucun résultat pour "{{ $searchManager }}"
+                                            <li class="px-4 py-2 text-xs italic text-center" style="color: var(--profile-text-muted);">
+                                                Aucune direction trouvée pour "{{ $searchDirection }}"
                                             </li>
                                         @endforelse
                                     </ul>
                                 </div>
                             </div>
                             
-                            <!-- Input caché pour stocker la valeur réelle pour le formulaire -->
+                            <!-- Input caché pour s'assurer que l'ID est bien soumis même si on ne touche pas au JS -->
+                            <input type="hidden" wire:model="dir_id">
+                        </div>
+
+                        <div class="sm:col-span-3">
+                            <label class="block text-sm font-medium" style="color: var(--profile-text-muted);">Sous-Direction</label>
+                            
+                            <div x-data="{ open: false }" class="relative mt-1">
+                                <input 
+                                    type="text" 
+                                    class="block w-full rounded-md shadow-sm p-2 border sm:text-sm transition-all focus:ring-[#daaf2c] focus:border-[#daaf2c]"
+                                    style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);"
+                                    placeholder="{{ count($sous_directions) > 0 ? 'Rechercher...' : 'Sélectionnez une direction d\'abord' }}"
+                                    wire:model.live.debounce.300ms="searchSousDirection"
+                                    @focus="open = true"
+                                    @click.away="open = false"
+                                    @input="open = true"
+                                    {{ $isLocked || count($sous_directions) == 0 ? 'disabled' : '' }}
+                                >
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                    <i class="fas fa-chevron-down text-xs" style="color: var(--profile-text-muted);"></i>
+                                </div>
+
+                                <div 
+                                    x-show="open" 
+                                    x-transition:enter="transition ease-out duration-100"
+                                    x-transition:enter-start="opacity-100 scale-95"
+                                    x-transition:enter-end="opacity-100 scale-100"
+                                    x-transition:leave="transition ease-in duration-75"
+                                    x-transition:leave-start="opacity-100 scale-100"
+                                    x-transition:leave-end="opacity-0 scale-95"
+                                    class="absolute z-50 mt-1 w-full rounded-md shadow-lg border max-h-60 overflow-auto"
+                                    style="background-color: var(--profile-bg-card); border-color: var(--profile-border);"
+                                    style="display: none;" 
+                                    style="display: none;" class="absolute z-50 mt-1 w-full rounded-md shadow-lg border max-h-60 overflow-auto"
+                                    style="background-color: var(--profile-bg-card); border-color: var(--profile-border);">
+                                    <ul class="py-1 text-sm">
+                                        <li wire:click="selectSousDirection(null, '')" @click="open = false" class="cursor-pointer px-4 py-2 hover:bg-[#daaf2c] hover:text-black transition-colors" style="color: var(--profile-text-main);">-- Aucune --</li>
+                                        @forelse($this->filteredSousDirections as $sd)
+                                            <li wire:click="selectSousDirection({{ $sd->id }}, '{{ $sd->name }}')" @click="open = false" class="cursor-pointer px-4 py-2 hover:bg-[#daaf2c] hover:text-black transition-colors border-b last:border-0 border-gray-700/10" style="color: var(--profile-text-main);">
+                                                {{ $sd->name }}
+                                            </li>
+                                        @empty
+                                            <li class="px-4 py-2 text-xs italic text-center" style="color: var(--profile-text-muted);">Aucun résultat</li>
+                                        @endforelse
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sm:col-span-3">
+                            <label class="block text-sm font-medium" style="color: var(--profile-text-muted);">Département</label>
+                            
+                            <div x-data="{ open: false }" class="relative mt-1">
+                                <input 
+                                    type="text" 
+                                    class="block w-full rounded-md shadow-sm p-2 border sm:text-sm transition-all focus:ring-[#daaf2c] focus:border-[#daaf2c]"
+                                    style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);"
+                                    placeholder="{{ count($departements) > 0 ? 'Rechercher...' : 'Sélectionnez une S.D d\'abord' }}"
+                                    wire:model.live.debounce.300ms="searchDepartement"
+                                    @focus="open = true"
+                                    @click.away="open = false"
+                                    @input="open = true"
+                                    {{ $isLocked || count($departements) == 0 ? 'disabled' : '' }}
+                                >
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                    <i class="fas fa-chevron-down text-xs" style="color: var(--profile-text-muted);"></i>
+                                </div>
+
+                                <div
+                                    x-show="open" 
+                                    x-transition:enter="transition ease-out duration-100"
+                                    x-transition:enter-start="opacity-100 scale-95"
+                                    x-transition:enter-end="opacity-100 scale-100"
+                                    x-transition:leave="transition ease-in duration-75"
+                                    x-transition:leave-start="opacity-100 scale-100"
+                                    x-transition:leave-end="opacity-0 scale-95"
+                                    class="absolute z-50 mt-1 w-full rounded-md shadow-lg border max-h-60 overflow-auto"
+                                    style="background-color: var(--profile-bg-card); border-color: var(--profile-border);"
+                                    style="display: none;"  
+                                    style="display: none;" class="absolute z-50 mt-1 w-full rounded-md shadow-lg border max-h-60 overflow-auto"
+                                    style="background-color: var(--profile-bg-card); border-color: var(--profile-border);">
+                                    <ul class="py-1 text-sm">
+                                        <li wire:click="selectDepartement(null, '')" @click="open = false" class="cursor-pointer px-4 py-2 hover:bg-[#daaf2c] hover:text-black transition-colors" style="color: var(--profile-text-main);">-- Aucun --</li>
+                                        @forelse($this->filteredDepartements as $dept)
+                                            <li wire:click="selectDepartement({{ $dept->id }}, '{{ $dept->name }}')" @click="open = false" class="cursor-pointer px-4 py-2 hover:bg-[#daaf2c] hover:text-black transition-colors border-b last:border-0 border-gray-700/10" style="color: var(--profile-text-main);">
+                                                {{ $dept->name }}
+                                            </li>
+                                        @empty
+                                            <li class="px-4 py-2 text-xs italic text-center" style="color: var(--profile-text-muted);">Aucun résultat</li>
+                                        @endforelse
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                       <div class="sm:col-span-3">
+                            <label class="block text-sm font-medium" style="color: var(--profile-text-muted);">Service</label>
+                            
+                            <div x-data="{ open: false }" class="relative mt-1">
+                                <input 
+                                    type="text" 
+                                    class="block w-full rounded-md shadow-sm p-2 border sm:text-sm transition-all focus:ring-[#daaf2c] focus:border-[#daaf2c]"
+                                    style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);"
+                                    placeholder="{{ count($services) > 0 ? 'Rechercher...' : 'Sélectionnez un départ. d\'abord' }}"
+                                    wire:model.live.debounce.300ms="searchService"
+                                    @focus="open = true"
+                                    @click.away="open = false"
+                                    @input="open = true"
+                                    {{ $isLocked || count($services) == 0 ? 'disabled' : '' }}
+                                >
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                    <i class="fas fa-chevron-down text-xs" style="color: var(--profile-text-muted);"></i>
+                                </div>
+
+                                <div 
+                                    x-show="open" 
+                                    x-transition:enter="transition ease-out duration-100"
+                                    x-transition:enter-start="opacity-100 scale-95"
+                                    x-transition:enter-end="opacity-100 scale-100"
+                                    x-transition:leave="transition ease-in duration-75"
+                                    x-transition:leave-start="opacity-100 scale-100"
+                                    x-transition:leave-end="opacity-0 scale-95"
+                                    class="absolute z-50 mt-1 w-full rounded-md shadow-lg border max-h-60 overflow-auto"
+                                    style="background-color: var(--profile-bg-card); border-color: var(--profile-border);"
+                                    style="display: none;" 
+                                    style="display: none;" class="absolute z-50 mt-1 w-full rounded-md shadow-lg border max-h-60 overflow-auto"
+                                    style="background-color: var(--profile-bg-card); border-color: var(--profile-border);">
+                                    <ul class="py-1 text-sm">
+                                        <li wire:click="selectService(null, '')" @click="open = false" class="cursor-pointer px-4 py-2 hover:bg-[#daaf2c] hover:text-black transition-colors" style="color: var(--profile-text-main);">-- Aucun --</li>
+                                        @forelse($this->filteredServices as $serv)
+                                            <li wire:click="selectService({{ $serv->id }}, '{{ $serv->name }}')" @click="open = false" class="cursor-pointer px-4 py-2 hover:bg-[#daaf2c] hover:text-black transition-colors border-b last:border-0 border-gray-700/10" style="color: var(--profile-text-main);">
+                                                {{ $serv->name }}
+                                            </li>
+                                        @empty
+                                            <li class="px-4 py-2 text-xs italic text-center" style="color: var(--profile-text-muted);">Aucun résultat</li>
+                                        @endforelse
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sm:col-span-6">
+                            <label for="manager" class="block text-sm font-medium" style="color: var(--profile-text-muted);">
+                                Manager (N+1) <span class="text-[#daaf2c]">*</span>
+                            </label>
+
+                            <!-- Conteneur Alpine.js -->
+                            <div x-data="{ open: false }" class="relative mt-1">
+                                
+                                <!-- Champ de Saisie -->
+                                <input 
+                                    type="text" 
+                                    class="block w-full rounded-md shadow-sm p-2 border sm:text-sm transition-all focus:ring-[#daaf2c] focus:border-[#daaf2c]"
+                                    style="background-color: var(--profile-input-bg); border-color: var(--profile-border); color: var(--profile-text-main);"
+                                    
+                                    {{-- Message dynamique selon l'état --}}
+                                    placeholder="{{ !$dir_id ? 'Veuillez sélectionner votre Direction ci-dessus d\'abord' : 'Rechercher un manager (Nom/Prénom)...' }}"
+                                    
+                                    wire:model.live.debounce.300ms="searchManager"
+                                    
+                                    {{-- Désactivé si verrouillé OU si pas de direction sélectionnée --}}
+                                    {{ $isLocked || !$dir_id ? 'disabled' : '' }}
+                                    
+                                    @focus="open = true"
+                                    @click.away="open = false"
+                                    @input="open = true"
+                                >
+                                
+                                <!-- Icône -->
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                    @if(!$dir_id)
+                                        <i class="fas fa-lock text-xs text-gray-400"></i>
+                                    @else
+                                        <i class="fas fa-user-tie text-xs" style="color: var(--profile-text-muted);"></i>
+                                    @endif
+                                </div>
+
+                                <!-- Liste Déroulante -->
+                                @if($dir_id)
+                                    <div 
+                                    x-show="open" 
+                                    x-transition:enter="transition ease-out duration-100"
+                                    x-transition:enter-start="opacity-100 scale-95"
+                                    x-transition:enter-end="opacity-100 scale-100"
+                                    x-transition:leave="transition ease-in duration-75"
+                                    x-transition:leave-start="opacity-100 scale-100"
+                                    x-transition:leave-end="opacity-0 scale-95"
+                                    class="absolute z-50 mt-1 w-full rounded-md shadow-lg border max-h-60 overflow-auto"
+                                    style="background-color: var(--profile-bg-card); border-color: var(--profile-border);"
+                                    style="display: none;"  
+                                        style="display: none;" 
+                                        class="absolute z-50 mt-1 w-full rounded-md shadow-lg border max-h-60 overflow-auto"
+                                        style="background-color: var(--profile-bg-card); border-color: var(--profile-border);"
+                                    >
+                                        <ul class="py-1 text-sm">
+                                            <!-- Option "Aucun" -->
+                                            <li 
+                                                wire:click="selectManager(null, '')" 
+                                                @click="open = false" 
+                                                class="cursor-pointer px-4 py-2 hover:bg-[#daaf2c] hover:text-black transition-colors"
+                                                style="color: var(--profile-text-main);"
+                                            >
+                                                -- Aucun --
+                                            </li>
+
+                                            <!-- Liste Filtrée -->
+                                            @forelse($this->filteredManagers as $m)
+                                                <li 
+                                                    wire:click="selectManager({{ $m->id }}, '{{ $m->first_name }} {{ $m->last_name }}')"
+                                                    @click="open = false"
+                                                    class="cursor-pointer px-4 py-2 hover:bg-[#daaf2c] hover:text-black transition-colors border-b last:border-0 border-gray-700/10"
+                                                    style="color: var(--profile-text-main);"
+                                                >
+                                                    <div class="flex flex-col">
+                                                        <span class="font-bold">{{ $m->first_name }} {{ $m->last_name }}</span>
+                                                        <span class="text-[10px] uppercase opacity-70">
+                                                            {{ $m->poste ? (is_string($m->poste) ? $m->poste : $m->poste->value) : 'Sans poste' }}
+                                                        </span>
+                                                    </div>
+                                                </li>
+                                            @empty
+                                                <li class="px-4 py-2 text-xs italic text-center" style="color: var(--profile-text-muted);">
+                                                    @if(strlen($searchManager) > 0)
+                                                        Aucun collaborateur trouvé dans cette direction pour "{{ $searchManager }}"
+                                                    @else
+                                                        Commencez à taper pour rechercher...
+                                                    @endif
+                                                </li>
+                                            @endforelse
+                                        </ul>
+                                    </div>
+                                @endif
+                            </div>
+                            
+                            <!-- Input caché pour la soumission -->
                             <input type="hidden" wire:model="manager_id">
                             
-                            @error('manager_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            <!-- Affichage des erreurs de validation -->
+                            @error('manager_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                         </div>
 
 

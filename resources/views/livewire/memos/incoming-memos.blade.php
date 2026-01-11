@@ -920,84 +920,85 @@
                                 <hr class="border-gray-100">
 
                                 <!-- ZONE D'AFFICHAGE DYNAMIQUE SELON LE TYPE -->
-                                <div class="min-h-[100px]">
-                                    
-                                    <!-- A. AFFICHAGE STANDARD (N+1) -->
-                                    @if($memo_type === 'standard')
-                                        <div class="bg-blue-50 rounded-lg p-4 border border-blue-100 animate-fade-in-down">
-                                            <!-- ... (Affichage standard inchangé) ... -->
-                                             @if($isSecretary || (auth()->user()->poste == 'Directeur' && !auth()->user()->manager_id))
-                                                <p class="text-xs font-bold text-blue-500 uppercase mb-3">
-                                                    {{ auth()->user()->poste == 'Directeur' ? 'Transmettre aux Secrétariats' : 'Destinataire(s) du circuit standard' }}
-                                                </p>
-                                                <select wire:model.live="selected_standard_users" multiple class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm h-32">
-                                                    @foreach($standardRecipientsList as $uData)
-                                                        <option value="{{ $uData['original']->id }}">
-                                                            {{ $uData['original']->first_name }} {{ $uData['original']->last_name }} 
-                                                            ({{ $uData['original']->poste }})
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                                <p class="mt-2 text-[10px] text-blue-400 italic">Maintenez Ctrl pour sélectionner plusieurs personnes.</p>
-                                                @error('selected_standard_users') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
-                                            @elseif($managerData)
-                                                <p class="text-xs font-bold text-blue-500 uppercase mb-3">Destinataire Final (N+1)</p>
-                                                <div class="flex items-start">
-                                                    <div class="flex-shrink-0">
-                                                        <div class="h-10 w-10 rounded-full {{ $managerData['is_replaced'] ? 'bg-orange-200 text-orange-700' : 'bg-blue-200 text-blue-700' }} flex items-center justify-center font-bold shadow-sm">
-                                                            {{ substr($managerData['effective']->first_name, 0, 1) }}{{ substr($managerData['effective']->last_name, 0, 1) }}
-                                                        </div>
-                                                    </div>
-                                                    <div class="ml-3 flex-1">
-                                                        <p class="text-sm font-bold text-gray-900">
-                                                            {{ $managerData['effective']->first_name }} {{ $managerData['effective']->last_name }}
-                                                        </p>
-                                                        @if($managerData['is_replaced'])
-                                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 mb-1">Intérimaire / Remplaçant</span>
-                                                            <p class="text-xs text-gray-500 italic">Remplace {{ $managerData['original']->first_name }} {{ $managerData['original']->last_name }}</p>
-                                                        @else
-                                                            <p class="text-xs text-gray-500">{{ $managerData['original']->poste }}</p>
-                                                        @endif
-                                                    </div>
-                                                </div>
-                                            @else
-                                                <div class="text-red-500 text-sm bg-red-50 p-3 rounded border border-red-100 flex items-center gap-2">
-                                                    <i class="fas fa-exclamation-circle"></i>
-                                                    Aucun destinataire ou manager configuré pour votre compte.
-                                                </div>
-                                            @endif
-                                        </div>
-                                    @endif
+                                <!-- A. AFFICHAGE STANDARD (N+1) -->
+@if($memo_type === 'standard')
+    <div class="bg-blue-50 rounded-lg p-4 border border-blue-100 animate-fade-in-down">
+        
+        {{-- CAS 1 : MODE SÉLECTION LISTE --}}
+        {{-- On affiche ce bloc SI la liste contient des gens (Secrétaires pour le Directeur, ou Managers pour la Secrétaire) --}}
+        @if(!empty($standardRecipientsList) && count($standardRecipientsList) > 0)
+            
+            @php
+                // Récupération PROPRE du poste pour l'affichage (gère Enum et String)
+                $userPoste = auth()->user()->poste;
+                $userPosteValue = is_object($userPoste) && property_exists($userPoste, 'value') 
+                                  ? $userPoste->value 
+                                  : (string)$userPoste;
+            @endphp
 
-                                    <!-- B. AFFICHAGE PROJET (LISTE SANS N+1) -->
-                                    @if($memo_type === 'projet')
-                                        <div class="bg-purple-50 rounded-lg p-4 border border-purple-100 animate-fade-in-down">
-                                            <p class="text-xs font-bold text-purple-600 uppercase mb-2">Collaborateurs du projet</p>
-                                            
-                                            <!-- AFFICHAGE AUTOMATIQUE DU PROCHAIN UTILISATEUR SI DÉTECTÉ -->
-                                            @if($suggestedNextUser)
-                                                <div class="mb-4 bg-white p-3 rounded-lg border border-purple-200 shadow-sm">
-                                                    <p class="text-[10px] text-purple-400 font-bold uppercase mb-1">Prochain intervenant suggéré (Circuit)</p>
-                                                    <div class="flex items-center gap-3">
-                                                        <div class="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold">
-                                                            {{ substr($suggestedNextUser->first_name, 0, 1) }}
-                                                        </div>
-                                                        <div>
-                                                            <p class="text-sm font-bold text-gray-800">{{ $suggestedNextUser->first_name }} {{ $suggestedNextUser->last_name }}</p>
-                                                            <p class="text-xs text-gray-500">{{ $suggestedNextUser->poste ?? 'Collaborateur' }}</p>
-                                                        </div>
-                                                        <div class="ml-auto text-green-500">
-                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @endif
+            <p class="text-xs font-bold text-blue-500 uppercase mb-3">
+                @if($userPosteValue == 'Directeur')
+                    Transmettre au Secrétariat (Assistante)
+                @else
+                    Sélectionner le destinataire
+                @endif
+            </p>
 
-                                            
-                                        </div>
-                                    @endif
+            <select wire:model.live="selected_standard_users" multiple class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm h-32">
+                @foreach($standardRecipientsList as $uData)
+                    <option value="{{ $uData['original']->id }}">
+                        {{ $uData['original']->first_name }} {{ $uData['original']->last_name }} 
+                        ({{ $uData['original']->poste }})
+                        @if($uData['is_replaced']) [En Intérim] @endif
+                    </option>
+                @endforeach
+            </select>
 
-                                </div>
+            <p class="mt-2 text-[10px] text-blue-400 italic">
+                @if($userPosteValue == 'Directeur')
+                    Sélectionnez votre assistante pour lui envoyer le dossier.
+                @else
+                    Maintenez Ctrl pour sélectionner plusieurs personnes.
+                @endif
+            </p>
+            @error('selected_standard_users') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+
+        {{-- CAS 2 : MODE AUTOMATIQUE (Manager N+1 trouvé) --}}
+        @elseif($managerData)
+            <p class="text-xs font-bold text-blue-500 uppercase mb-3">Destinataire Final (N+1)</p>
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <div class="h-10 w-10 rounded-full {{ $managerData['is_replaced'] ? 'bg-orange-200 text-orange-700' : 'bg-blue-200 text-blue-700' }} flex items-center justify-center font-bold shadow-sm">
+                        {{ substr($managerData['effective']->first_name, 0, 1) }}{{ substr($managerData['effective']->last_name, 0, 1) }}
+                    </div>
+                </div>
+                <div class="ml-3 flex-1">
+                    <p class="text-sm font-bold text-gray-900">
+                        {{ $managerData['effective']->first_name }} {{ $managerData['effective']->last_name }}
+                    </p>
+                    <p class="text-xs text-gray-500">{{ $managerData['original']->poste }}</p>
+                    @if($managerData['is_replaced'])
+                         <span class="text-[10px] text-orange-600 font-bold">Remplace {{ $managerData['original']->first_name }}</span>
+                    @endif
+                </div>
+            </div>
+
+        {{-- CAS 3 : ERREUR DE CONFIGURATION --}}
+        @else
+            <div class="text-red-600 text-sm bg-red-50 p-3 rounded border border-red-200 flex flex-col gap-1">
+                <div class="flex items-center gap-2 font-bold">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Configuration introuvable
+                </div>
+                <p>
+                    Impossible de déterminer le destinataire. 
+                    Si vous êtes Directeur, assurez-vous qu'une assistante ("Secretaire") existe dans votre Direction.
+                    Sinon, vérifiez votre N+1.
+                </p>
+            </div>
+        @endif
+    </div>
+@endif
 
                                 <!-- VISA & COMMENTAIRE (Commun) -->
                                 <div class="space-y-4 pt-2">

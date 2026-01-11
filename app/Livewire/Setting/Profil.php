@@ -31,6 +31,9 @@ class Profil extends Component
 
     public $searchManager = ''; 
     public $searchDirection = '';
+    public $searchSousDirection = '';
+    public $searchDepartement = '';
+    public $searchService = '';
 
     public $darkMode = false; // État du mode sombre
 
@@ -69,25 +72,191 @@ class Profil extends Component
         $this->serv_id = $this->user->serv_id;
         $this->manager_id = $this->user->manager_id;
 
-        if ($this->dir_id) { $this->sous_directions = Entity::where('upper_id', $this->dir_id)->get(); }
-        if ($this->sd_id) { $this->departements = Entity::where('upper_id', $this->sd_id)->get(); }
-        if ($this->dep_id) { $this->services = Entity::where('upper_id', $this->dep_id)->get(); }
+        // Initialisation du champ de recherche Manager
+        if ($this->user->manager_id) {
+            $manager = User::find($this->user->manager_id);
+            // On vérifie si le manager existe toujours
+            if ($manager) {
+                $this->searchManager = $manager->first_name . ' ' . $manager->last_name;
+            }
+        }
+
+       // 1. Direction
+        $this->entites = Entity::where('type', 'Direction')->get();
+        if ($this->user->dir_id) {
+            $dir = $this->entites->firstWhere('id', $this->user->dir_id);
+            if ($dir) $this->searchDirection = $dir->name;
+            
+            // Charge les Sous-Directions
+            $this->sous_directions = Entity::where('upper_id', $this->user->dir_id)->get();
+        }
+
+        // 2. Sous-Direction
+        if ($this->user->sd_id) {
+            $sd = $this->sous_directions->firstWhere('id', $this->user->sd_id);
+            if ($sd) $this->searchSousDirection = $sd->name;
+
+            // Charge les Départements
+            $this->departements = Entity::where('upper_id', $this->user->sd_id)->get();
+        }
+
+        // 3. Département
+        if ($this->user->dep_id) {
+            $dep = $this->departements->firstWhere('id', $this->user->dep_id);
+            if ($dep) $this->searchDepartement = $dep->name;
+
+            // Charge les Services
+            $this->services = Entity::where('upper_id', $this->user->dep_id)->get();
+        }
+
+        // 4. Service
+        if ($this->user->serv_id) {
+            $serv = $this->services->firstWhere('id', $this->user->serv_id);
+            if ($serv) $this->searchService = $serv->name;
+        }
     }
 
-    // Modifiez le rendu ou créez une propriété calculée
+    // 1. REINITIALISATION EN CASCADE
+    public function updatedDirId($value)
+    {
+        $this->sous_directions = Entity::where('upper_id', $value)->get();
+        
+        // Reset des entités enfants
+        $this->sd_id = $this->dep_id = $this->serv_id = null;
+        $this->searchSousDirection = $this->searchDepartement = $this->searchService = '';
+        $this->departements = $this->services = [];
+
+        // --- IMPORTANT : Reset du Manager quand la direction change ---
+        // Car les managers de l'ancienne direction ne sont plus valides
+        $this->manager_id = null;
+        $this->searchManager = '';
+    }
+
+    public function getFilteredDirectionsProperty()
+    {
+        // Si la recherche est vide, on peut soit ne rien retourner, 
+        // soit retourner toutes les directions (ici je retourne tout pour le confort)
+        if (empty($this->searchDirection)) {
+            return $this->entites;
+        }
+
+        $searchTerm = strtolower($this->searchDirection);
+        
+        // On filtre la collection $this->entites (déjà chargée dans mount)
+        return $this->entites->filter(function($entite) use ($searchTerm) {
+            return str_contains(strtolower($entite->name), $searchTerm) || 
+                str_contains(strtolower($entite->ref ?? ''), $searchTerm);
+        });
+    }
+
+   public function getFilteredSousDirectionsProperty()
+    {
+        if (empty($this->searchSousDirection)) return $this->sous_directions;
+        
+        $search = strtolower($this->searchSousDirection);
+        
+        return $this->sous_directions->filter(function($i) use ($search) {
+            return str_contains(strtolower($i->name), $search) || 
+                str_contains(strtolower($i->ref ?? ''), $search);
+        });
+    }
+
+    public function getFilteredDepartementsProperty()
+    {
+        if (empty($this->searchDepartement)) return $this->departements;
+        
+        $search = strtolower($this->searchDepartement);
+
+        return $this->departements->filter(function($i) use ($search) {
+            return str_contains(strtolower($i->name), $search) || 
+                str_contains(strtolower($i->ref ?? ''), $search);
+        });
+    }
+
+    public function getFilteredServicesProperty()
+    {
+        if (empty($this->searchService)) return $this->services;
+        
+        $search = strtolower($this->searchService);
+
+        return $this->services->filter(function($i) use ($search) {
+            return str_contains(strtolower($i->name), $search) || 
+                str_contains(strtolower($i->ref ?? ''), $search);
+        });
+    }
+
+    // 2. FILTRE STRICT PAR DIRECTION
     public function getFilteredManagersProperty()
     {
-        if (empty($this->searchManager)) {
-            return $this->user_all;
+        // Si aucune direction n'est sélectionnée, on ne propose personne
+        if (empty($this->dir_id)) {
+            return collect();
         }
 
         $searchTerm = strtolower($this->searchManager);
-        
-        return $this->user_all->filter(function($user) use ($searchTerm) {
-            return str_contains(strtolower($user->first_name), $searchTerm) || 
-                str_contains(strtolower($user->last_name), $searchTerm);
-        });
+
+        // On cherche les utilisateurs :
+        // - Qui sont dans la même direction (dir_id)
+        // - Qui ne sont pas moi-même (id != user->id)
+        // - Qui correspondent à la recherche (Nom ou Prénom)
+        return User::where('dir_id', $this->dir_id)
+            ->where('id', '!=', $this->user->id) 
+            ->where(function($q) use ($searchTerm) {
+                $q->where('first_name', 'like', "%{$searchTerm}%")
+                ->orWhere('last_name', 'like', "%{$searchTerm}%");
+            })
+            ->get();
     }
+
+    // Méthode appelée quand on clique sur une direction dans la liste
+    public function selectDirection($id, $name)
+    {
+        $this->dir_id = $id;
+        $this->searchDirection = $name; // Met le nom dans le champ texte
+        
+        // On déclenche manuellement la logique de cascade (chargement sous-directions)
+        // car updatedDirId ne se déclenche parfois pas si on set la valeur directement
+        $this->updatedDirId($id); 
+    }
+
+     public function selectSousDirection($id, $name)
+    {
+        $this->sd_id = $id;
+        $this->searchSousDirection = $name;
+        $this->updatedSdId($id); // Déclenche le chargement des départements
+    }
+
+    public function selectDepartement($id, $name)
+    {
+        $this->dep_id = $id;
+        $this->searchDepartement = $name;
+        $this->updatedDepId($id); // Déclenche le chargement des services
+    }
+
+    public function selectService($id, $name)
+    {
+        $this->serv_id = $id;
+        $this->searchService = $name;
+    }
+
+    // 3. SÉLECTION AVEC VÉRIFICATION (Double sécurité)
+    public function selectManager($id, $name)
+    {
+        $targetManager = User::find($id);
+
+        // Sécurité : Si l'utilisateur tente de forcer un ID via l'inspecteur
+        if ($targetManager && $targetManager->dir_id != $this->dir_id) {
+            $this->addError('manager_id', "Ce manager ne fait pas partie de votre direction.");
+            return;
+        }
+
+        $this->manager_id = $id;
+        $this->searchManager = $name;
+    }
+
+    
+
+    
 
     /**
      * ÉCOUTEUR DARK MODE
@@ -101,12 +270,7 @@ class Profil extends Component
     /**
      * LOGIQUE DE MISE À JOUR DYNAMIQUE
      */
-    public function updatedDirId($value)
-    {
-        $this->sous_directions = Entity::where('upper_id', $value)->get();
-        $this->sd_id = $this->dep_id = $this->serv_id = null;
-        $this->departements = $this->services = [];
-    }
+    
 
     public function updatedSdId($value)
     {

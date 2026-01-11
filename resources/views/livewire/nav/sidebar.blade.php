@@ -153,7 +153,7 @@
                  
             <div class="flex flex-col whitespace-nowrap transition-opacity duration-300 ease-in-out {{ $isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100' }}">
                 <span class="font-bold text-sm text-main">{{ auth()->user()->user_name }}</span>
-                <span class="text-xs text-gray-400">{{ auth()->user()->poste ?? 'Utilisateur' }}</span>
+                <span class="text-xs text-gray-400">{{ auth()->user()->poste?->value ?? 'Utilisateur' }}</span>
             </div>
         </div>
     </div>

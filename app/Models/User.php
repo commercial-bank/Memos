@@ -50,10 +50,19 @@ class User extends Authenticatable implements LdapAuthenticatable
     ];
 
     protected $casts = [
-        'poste' => Poste::class,
+        'poste' => \App\Enums\Poste::class,
         // ... vos autres casts
     ];
 
+ 
+    protected function poste(): Attribute
+    {
+        return Attribute::make(
+            // Si la base de données renvoie une chaîne vide "", on la convertit en NULL
+            // pour que le casting Enum ne plante pas.
+            get: fn ($value) => $value === '' ? null : $value,
+        );
+    }
 
     public function memos()
     {
@@ -172,7 +181,6 @@ class User extends Authenticatable implements LdapAuthenticatable
         $requiredFields = [
             'poste',
             'dir_id',
-            'sd_id'
         ];
 
         foreach ($requiredFields as $field) {

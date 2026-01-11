@@ -212,7 +212,7 @@
     <footer>
         <!-- BLOC DE VALIDATION DÉPLACÉ ICI -->
         <!-- BLOC DE VALIDATION DYNAMIQUE -->
-        @if(!empty($memo->signature_dir) && isset($director))
+        @if(!empty($memo->qr_code) && isset($director))
             <div class="footer-validation">
                 <div class="validation-text">Le présent document a été validé par :</div>
                 <span class="validator-name">
@@ -233,7 +233,7 @@
             @endif
         </div>
         <div class="ref-text">
-            dfdfdf | Généré le {{ now()->format('d/m/Y') }}
+            FOR-ME-07-V1 | Généré le {{ now()->format('d/m/Y') }}
         </div>
         
         <!-- NUMÉROTATION DE PAGE -->

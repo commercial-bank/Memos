@@ -20,6 +20,7 @@ use Livewire\WithFileUploads;
 use App\Traits\ManageFavorites;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
+use PHPMailer\PHPMailer\PHPMailer;
 use App\Models\BlocEnregistrements;
 use Illuminate\Support\Facades\Auth;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -75,6 +76,7 @@ class IncomingMemos extends Component
     public $projectUsersList = [];  
     public $selected_project_users = [];
     public $target_users_ids = [];
+    public $isCircuitLocked = false; 
 
     // --- Variables de Rejet ---
     public $reject_comment = '';
@@ -118,6 +120,8 @@ class IncomingMemos extends Component
     public $isSecretary = false;
     public $standardRecipientsList = []; // Liste Director + Sous-directeurs
     public $selected_standard_users = []; // Les IDs sélectionnés en mode Standard
+
+    
 
 
     // =========================================================
@@ -238,76 +242,57 @@ class IncomingMemos extends Component
             ->get()
             ->keyBy('user_id');
 
-        // --- 1. DÉTECTION INTELLIGENTE DE LA SUITE DU CIRCUIT (PROJET) ---
-        // On regarde la liste globale des participants (current_holders) et l'historique (previous_holders)
-        
-        $currentHolders  = is_array($memo->current_holders) ? $memo->current_holders : json_decode($memo->current_holders, true) ?? [];
-        $previousHolders = is_array($memo->previous_holders) ? $memo->previous_holders : json_decode($memo->previous_holders, true) ?? [];
-
-        // IDs déjà traités (Historique + Moi-même)
-        $processedIds = array_merge($previousHolders, [$currentUser->id]);
-
-        // Prochains potentiels = Tous les participants MOINS ceux qui ont déjà traité
-        $remainingIds = array_diff($currentHolders, $processedIds);
-        
-        // On réindexe le tableau (0, 1, 2...)
-        $remainingIds = array_values($remainingIds);
-        
-        $nextUserId = null;
-        $isProjectMode = false;
-
-        // Si current_holders contient plus que juste l'expéditeur et moi, c'est probablement un circuit
-        if (count($currentHolders) > 2 || count($remainingIds) > 0) {
-            
-            if (!empty($remainingIds)) {
-                // CAS 1: Il reste des gens dans la chaîne (Ex: B vers C)
-                $nextUserId = $remainingIds[0]; // On prend le premier de la liste restante
-                $isProjectMode = true;
-            } else {
-                // CAS 2: Fin de chaîne, mais c'était un projet.
-                // Logique demandée : "User C dernier maillon -> Envoyer à la Secrétaire de sa direction"
-                
-                // On vérifie si le mémo avait plusieurs détenteurs (donc mode projet)
-                if (count($currentHolders) > 1) {
-                    $secretary = User::where('dir_id', $currentUser->dir_id)
-                        ->where('poste', 'like', '%Secretaire%')
-                        ->first();
-                    
-                    if ($secretary) {
-                        $nextUserId = $secretary->id;
-                        $isProjectMode = true;
-                    }
-                }
-            }
-        }
+        $this->memo_type = $memo->circuit_type ?? 'standard'; 
 
         // --- 2. CONFIGURATION DE L'INTERFACE SELON LA DÉTECTION ---
 
-        if ($isProjectMode && $nextUserId) {
-            // Mode PROJET détecté
-            $this->memo_type = 'projet';
-            $this->selected_project_users = [$nextUserId];
-            
-            // On récupère l'info utilisateur pour l'afficher joliment dans la vue
-            $nextUser = User::find($nextUserId);
-            if ($nextUser) {
-                $this->suggestedNextUser = $nextUser;
-            }
+        if ($this->memo_type === 'projet') {
 
-            // On s'assure que cet utilisateur est dans la liste déroulante (projectUsersList)
-            // On charge TOUS les utilisateurs sauf moi et mon manager pour la liste de recherche
-            $excludeIds = array_filter([$currentUser->id, $currentUser->manager_id]);
-            $this->projectUsersList = User::whereNotIn('id', $excludeIds)
-                ->orderBy('last_name')
-                ->get()
-                ->map(fn($user) => $this->resolveUserAvailability($user, $activeReplacements));
+                // Mode PROJET détecté
+                $this->isCircuitLocked = true;
+
+                $path = is_array($memo->circuit_path) ? $memo->circuit_path : json_decode($memo->circuit_path, true);
+                
+            if (!empty($path)) 
+            {
+                // Trouver la position de l'utilisateur actuel (ou de celui qu'il remplace)
+                // On cherche l'ID de l'utilisateur courant dans le tableau
+                $currentIndex = array_search($currentUser->id, $path);
+                
+                // Si l'utilisateur n'est pas trouvé, peut-être est-il remplaçant ?
+                if ($currentIndex === false) {
+                    // Logique pour trouver si je remplace quelqu'un qui est dans la liste
+                    // (Simplifié ici, mais à adapter selon votre logique ReplacesUser)
+                }
+
+                if ($currentIndex !== false && isset($path[$currentIndex + 1])) {
+                    // LE PROCHAIN EST DÉFINI PAR L'INDEX SUIVANT
+                    $nextUserId = $path[$currentIndex + 1];
+                    
+                    $nextUser = User::find($nextUserId);
+                    
+                    if ($nextUser) {
+                        // On pré-remplit la sélection et on suggère l'utilisateur
+                        $this->selected_project_users = [$nextUser->id];
+                        $this->suggestedNextUser = $nextUser;
+                        
+                        // On limite la liste déroulante à CE SEUL utilisateur pour empêcher le changement
+                        $this->projectUsersList = collect([
+                            $this->resolveUserAvailability($nextUser, $activeReplacements)
+                        ]);
+                    }
+                } else {
+                    // Fin de chaîne ou erreur : On peut fallback sur la secrétaire par défaut si non définie
+                    $this->addError('general', 'Fin du circuit défini ou utilisateur non trouvé dans le chemin.');
+                }
+            }
 
         } else {
             // Mode STANDARD (Comportement par défaut)
             $this->memo_type = 'standard';
             $this->suggestedNextUser = null;
             
-            // Chargement normal des listes Standard
+            // Conversion sécurisée du poste pour la comparaison
             $posteString = is_object($currentUser->poste) ? $currentUser->poste->value : (string)$currentUser->poste;
             
             if ($posteString == 'Directeur' && !$currentUser->manager_id) {
@@ -374,19 +359,26 @@ class IncomingMemos extends Component
         $nextHolders = [];
         if ($this->memo_type === 'standard') {
 
-             // Si c'est une secrétaire OU un Directeur sans manager (qui a donc utilisé la liste multi-sélection)
-            if ($this->isSecretary || ($user->poste == 'Directeur' && !$user->manager_id)) {
-                $selectedUsers = User::whereIn('id', $this->selected_standard_users)->get();
-                foreach ($selectedUsers as $u) {
-                    $avail = $this->resolveUserAvailability($u, $activeReplacements);
-                    $nextHolders[] = $avail['effective']->id;
+          if (!empty($this->selected_standard_users)) {
+        
+                $targets = User::whereIn('id', $this->selected_standard_users)->get();
+                
+                foreach ($targets as $target) {
+                    $avail = $this->resolveUserAvailability($target, $activeReplacements);
+                    // On ajoute l'ID de la personne effective (le titulaire ou son remplaçant)
+                    if ($avail) $nextHolders[] = $avail['effective']->id;
                 }
-            } else {
-                // Manager direct habituel
+
+            }  
+            // Cas 3 : Cas Standard (ni Directeur, ni Secrétaire)
+            else {
+                // On prend le Manager direct (N+1) habituel
                 if ($user->manager_id) {
                     $manager = User::find($user->manager_id);
-                    $avail = $this->resolveUserAvailability($manager, $activeReplacements);
-                    $nextHolders[] = $avail['effective']->id;
+                    if ($manager) {
+                        $avail = $this->resolveUserAvailability($manager, $activeReplacements);
+                        $nextHolders[] = $avail['effective']->id;
+                    }
                 }
             }
 
@@ -430,10 +422,30 @@ class IncomingMemos extends Component
             'workflow_comment' => $this->workflow_comment ?? 'Transmis au niveau supérieur',
         ]);
 
+        // 6. BOUCLE D'ENVOI (Correction ici)
+        // On récupère les utilisateurs destinataires (les ID dans $nextHolders)
+        $recipientsList = User::whereIn('id', $nextHolders)->get();
+
+        $notifType = "envoyer";
+        $emailColor = '#2563eb'; // Bleu
+        $emailTitle = "📨 Nouveau Mémo";
+        $actionLabel = "Transmis pour traitement";
+
         // 6. NOTIFICATIONS
         foreach (User::whereIn('id', $nextHolders)->get() as $recipient) {
             try {
                 $recipient->notify(new MemoActionNotification($memo, 'envoyer', $user));
+                $this->sendRejectEmail($memo, $author, $user, $emailTitle, $emailColor, $actionLabel);
+                
+                $this->sendMemoEmail(
+                    $memo, 
+                    $recipient, // C'est lui qui reçoit le mail
+                    $user,      // C'est vous qui avez fait l'action
+                    $emailTitle, 
+                    $emailColor, 
+                    $actionLabel
+                );
+
             } catch (\Exception $e) {}
         }
 
@@ -702,7 +714,7 @@ class IncomingMemos extends Component
     // 6. GESTION DU REJET
     // =========================================================
 
-    public function askReject($id, $mode = 'archive')
+    public function askReject($id, $mode)
     {
         $this->memo_id = $id;
         $this->reject_mode = $mode; // Stocke si on archive ou si on retourne
@@ -722,6 +734,7 @@ class IncomingMemos extends Component
         $authorId = [$memo->user_id];
 
         if ($this->reject_mode === 'archive') {
+            
             // CAS 1 : REJETER (ARCHIVAGE DÉFINITIF)
             $memo->update([
                 'status' => 'rejeter',
@@ -730,7 +743,11 @@ class IncomingMemos extends Component
             ]);
             $actionLabel = "Rejet définitif (Archivé)";
             $notifType = "rejeter";
+            $emailColor = '#ef4444'; // Rouge
+            $emailTitle = "⛔ Mémo Rejeté";
+
         } else {
+
             // CAS 2 : RETOURNER (POUR CORRECTION)
             $memo->update([
                 'status' => 'retourner',
@@ -739,6 +756,8 @@ class IncomingMemos extends Component
             ]);
             $actionLabel = "Retourné pour correction";
             $notifType = "retourner";
+            $emailColor = '#f59e0b'; // Orange
+            $emailTitle = "↩️ Mémo Retourné";
         }
 
         // Historique
@@ -754,11 +773,269 @@ class IncomingMemos extends Component
         if ($author) {
             try { 
                 $author->notify(new MemoActionNotification($memo, $notifType, $user)); 
+                $this->sendRejectEmail($memo, $author, $user, $emailTitle, $emailColor, $actionLabel);
             } catch (\Exception $e) {}
         }
 
         $this->closeRejectModal();
         $this->dispatch('notify', message: "Action effectuée : $actionLabel");
+    }
+
+
+        /**
+     * Envoie l'email de Rejet ou de Retour via PHPMailer
+     */
+    private function sendRejectEmail($memo, $recipient, $actor, $title, $color, $actionLabel)
+    {
+        if (empty($recipient->email)) return;
+
+        try {
+            $mail = new PHPMailer(true);
+
+            // Configuration SMTP
+            $mail->isSMTP();
+            $mail->Host = env('MAIL_HOST', 'smtp.gie.local');
+            $mail->SMTPAuth = false;
+            $mail->Port = env('MAIL_PORT', 25);
+            $mail->SMTPSecure = false;
+            $mail->SMTPAutoTLS = false;
+            $mail->CharSet = 'UTF-8';
+            
+            $mail->SMTPOptions = [
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                ]
+            ];
+
+            // Expéditeur
+            $mail->setFrom(
+                env('MAIL_FROM_ADDRESS', 'cbc_infos@groupecommercialbank.com'),
+                env('MAIL_FROM_NAME', 'CBC MEMOS')
+            );
+
+            // Destinataire
+            $mail->addAddress($recipient->email, $recipient->first_name . ' ' . $recipient->last_name);
+
+            // Contenu
+            $mail->isHTML(true);
+            $mail->Subject = "$title : " . $memo->object;
+            
+            $mail->Body = $this->buildRejectEmailBody($memo, $recipient, $actor, $title, $color, $actionLabel);
+            
+            // Texte brut (Fallback)
+            $mail->AltBody = "Bonjour, votre mémo '{$memo->object}' a été : $actionLabel par {$actor->first_name} {$actor->last_name}.\nMotif : {$this->reject_comment}";
+
+            $mail->send();
+
+        } catch (Exception $e) {
+            Log::error("Erreur envoi email rejet mémo #{$memo->id}: " . $mail->ErrorInfo);
+        }
+    }
+
+    /**
+     * Construit le HTML de l'email (Design Rouge ou Orange)
+     */
+    private function buildRejectEmailBody($memo, $recipient, $actor, $title, $color, $actionLabel)
+    {
+        $recipientName = $recipient->first_name . ' ' . $recipient->last_name;
+        $actorName = $actor->first_name . ' ' . $actor->last_name;
+        $actorPoste = $actor->poste->value ?? $actor->poste; // Gère Enum ou String
+        
+        // Si c'est retourné, on renvoie vers les brouillons ou envoyés pour modification
+        // Si c'est rejeté, on renvoie vers l'historique/archives
+        $targetTab = ($this->reject_mode === 'archive') ? 'archives' : 'drafted'; // ou 'document' selon votre logique
+        
+        $memoUrl = route('dashboard', [
+            'view' => 'memos-content', 
+            'tab' =>  'document'
+        ]);
+
+        return "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset='UTF-8'>
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f5; }
+                .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                .header { background-color: {$color}; padding: 30px; text-align: center; }
+                .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: bold; text-transform: uppercase; }
+                .content { padding: 30px; }
+                .alert-box { background-color: #fff1f2; border-left: 4px solid {$color}; padding: 15px; margin: 20px 0; border-radius: 4px; }
+                .info-label { font-size: 12px; font-weight: bold; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+                .info-value { font-size: 15px; color: #111827; margin-bottom: 12px; font-weight: 500; }
+                .comment-box { background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; font-style: italic; color: #4b5563; margin-top: 5px; }
+                .btn { display: inline-block; padding: 12px 24px; background-color: {$color}; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; }
+                .footer { background-color: #1f2937; color: #9ca3af; padding: 20px; text-align: center; font-size: 12px; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>{$title}</h1>
+                </div>
+                
+                <div class='content'>
+                    <p>Bonjour <strong>{$recipientName}</strong>,</p>
+                    
+                    <p>Le statut de votre mémorandum a été mis à jour par <strong>{$actorName}</strong> ({$actorPoste}).</p>
+                    
+                    <div class='alert-box'>
+                        <div class='info-label'>Objet du Mémo</div>
+                        <div class='info-value'>{$memo->object}</div>
+                        
+                        <div class='info-label'>Action</div>
+                        <div class='info-value' style='color: {$color};'>{$actionLabel}</div>
+                    </div>
+
+                    <div class='info-label'>Motif / Commentaire :</div>
+                    <div class='comment-box'>
+                        « {$this->reject_comment} »
+                    </div>
+
+                    <div style='text-align: center;'>
+                        <a href='{$memoUrl}' class='btn'>Accéder au Document</a>
+                    </div>
+                </div>
+                
+                <div class='footer'>
+                    <p><strong>Commercial Bank Cameroun</strong> - Système de Gestion des Mémos</p>
+                    <p>Ceci est un message automatique, merci de ne pas répondre.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+    }
+
+
+    
+        /**
+     * Envoie l'email de Rejet ou de Retour via PHPMailer
+     */
+    private function sendMemoEmail($memo, $recipient, $actor, $title, $color, $actionLabel)
+    {
+        if (empty($recipient->email)) return;
+
+        try {
+            $mail = new PHPMailer(true);
+
+            // Configuration SMTP
+            $mail->isSMTP();
+            $mail->Host = env('MAIL_HOST', 'smtp.gie.local');
+            $mail->SMTPAuth = false;
+            $mail->Port = env('MAIL_PORT', 25);
+            $mail->SMTPSecure = false;
+            $mail->SMTPAutoTLS = false;
+            $mail->CharSet = 'UTF-8';
+            
+            $mail->SMTPOptions = [
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                ]
+            ];
+
+            // Expéditeur
+            $mail->setFrom(
+                env('MAIL_FROM_ADDRESS', 'cbc_infos@groupecommercialbank.com'),
+                env('MAIL_FROM_NAME', 'CBC MEMOS')
+            );
+
+            // Destinataire
+            $mail->addAddress($recipient->email, $recipient->first_name . ' ' . $recipient->last_name);
+
+            // Contenu
+            $mail->isHTML(true);
+            $mail->Subject = "$title : " . $memo->object;
+            
+            $mail->Body = $this->buildSendMemoEmailBody($memo, $recipient, $actor, $title, $color, $actionLabel);
+            
+            // Texte brut (Fallback)
+            $mail->AltBody = "Bonjour, votre mémo '{$memo->object}' a été : $actionLabel par {$actor->first_name} {$actor->last_name}.\nMotif : {$this->reject_comment}";
+
+            $mail->send();
+
+        } catch (Exception $e) {
+            Log::error("Erreur envoi email send mémo #{$memo->id}: " . $mail->ErrorInfo);
+        }
+    }
+
+    /**
+     * Construit le HTML de l'email (Design Rouge ou Orange)
+     */
+    private function buildSendMemoEmailBody($memo, $recipient, $actor, $title, $color, $actionLabel)
+    {
+        $recipientName = $recipient->first_name . ' ' . $recipient->last_name;
+        $actorName = $actor->first_name . ' ' . $actor->last_name;
+        $actorPoste = $actor->poste->value ?? $actor->poste; // Gère Enum ou String
+        
+        
+        
+        $memoUrl = route('dashboard', [
+            'view' => 'memos-content', 
+            'tab' =>  'document'
+        ]);
+
+        return "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset='UTF-8'>
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f5; }
+                .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                .header { background-color: {$color}; padding: 30px; text-align: center; }
+                .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: bold; text-transform: uppercase; }
+                .content { padding: 30px; }
+                .alert-box { background-color: #fff1f2; border-left: 4px solid {$color}; padding: 15px; margin: 20px 0; border-radius: 4px; }
+                .info-label { font-size: 12px; font-weight: bold; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+                .info-value { font-size: 15px; color: #111827; margin-bottom: 12px; font-weight: 500; }
+                .comment-box { background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; font-style: italic; color: #4b5563; margin-top: 5px; }
+                .btn { display: inline-block; padding: 12px 24px; background-color: {$color}; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; }
+                .footer { background-color: #1f2937; color: #9ca3af; padding: 20px; text-align: center; font-size: 12px; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>{$title}</h1>
+                </div>
+                
+                <div class='content'>
+                    <p>Bonjour <strong>{$recipientName}</strong>,</p>
+                    
+                    <p>Le statut de votre mémorandum a été mis à jour par <strong>{$actorName}</strong> ({$actorPoste}).</p>
+                    
+                    <div class='alert-box'>
+                        <div class='info-label'>Objet du Mémo</div>
+                        <div class='info-value'>{$memo->object}</div>
+                        
+                        <div class='info-label'>Action</div>
+                        <div class='info-value' style='color: {$color};'>{$actionLabel}</div>
+                    </div>
+
+                    <div class='info-label'>Motif / Commentaire :</div>
+                    <div class='comment-box'>
+                        « {$this->reject_comment} »
+                    </div>
+
+                    <div style='text-align: center;'>
+                        <a href='{$memoUrl}' class='btn'>Accéder au Document</a>
+                    </div>
+                </div>
+                
+                <div class='footer'>
+                    <p><strong>Commercial Bank Cameroun</strong> - Système de Gestion des Mémos</p>
+                    <p>Ceci est un message automatique, merci de ne pas répondre.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
     }
 
     // =========================================================

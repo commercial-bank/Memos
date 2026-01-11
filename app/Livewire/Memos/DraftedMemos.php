@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Memos;
 
+
 use Carbon\Carbon;
 use App\Models\Memo;
 use App\Models\User;
@@ -38,6 +39,14 @@ class DraftedMemos extends Component
     public $isEditing = false; 
     public $isViewingPdf = false;
     public $search = '';
+    public $darkMode = false;
+
+    // --- Recherche Destinataire ---
+    public $searchRecipient = '';
+    public $newRecipientEntity = null; // ID de l'entité sélectionnée
+    
+    // DRAPEAU CRUCIAL : Empêche le reset lors de la sélection
+    protected $isSelection = false; 
 
     // --- États des Modals ---
     public $isOpen3 = false;     
@@ -61,7 +70,6 @@ class DraftedMemos extends Component
 
     // --- Gestion des Destinataires ---
     public $recipients = []; 
-    public $newRecipientEntity = '';
     public $newRecipientAction = '';
     public $allEntities = []; 
 
@@ -367,6 +375,8 @@ class DraftedMemos extends Component
                 'previous_holders'   => [$user->id], 
                 'current_holders'    => array_unique($nextHolders), // Puisque c'est le 1er envoi
                 'treatment_holders'  => array_unique($nextHolders),
+                'circuit_type' => 'standard', // <--- AJOUT
+                'circuit_path' => null,       // <--- AJOUT
             ]);
 
             // 5. ENREGISTREMENT DES DESTINATAIRES DANS LA TABLE 'destinataires'
@@ -456,6 +466,8 @@ class DraftedMemos extends Component
                 'current_holders'    => array_values(array_unique(array_merge([$user->id], $fullChainIds))),
                 // Seul le PREMIER maillon peut traiter pour l'instant
                 'treatment_holders'  => $nextHolders, 
+                'circuit_type' => 'projet',           // <--- AJOUT
+                'circuit_path' => $fullChainIds,
             ]);
 
             // 5. Enregistrement des destinataires (Entités finales)
@@ -484,6 +496,9 @@ class DraftedMemos extends Component
                     $recipient->notify(new MemoActionNotification($memo, 'envoyer', $user));
                 } catch (\Exception $e) {}
             }
+
+            // *** ENVOI EMAIL STANDARD ICI ***
+            $this->sendEmailNotification($memo, $nextHolders, $user);
 
             
 
@@ -591,7 +606,10 @@ class DraftedMemos extends Component
         $senderName = $sender->first_name . ' ' . $sender->last_name;
         $senderPoste = is_object($sender->poste) ? $sender->poste->value : $sender->poste;
         $recipientName = $recipient->first_name . ' ' . $recipient->last_name;
-        $memoUrl = route('dashboard'); // Ajustez selon votre routing
+        $memoUrl = route('dashboard', [
+            'view' => 'memos-content', // Pour charger le bon composant (selon votre logique de routing)
+            'tab'  => 'incoming'       // <--- C'est ici que la magie opère
+        ]);
         
         return "
         <!DOCTYPE html>
@@ -664,7 +682,7 @@ class DraftedMemos extends Component
                     </div>
                     
                     <div style='text-align: center;'>
-                        <a href='http://127.0.0.1:8000/dashboard?tab=memos&view=memos-content' class='btn'>Consulter le Mémo</a>
+                        <a href={$memoUrl}' class='btn'>Consulter le Mémo</a>
                     </div>
                     
                     <p style='margin-top: 30px; font-size: 13px; color: #6b7280;'>
@@ -676,9 +694,6 @@ class DraftedMemos extends Component
                 <div class='footer'>
                     <p><strong>Commercial Bank Cameroun</strong></p>
                     <p>Cet email a été généré automatiquement par le système CBC MEMOS. Merci de ne pas y répondre.</p>
-                    <p style='margin-top: 10px;'>
-                        <a href='{$memoUrl}'>Accéder à la plateforme</a>
-                    </p>
                 </div>
             </div>
         </body>
@@ -842,19 +857,88 @@ class DraftedMemos extends Component
         ];
     }
 
-    public function addRecipient()
+     public function getFilteredEntitiesProperty()
     {
-        $this->validate(['newRecipientEntity' => 'required', 'newRecipientAction' => 'required']);
-        $entity = Entity::find($this->newRecipientEntity);
-        $this->recipients[] = [
-            'entity_id'   => $entity->id,
-            'entity_name' => $entity->name,
-            'action'      => $this->newRecipientAction
-        ];
-        $this->reset(['newRecipientEntity', 'newRecipientAction']);
+        if (empty($this->searchRecipient)) {
+            return [];
+        }
+
+        $term = '%' . $this->searchRecipient . '%';
+
+        return Entity::whereIn('type', ['Direction', 'Sous-Direction'])
+            ->where(function($q) use ($term) {
+                $q->where('name', 'like', $term)
+                  ->orWhere('ref', 'like', $term);
+            })
+            ->orderBy('name', 'asc')
+            ->limit(10)
+            ->get();
     }
 
-    public function removeRecipient($index) {
+    /**
+     * 4. Ajoute à la liste temporaire
+     * 
+     * 
+     */
+     /**
+     * 1. Détecte quand l'utilisateur tape dans le champ
+     */
+    public function updatedSearchRecipient()
+    {
+        // Si le changement vient d'un clic (flag true), on ne fait rien
+        // et on remet le flag à false pour la prochaine frappe.
+        if ($this->isSelection) {
+            $this->isSelection = false;
+            return;
+        }
+
+        // Sinon, c'est que l'utilisateur tape : on invalide l'ID précédent
+        $this->newRecipientEntity = null;
+    }
+
+    /**
+     * 2. Sélectionne une entité depuis la liste
+     */
+    public function selectRecipientEntity($id, $name)
+    {
+        $this->isSelection = true; // On active le drapeau
+        $this->newRecipientEntity = $id;
+        $this->searchRecipient = $name; // Met à jour le texte affiché
+    }
+ 
+    public function addRecipient()
+    {
+        // Validation
+        $this->validate([
+            'newRecipientEntity' => 'required|integer|exists:entities,id',
+            'newRecipientAction' => 'required|string'
+        ], [
+            'newRecipientEntity.required' => 'Veuillez sélectionner une entité valide dans la liste.', 
+            'newRecipientAction.required' => 'Veuillez choisir une action.'
+        ]);
+
+        // Vérification doublon
+        if (collect($this->recipients)->contains('entity_id', $this->newRecipientEntity)) {
+            $this->addError('newRecipientEntity', 'Cette entité est déjà dans la liste.');
+            return;
+        }
+
+        $entity = Entity::find($this->newRecipientEntity);
+
+        if ($entity) {
+            $this->recipients[] = [
+                'entity_id'   => $entity->id,
+                'entity_name' => $entity->name,
+                'action'      => $this->newRecipientAction
+            ];
+
+            // Reset complet pour la prochaine entrée
+            $this->reset(['newRecipientEntity', 'newRecipientAction', 'searchRecipient']);
+        }
+    }
+
+    public function removeRecipient($index)
+    {
         unset($this->recipients[$index]);
         $this->recipients = array_values($this->recipients);
     }

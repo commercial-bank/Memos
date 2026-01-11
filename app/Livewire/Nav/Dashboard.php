@@ -94,13 +94,40 @@ class Dashboard extends Component
         return ['categories' => $categories, 'series' => $series];
     }
 
-    public function render()
+   public function render()
     {
         $userId = Auth::id();
         $user = Auth::user();
-        
-        $totalMemosSortants  = Memo::whereJsonContains('current_holders', $userId)->where('workflow_direction', "sortant")->count();
-        $totalMemosEntrants  = Memo::whereJsonContains('current_holders', $userId)->where('workflow_direction', "entrant")->count();  
+
+        // Récupération des IDs des entités de l'utilisateur pour le filtrage des entrants
+        // (On prend le Service, Département, Sous-Direction et Direction)
+        $userEntityIds = array_filter([
+            $user->serv_id,
+            $user->dep_id,
+            $user->sd_id,
+            $user->dir_id
+        ]);
+
+        // 1. COMPTAGE DES MÉMOS SORTANTS
+        // Logique : Créés par quelqu'un de ma direction + Je suis détenteur
+        $totalMemosSortants = Memo::query()
+            ->whereHas('user', function($query) use ($user) {
+                $query->where('dir_id', $user->dir_id);
+            })
+            ->whereJsonContains('current_holders', $user->id)
+            ->count();
+
+        // 2. COMPTAGE DES MÉMOS ENTRANTS
+        // Logique : Workflow entrant + Adressé à une de mes entités + Je suis détenteur
+        $totalMemosEntrants = Memo::query()
+            ->where('workflow_direction', 'entrant')
+            ->whereJsonContains('current_holders', $user->id)
+            ->whereHas('destinataires', function($query) use ($userEntityIds) {
+                $query->whereIn('entity_id', $userEntityIds);
+            })
+            ->count();
+
+        // 3. Autres données (Favoris, Graphiques, Historique)
         $favoritesCount = $user->favorites ? $user->favorites()->count() : 0;
         $chartData = $this->getChartData();
 
