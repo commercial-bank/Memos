@@ -437,7 +437,7 @@ class IncomingMemos extends Component
                 $recipient->notify(new MemoActionNotification($memo, 'envoyer', $user));
                 $this->sendRejectEmail($memo, $author, $user, $emailTitle, $emailColor, $actionLabel);
                 
-                $this->sendMemoEmail(
+                $this->sendMemoEmailNotification(
                     $memo, 
                     $recipient, // C'est lui qui reçoit le mail
                     $user,      // C'est vous qui avez fait l'action
@@ -915,7 +915,7 @@ class IncomingMemos extends Component
         /**
      * Envoie l'email de Rejet ou de Retour via PHPMailer
      */
-    private function sendMemoEmail($memo, $recipient, $actor, $title, $color, $actionLabel)
+    private function sendMemoEmailNotification($memo, $recipient, $actor, $title, $color, $actionLabel)
     {
         if (empty($recipient->email)) return;
 
