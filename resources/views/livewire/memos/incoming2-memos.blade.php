@@ -539,84 +539,120 @@
                                                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                                                     <div class="flex items-center justify-center space-x-3">
 
-                                                        <!-- APERÇU (Toujours visible) -->
-                                                        <button wire:click="viewMemo({{ $memo->id }})" class="text-gray-400 hover:text-blue-600 transition-colors" title="Aperçu">
+                                                        @php
+                                                            $userId = Auth::id();
+                                                            
+                                                            // 1. Décodage sécurisé de treatment_holders
+                                                            $holders = $memo->treatment_holders;
+                                                            if (is_string($holders)) {
+                                                                $holders = json_decode($holders, true);
+                                                            }
+                                                            $holders = is_array($holders) ? $holders : [];
+
+                                                            // 2. Vérification stricte du droit de traitement
+                                                            // On s'assure de comparer des entiers
+                                                            $canTreat = in_array((int)$userId, array_map('intval', $holders));
+                                                        @endphp
+
+                                                        <!-- ======================================================= -->
+                                                        <!-- ZONE 1 : ACTIONS DE LECTURE (Toujours visibles)         -->
+                                                        <!-- ======================================================= -->
+
+                                                        <!-- APERÇU -->
+                                                        <button wire:click="viewMemo({{ $memo->id }})" class="text-gray-400 hover:text-blue-600 transition-colors" title="Aperçu du document">
                                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                                         </button>
 
-                                                        @php
-                                                            // 1. On récupère les entités de l'utilisateur (Direction et Sous-Direction)
-                                                            $userEntities = array_filter([Auth::user()->dir_id, Auth::user()->sd_id]);
+                                                        <!-- FAVORIS -->
+                                                         <button wire:click="toggleFavorite({{ $memo->id }})" 
+                                                            class="transition-colors duration-200 {{ $memo->is_favorited ? 'text-yellow-400 hover:text-yellow-500' : 'text-gray-300 hover:text-yellow-400' }}" 
+                                                            title="{{ $memo->is_favorited ? 'Retirer des favoris' : 'Ajouter aux favoris' }}">
+                                                            @if($memo->is_favorited)
+                                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                                            @else
+                                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
+                                                            @endif
+                                                        </button>
 
-                                                            // 2. On cherche si l'une de ces entités est destinataire de ce mémo
-                                                            $monStatutDest = $memo->destinataires
-                                                                ->whereIn('entity_id', $userEntities)
-                                                                ->first();
+                                                        <!-- HORLOGE / HISTORIQUE (Ajouté selon votre demande) -->
+                                                        <!-- Vous pouvez lier ce bouton à une modale d'historique si vous en avez une -->
+                                                        <button wire:click="viewHistory({{ $memo->id }})" class="text-gray-400 hover:text-purple-600 transition-colors" title="Historique & Workflow">
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                            </svg>
+                                                        </button>
 
-                                                            // 3. On vérifie si le traitement est clos pour cette entité
-                                                            // Note : vérifiez si le statut est 'traite' ou 'traité' selon votre seeder
-                                                            $estFiniPourMonEntite = $monStatutDest && in_array($monStatutDest->processing_status, ['traite', 'traité', 'decision_prise', 'repondu']);
-                                                        @endphp
+                                                        <!-- ======================================================= -->
+                                                        <!-- ZONE 2 : ACTIONS DE TRAITEMENT (Conditionnelles)        -->
+                                                        <!-- ======================================================= -->
 
-                                                        @if($estFiniPourMonEntite)
-                                                            <!-- CAS : TRAITEMENT TERMINÉ (Badge Info) -->
-                                                            <div x-data="{ infoOpen: false }">
-                                                                <button @click="infoOpen = true" type="button" class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-green-100 text-green-700 border border-green-200 hover:bg-green-200 transition-colors shadow-sm">
-                                                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
-                                                                    Traité
-                                                                </button>
-                                                                <!-- ... (Votre template x-teleport reste identique) ... -->
-                                                            </div>
-                                                        @else
-                                                            <!-- CAS : ACTIONS DISPONIBLES -->
+                                                        @if($canTreat)
                                                             
-                                                            <!-- FAVORIS -->
-                                                            <button wire:click="toggleFavorite({{ $memo->id }})" class="transition-colors duration-200 {{ $memo->is_favorited ? 'text-yellow-400' : 'text-gray-300' }}" title="Favoris">
-                                                                <svg class="w-5 h-5" fill="{{ $memo->is_favorited ? 'currentColor' : 'none' }}" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
-                                                                </svg>
-                                                            </button>
+                                                            <div class="h-4 w-px bg-gray-300 mx-1"></div> <!-- Séparateur visuel -->
 
                                                             @php
-                                                                // Récupération propre du poste (gère String ou Enum)
+                                                                // Logique métier existante pour déterminer quel bouton afficher
                                                                 $posteRaw = Auth::user()->poste->value ?? Auth::user()->poste;
                                                                 $userPoste = Str::lower($posteRaw);
                                                                 $isSecretaire = Str::contains($userPoste, 'secretaire');
                                                                 $isManager = !$isSecretaire;
 
-                                                                // Vérification de l'action requise pour l'entité
+                                                                // Récupération des infos entité pour savoir si c'est une décision
+                                                                $userEntities = array_filter([Auth::user()->dir_id, Auth::user()->sd_id]);
+                                                                $monStatutDest = $memo->destinataires->whereIn('entity_id', $userEntities)->first();
                                                                 $myAction = $monStatutDest->action ?? '';
                                                                 $isDeciderEntity = Str::contains(Str::lower($myAction), ['décider', 'Prendre position']);
                                                             @endphp
 
-                                                            <!-- TRANSMETTRE -->
+                                                            <!-- 1. TRANSMETTRE (Tout le monde qui a la main peut transmettre) -->
                                                             <button wire:click="transMemo({{ $memo->id }})" wire:loading.attr="disabled" class="text-gray-400 hover:text-indigo-600 transition-colors" title="{{ $isSecretaire ? 'Enregistrer et Transmettre' : 'Transmettre' }}">
                                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                                                             </button>
 
+                                                            <!-- 2. ACTIONS MANAGERS -->
                                                             @if($isManager)
-                                                                <div class="h-4 w-px bg-gray-300 mx-1"></div>
-                                                            
+                                                                
                                                                 @if($isDeciderEntity)
-                                                                    <!-- DÉCIDER -->
-                                                                    <button wire:click="openDecisionModal({{ $memo->id }}, 'accord')" class="text-gray-400 hover:text-green-600 transition-colors" title="Donner Accord">
+                                                                    <!-- OPTION A : DÉCISION (Accord/Refus) -->
+                                                                    <button wire:click="openDecisionModal({{ $memo->id }}, 'accord')" class="text-gray-400 hover:text-green-600 transition-colors ml-2" title="Donner Accord">
                                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                                                     </button>
-                                                                    <button wire:click="openDecisionModal({{ $memo->id }}, 'refus')" class="text-gray-400 hover:text-red-600 transition-colors" title="Refuser">
+                                                                    <button wire:click="openDecisionModal({{ $memo->id }}, 'refus')" class="text-gray-400 hover:text-red-600 transition-colors ml-2" title="Refuser">
                                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                                                     </button>
                                                             
                                                                 @else
-                                                                    <!-- RÉPONDRE / TERMINER -->
-                                                                    <button wire:click="replyMemo({{ $memo->id }})" class="text-gray-400 hover:text-purple-600 transition-colors" title="Répondre">
+                                                                    <!-- OPTION B : RÉPONDRE / TERMINER -->
+                                                                    <button wire:click="replyMemo({{ $memo->id }})" class="text-gray-400 hover:text-purple-600 transition-colors ml-2" title="Répondre">
                                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
                                                                     </button>
 
-                                                                    <button wire:click="openCloseModal({{ $memo->id }})" class="text-gray-400 hover:text-green-600 transition-colors" title="Terminer le traitement">
+                                                                    <button wire:click="openCloseModal({{ $memo->id }})" class="text-gray-400 hover:text-green-600 transition-colors ml-2" title="Terminer le traitement">
                                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                                                     </button>
                                                                 @endif
                                                             @endif
+
+                                                        @else
+                                                            <!-- ======================================================= -->
+                                                            <!-- ZONE 3 : INDICATEUR SI PAS LA MAIN (Optionnel)          -->
+                                                            <!-- ======================================================= -->
+                                                            <!-- Si l'utilisateur n'a pas la main, on peut afficher un cadenas ou rien -->
+                                                            <!-- <span class="text-xs text-gray-400 italic ml-2">En lecture seule</span> -->
+                                                            
+                                                            @php
+                                                            // On peut remettre ici la vérification si c'est déjà traité pour afficher le badge "Traité"
+                                                            $userEntities = array_filter([Auth::user()->dir_id, Auth::user()->sd_id]);
+                                                            $monStatutDest = $memo->destinataires->whereIn('entity_id', $userEntities)->first();
+                                                            $estFiniPourMonEntite = $monStatutDest && in_array($monStatutDest->processing_status, ['traite', 'traité', 'decision_prise', 'repondu']);
+                                                            @endphp
+
+                                                            @if($estFiniPourMonEntite)
+                                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">
+                                                                    Traité
+                                                                </span>
+                                                            @endif
+
                                                         @endif
 
                                                     </div>
@@ -732,6 +768,100 @@
                                     <button type="button" wire:click="closeRegistrationModal" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                                         Annuler
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- MODAL HISTORIQUE --}}
+                
+                @if($isOpenHistory)
+                    <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                        <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" wire:click="closeHistoryModal"></div>
+                        
+                        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                                <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border border-gray-200">
+                                    
+                                    <div class="bg-gray-50 px-4 py-4 border-b border-gray-200 flex justify-between items-center">
+                                        <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            Fil de discussion & Historique global
+                                        </h3>
+                                        <button type="button" wire:click="closeHistoryModal" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                                    </div>
+
+                                    <div class="px-6 py-6 bg-white max-h-[70vh] overflow-y-auto">
+                                        @forelse($memoHistory as $log)
+                                            @php
+                                                // On vérifie si ce log appartient au mémo d'origine ou à une réponse
+                                                $isReply = ($log->memo_id != $this->memo_id);
+                                                
+                                                // Logique de couleur pour les points de la timeline
+                                                $dotColor = 'bg-blue-500'; // Défaut
+                                                $visa = Str::lower($log->visa);
+                                                if(Str::contains($visa, 'accord') || Str::contains($visa, 'signé')) $dotColor = 'bg-green-500';
+                                                if(Str::contains($visa, 'rejeter') || Str::contains($visa, 'clôturé')) $dotColor = 'bg-red-500';
+                                                if(Str::contains($visa, 'réponse')) $dotColor = 'bg-purple-600';
+                                            @endphp
+
+                                            <div class="relative pl-8 pb-8 group last:pb-0 border-l-2 border-gray-100 ml-2">
+                                                
+                                                <!-- Point sur la timeline -->
+                                                <div class="absolute -left-[9px] top-0 h-4 w-4 rounded-full border-2 border-white {{ $dotColor }} shadow-sm"></div>
+
+                                                <div class="flex flex-col mb-1">
+                                                    <div class="flex justify-between items-center">
+                                                        <!-- Indicateur : Original vs Réponse -->
+                                                        @if($isReply)
+                                                            <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded border border-purple-200">
+                                                                ↪ Élément de Réponse
+                                                            </span>
+                                                        @else
+                                                            <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded border border-gray-200">
+                                                                Mémo Principal
+                                                            </span>
+                                                        @endif
+                                                        <span class="text-[11px] text-gray-400 font-mono">{{ $log->created_at->format('d/m/Y H:i') }}</span>
+                                                    </div>
+
+                                                    <h4 class="text-sm font-bold text-gray-900 mt-1">
+                                                        {{ $log->user->first_name }} {{ $log->user->last_name }}
+                                                        <span class="text-xs font-normal text-gray-500"> — {{ $log->user->poste }}</span>
+                                                    </h4>
+                                                </div>
+
+                                                <!-- Action / Visa -->
+                                                <div class="mb-2">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold {{ $dotColor }} text-white">
+                                                        {{ $log->visa }}
+                                                    </span>
+                                                    
+                                                    @if($isReply)
+                                                        <span class="ml-2 text-[10px] text-gray-400 italic">
+                                                            (Sur mémo réponse ID #{{ $log->memo_id }})
+                                                        </span>
+                                                    @endif
+                                                </div>
+
+                                                <!-- Commentaire -->
+                                                @if($log->workflow_comment && $log->workflow_comment !== 'R.A.S')
+                                                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-600 leading-relaxed shadow-sm">
+                                                        <p>{{ $log->workflow_comment }}</p>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @empty
+                                            <div class="text-center py-10">
+                                                <p class="text-gray-400 italic">Aucun historique trouvé pour ce dossier.</p>
+                                            </div>
+                                        @endforelse
+                                    </div>
+
+                                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t">
+                                        <button type="button" wire:click="closeHistoryModal" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:w-auto sm:text-sm">Fermer</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

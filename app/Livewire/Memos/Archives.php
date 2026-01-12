@@ -44,14 +44,10 @@ class Archives extends Component
         $this->resetPage();
     }
 
-    /**
-     * Ouvre le modal de visualisation et récupère les infos de statut spécifiques
-     * Optimisation : Chargement des relations (Eager Loading) pour éviter le problème N+1
-     */
     private function getPdfData($memo)
     {
         // On cherche le directeur de l'entité du créateur du mémo
-        $director = User::where('entity_id', $memo->user->entity_id)
+        $director = User::where('dir_id', $memo->user->dir_id)
                         ->where('poste', 'Directeur')
                         ->first();
 
@@ -121,20 +117,17 @@ class Archives extends Component
     {
         $user = Auth::user();
 
-        // Construction de la requête optimisée
         $archives = Memo::query()
-            ->with(['user.entity', 'destinataires.entity']) // Eager loading constant
+            // Chargement des relations pour l'affichage
+            ->with(['user.entity', 'destinataires.entity']) 
             
-            // 1. Filtrage sur les détenteurs (Utilisation de l'index JSON si disponible en DB)
+            // CONDITION 1 : L'utilisateur a eu le mémo en main (est dans current_holders)
             ->whereJsonContains('current_holders', $user->id)
             
-            // 2. Filtrage sur le statut du destinataire lié à l'entité de l'utilisateur
-            ->whereHas('destinataires', function($q) use ($user) {
-                $q->where('entity_id', $user->entity_id)
-                  ->whereIn('processing_status', ['traiter', 'decision_prise', 'repondu']);
-            })
+            // CONDITION 2 : Le circuit est totalement terminé
+            ->where('workflow_direction', 'terminer')
             
-            // 3. Logique de recherche optimisée : n'exécute le LIKE que si nécessaire
+            // Recherche (inchangée)
             ->when($this->search, function($query) {
                 $query->where(function($q) {
                     $searchTerm = '%' . $this->search . '%';
@@ -144,10 +137,8 @@ class Archives extends Component
                 });
             })
             
-            // Tri par date de mise à jour (le plus récent en premier)
+            // Tri par le plus récent
             ->orderBy('updated_at', 'desc')
-            
-            // Pagination (10 éléments par page pour garder un DOM léger)
             ->paginate(10);
 
         return view('livewire.memos.archives', [

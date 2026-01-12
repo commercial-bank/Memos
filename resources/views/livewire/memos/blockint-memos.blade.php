@@ -105,6 +105,9 @@
                                             id="yearSelect"
                                             class="appearance-none bg-slate-900 border border-slate-500 text-white text-sm font-mono font-bold py-1 pl-3 pr-8 rounded cursor-pointer hover:bg-slate-800 hover:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500 transition-all"
                                         >
+                                            <!-- NOUVELLE OPTION AJOUTÉE ICI -->
+                                            <option value="all">TOUTES</option>
+                                            
                                             @for($y = date('Y'); $y >= 2023; $y--) 
                                                 <option value="{{ $y }}">{{ $y }}</option>
                                             @endfor

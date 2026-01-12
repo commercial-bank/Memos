@@ -7,18 +7,19 @@ use App\Models\Memo;
 use App\Models\User;
 use App\Models\Entity;
 use Livewire\Component;
+use App\Models\DraftedMemo;
 use App\Models\Historiques;
 use Illuminate\Support\Str;
+use Livewire\WithPagination;
 use App\Models\Destinataires;
+use Livewire\Attributes\Rule;
+use Livewire\WithFileUploads;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use App\Models\BlocEnregistrements;
 use Illuminate\Support\Facades\Auth;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Notifications\MemoActionNotification;
-use Livewire\Attributes\Rule;
-use Livewire\WithPagination;
-use Livewire\WithFileUploads;
 
 class Incoming2Memos extends Component
 {
@@ -54,6 +55,7 @@ class Incoming2Memos extends Component
     public $isOpenTrans = false;             
 
     public $memo_id = null;
+    public $isOpenHistory = false;
     
     #[Rule('required|string|max:255')]
     public string $object = '';
@@ -87,6 +89,7 @@ class Incoming2Memos extends Component
     public $selected_project_users = [];
     public $transRecipients = [];
     public $generatedReference = '';
+    public $memoHistory = [];
 
     public $memoIdToClose = null;
     public $closingComment = ''; 
@@ -166,6 +169,27 @@ class Incoming2Memos extends Component
     private function getLogoBase64() {
         $path = public_path('images/logo.jpg');
         return file_exists($path) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($path)) : null;
+    }
+
+    public function viewHistory($id)
+    {
+        $this->memo_id = $id;
+        
+        $allRelatedMemoIds = Memo::where('parent_id', $id)
+            ->orWhere('id', $id)
+            ->pluck('id')
+            ->toArray();
+
+        $this->memoHistory = Historiques::with(['user', 'memo'])
+            ->whereIn('memo_id', $allRelatedMemoIds)
+            ->orderBy('created_at', 'desc') 
+            ->get();
+
+        $this->isOpenHistory = true;
+    }
+
+    public function closeHistoryModal() { 
+        $this->isOpenHistory = false; $this->memoHistory = []; 
     }
     
 
@@ -322,34 +346,80 @@ class Incoming2Memos extends Component
     }
 
     public function confirmTransmission()
-    {
-        $this->validate(['selectedRecipients' => 'required|array|min:1']);
+{
+    // Validation
+    $this->validate(['selectedRecipients' => 'required|array|min:1']);
 
-        $memo = Memo::findOrFail($this->memo_id ?? $this->memoIdToTrans);
-        $user = Auth::user(); 
-        
-        $holders = is_array($memo->current_holders) ? $memo->current_holders : (json_decode($memo->current_holders, true) ?? []);
+    // Récupération
+    $memo = Memo::findOrFail($this->memo_id ?? $this->memoIdToTrans);
+    $user = Auth::user(); 
+    
+    // Conversion des destinataires choisis en entiers
+    $newRecipientsIds = array_map('intval', $this->selectedRecipients);
 
-        $holders = array_values(array_unique(array_merge(array_diff($holders, [$user->id]), array_map('intval', $this->selectedRecipients))));
+    // =========================================================
+    // 1. GESTION DES DÉTENTEURS (CURRENT_HOLDERS - Historique cumulatif)
+    // =========================================================
+    // On garde tout le monde, on ajoute juste les nouveaux.
+    
+    $existingHolders = is_array($memo->current_holders) 
+        ? $memo->current_holders 
+        : (json_decode($memo->current_holders, true) ?? []);
 
-        $memo->update(['current_holders' => $holders]);
+    // Fusion sans doublons
+    $updatedCurrentHolders = array_values(array_unique(array_merge($existingHolders, $newRecipientsIds)));
 
-        $recipients = User::whereIn('id', $this->selectedRecipients)->get();
-        foreach ($recipients as $recipient) {
-            Historiques::create([
-                'user_id' => $user->id,
-                'memo_id' => $memo->id,
-                'visa'    => 'Coté / Transmis', 
-                'workflow_comment' => $this->comment . " (Assigné à: " . $recipient->full_name . ")"
-            ]);
-            try { 
-                $recipient->notify(new MemoActionNotification($memo, 'cotation', $user)); 
-            } catch (\Exception $e) {}
-        }
 
-        $this->dispatch('notify', message: "Mémo transmis avec succès.");
-        $this->closeTransModal();
+    // =========================================================
+    // 2. GESTION DES TRAITEURS (TREATMENT_HOLDERS - Droit actif)
+    // =========================================================
+    // LOGIQUE : 
+    // - On retire MOI ($user->id) car je transmets le dossier.
+    // - On garde LES AUTRES (ex: le user de l'Entité B qui n'a pas fini).
+    // - On ajoute LES NOUVEAUX (mes collaborateurs à qui je donne le dossier).
+
+    $currentTreatmentHolders = is_array($memo->treatment_holders) 
+        ? $memo->treatment_holders 
+        : (json_decode($memo->treatment_holders, true) ?? []);
+
+    // A. On retire l'utilisateur courant de la liste des traiteurs
+    $remainingHolders = array_diff($currentTreatmentHolders, [$user->id]);
+
+    // B. On ajoute les nouveaux destinataires aux restants
+    $mergedTreatmentHolders = array_merge($remainingHolders, $newRecipientsIds);
+
+    // C. Nettoyage (Unique + Réindexation)
+    $updatedTreatmentHolders = array_values(array_unique($mergedTreatmentHolders));
+
+
+    // =========================================================
+    // 3. SAUVEGARDE EN BASE
+    // =========================================================
+    $memo->update([
+        'current_holders'   => $updatedCurrentHolders,
+        'treatment_holders' => $updatedTreatmentHolders
+    ]);
+
+    // =========================================================
+    // 4. HISTORIQUE ET NOTIFICATIONS
+    // =========================================================
+    $recipients = User::whereIn('id', $this->selectedRecipients)->get();
+    
+    foreach ($recipients as $recipient) {
+        Historiques::create([
+            'user_id' => $user->id,
+            'memo_id' => $memo->id,
+            'visa'    => 'Coté / Transmis', 
+            'workflow_comment' => $this->comment . " (Assigné à: " . $recipient->full_name . ")"
+        ]);
+        try { 
+            $recipient->notify(new MemoActionNotification($memo, 'cotation', $user)); 
+        } catch (\Exception $e) {}
     }
+
+    $this->dispatch('notify', message: "Mémo transmis avec succès.");
+    $this->closeTransModal();
+}
 
     public function closeTransModal()
     {
@@ -376,6 +446,7 @@ class Incoming2Memos extends Component
     
     public function confirmCloseMemo()
     {
+        // 1. Correction de la vérification du blocage (On doit aussi corriger ici)
         if ($errorMessage = $this->checkDecisionBlock($this->memoIdToClose)) {
             $this->dispatch('notify', message: $errorMessage);
             $this->cancelCloseModal();
@@ -383,18 +454,36 @@ class Incoming2Memos extends Component
         }
 
         $user = Auth::user();
+
+        // ====================================================================
+        // CORRECTION ICI : Gestion des multiples entités (Direction / Sous-Dir)
+        // ====================================================================
+        
+        // On récupère les IDs valides de l'utilisateur (ex: [5, null] devient [5])
+        $userEntityIds = array_filter([$user->dir_id, $user->sd_id]);
+
+        if (empty($userEntityIds)) {
+            $this->dispatch('notify', message: "Erreur : Votre profil n'est lié à aucune entité (Direction/SD).");
+            return;
+        }
+
+        // On cherche si L'UNE des entités de l'utilisateur est destinataire
         $myDestinataireRecord = Destinataires::where('memo_id', $this->memoIdToClose)
-            ->where('entity_id', $user->entity_id)
+            ->whereIn('entity_id', $userEntityIds) // Utilisation de whereIn
             ->first();
 
+        // ====================================================================
+
         if (!$myDestinataireRecord) {
+            // Debugging optionnel : affichez les IDs pour comprendre
+            // $this->dispatch('notify', message: "Debug: Cherché dans " . implode(',', $userEntityIds));
             $this->dispatch('notify', message: "Erreur : Entité non destinataire.");
             return;
         }
 
+        // Le reste du code reste inchangé...
         $myDestinataireRecord->update([
             'processing_status' => 'traiter',
-            'completed_at' => now()
         ]);
 
         Historiques::create([
@@ -519,6 +608,8 @@ class Incoming2Memos extends Component
         $this->isCreatingReply = true; 
     }
 
+    
+
     public function saveReply()
     {
         // 1. Validation rigoureuse
@@ -532,32 +623,29 @@ class Incoming2Memos extends Component
 
         $user = Auth::user();
 
-        // 2. Détermination du destinataire du circuit de validation (N+1 ou Secrétariat)
-        // Si c'est un directeur, on envoie à sa secrétaire, sinon au manager_id
-       
-
-
-        $newMemo = null;
-
-        DB::transaction(function () use ($user, $targetId, &$newMemo) {
-            // 3. Traitement des fichiers joints
+        DB::transaction(function () use ($user) {
+            // 2. Traitement des fichiers joints
             $filePaths = [];
             if ($this->attachments) {
                 foreach ($this->attachments as $file) {
+                    // On stocke les fichiers. Notez que pour un brouillon, on garde le même dossier
+                    // ou on peut mettre dans 'attachments/drafts' si vous préférez.
                     $filePaths[] = $file->store('attachments/memos', 'public');
                 }
             }
 
-            // 4. Mise à jour du Mémo Parent (Statut de réception de mon entité)
-            // On récupère les IDs de mon entité (DIR/SD) pour marquer le parent comme répondu
+            // 3. Mise à jour du Mémo Parent (Entrant)
+            // On considère que puisque vous avez rédigé le brouillon, 
+            // l'action est "traitée" de votre côté pour le flux entrant.
             $userEntityIds = array_filter([$user->dir_id, $user->sd_id]);
+            
             Destinataires::where('memo_id', $this->parent_id)
                 ->whereIn('entity_id', $userEntityIds)
                 ->update([
-                    'processing_status' => 'repondu', 
+                    'processing_status' => 'repondu',
                 ]);
                 
-            // 5. Vérification de clôture globale du parent
+            // 4. Vérification de clôture globale du parent (Entrant)
             $isStillPending = Destinataires::where('memo_id', $this->parent_id)
                 ->whereNotIn('processing_status', ['traiter', 'decision_prise', 'repondu'])
                 ->exists();
@@ -566,54 +654,39 @@ class Incoming2Memos extends Component
                 Memo::where('id', $this->parent_id)->update(['workflow_direction' => 'terminer']);
             }
 
-            // 6. Création du nouveau mémo (La Réponse)
-            // IMPORTANT : current_holders contient l'auteur pour qu'il apparaisse dans ses "Mémos Sortants"
-            $newMemo = Memo::create([
+            // 5. Création du BROUILLON (DraftedMemo)
+            // Contrairement au Memo, on stocke les destinataires en JSON direct ici
+            $draft = DraftedMemo::create([
                 'object'             => $this->new_object,
                 'concern'            => $this->new_concern,
                 'content'            => $this->new_content,
                 'user_id'            => $user->id,
-                'parent_id'          => $this->parent_id,
+                'parent_id'          => $this->parent_id, // Lien vers le mémo entrant
                 'workflow_direction' => 'sortant',        
-                'status'             => 'envoyer',       
-                'current_holders'    => [$user->id], // L'auteur
-                'treatment_holders'  => [$user->id],         
+                'status'             => 'brouillon',       
+                'current_holders'    => [$user->id], // Vous détenez le brouillon
                 'pieces_jointes'     => json_encode($filePaths),
+                // ICI : On sauvegarde les destinataires dans la colonne JSON prévue
+                'destinataires'      => json_encode($this->recipients), 
             ]);
 
-            // 7. Insertion des entités destinataires cibles de cette réponse
-            $destData = array_map(fn($r) => [
-                'memo_id'           => $newMemo->id,
-                'entity_id'         => $r['entity_id'],
-                'action'            => $r['action'],
-                'processing_status' => 'en_cours',
-                'created_at'        => now(),
-                'updated_at'        => now()
-            ], $this->recipients);
-            Destinataires::insert($destData);
+            // NOTE : On n'insère RIEN dans la table 'destinataires' (SQL) pour l'instant
+            // car cette table attend un 'memo_id' qui n'existe pas encore.
 
-            // 8. Enregistrement de l'historique sur le mémo parent pour la traçabilité
+            // 6. Enregistrement de l'historique sur le mémo parent
             Historiques::create([
                 'user_id'          => $user->id, 
                 'memo_id'          => $this->parent_id,
-                'visa'             => 'RÉPONDU', 
-                'workflow_comment' => "Réponse émise (Nouveau Mémo ID #{$newMemo->reference})."
+                'visa'             => 'RÉPONSE (BROUILLON)', 
+                'workflow_comment' => "Projet de réponse initié (Brouillon)."
             ]);
         });
 
-        // 9. Notification au destinataire (Validateur)
-        if ($newMemo && $targetId) {
-            $recipientUser = User::find($targetId);
-            if ($recipientUser) {
-                try {
-                    $recipientUser->notify(new \App\Notifications\MemoActionNotification($newMemo, 'envoyer', $user));
-                } catch (\Exception $e) {
-                    \Log::error("Erreur notification réponse: " . $e->getMessage());
-                }
-            }
-        }
+        // 7. Pas de notification immédiate
+        // On ne notifie généralement pas lors de la création d'un brouillon.
+        // La notification partira quand le brouillon sera validé/envoyé.
 
-        $this->dispatch('notify', message: "Réponse envoyée avec succès dans votre flux sortant.");
+        $this->dispatch('notify', message: "Memo de réponse enregistré dans vos brouillons.");
         $this->cancelReply();
     }
 

@@ -142,33 +142,38 @@ class BlockintMemos extends Component
     /**
      * Rendu de la vue avec filtrage optimisé
      */
+    // ...
     public function render()
     {
-        // Construction de la requête avec eager loading du mémo
+        // 1. Base de la requête
         $query = BlocEnregistrements::with('memo')
             ->where('nature_memo', 'Memo Entrant')
-            ->where('user_id', Auth::id())
-            ->whereYear('created_at', $this->selectedYear);
+            ->where('user_id', Auth::id());
 
-        // Application du filtre de recherche uniquement si une valeur est saisie
-        // Utilisation de when() pour une structure de code plus fluide et performante
+        // 2. MODIFICATION ICI : Filtre d'année conditionnel
+        if ($this->selectedYear !== 'all') {
+            $query->whereYear('created_at', $this->selectedYear);
+        }
+
+        // 3. Application du filtre de recherche (reste inchangé)
         $query->when($this->search, function($q) {
             $searchTerm = '%' . $this->search . '%';
             $q->where(function($sub) use ($searchTerm) {
                 $sub->where('reference', 'like', $searchTerm)
-                  ->orWhereHas('memo', function($memoQuery) use ($searchTerm) {
-                      $memoQuery->where('object', 'like', $searchTerm)
-                         ->orWhere('concern', 'like', $searchTerm)
-                         ->orWhere('content', 'like', $searchTerm);
-                  });
+                ->orWhereHas('memo', function($memoQuery) use ($searchTerm) {
+                    $memoQuery->where('object', 'like', $searchTerm)
+                        ->orWhere('concern', 'like', $searchTerm)
+                        ->orWhere('content', 'like', $searchTerm);
+                });
             });
         });
 
-        // Récupération des données avec tri
+        // 4. Récupération des données
         $references = $query->orderBy('created_at', 'desc')->get();
         
         return view('livewire.memos.blockint-memos', [
             'references' => $references
         ]);
     }
+    // ...
 } 

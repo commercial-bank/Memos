@@ -910,7 +910,7 @@
                                             <input type="radio" wire:model.live="memo_type" value="projet" class="peer sr-only">
                                             <div class="p-4 rounded-lg border-2 border-gray-200 hover:border-purple-300 peer-checked:border-purple-600 peer-checked:bg-purple-50 transition-all text-center h-full flex flex-col items-center justify-center">
                                                 <svg class="w-6 h-6 text-gray-400 peer-checked:text-purple-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                                                <span class="block text-sm font-bold text-gray-700 peer-checked:text-purple-800">Mode Projet</span>
+                                                <span class="block text-sm font-bold text-gray-700 peer-checked:text-purple-800">Mode Particulier</span>
                                                 <span class="block text-[10px] text-gray-500 mt-1">Multi-collaborateurs (hors N+1)</span>
                                             </div>
                                         </label>
@@ -921,84 +921,147 @@
 
                                 <!-- ZONE D'AFFICHAGE DYNAMIQUE SELON LE TYPE -->
                                 <!-- A. AFFICHAGE STANDARD (N+1) -->
-@if($memo_type === 'standard')
-    <div class="bg-blue-50 rounded-lg p-4 border border-blue-100 animate-fade-in-down">
-        
-        {{-- CAS 1 : MODE SÉLECTION LISTE --}}
-        {{-- On affiche ce bloc SI la liste contient des gens (Secrétaires pour le Directeur, ou Managers pour la Secrétaire) --}}
-        @if(!empty($standardRecipientsList) && count($standardRecipientsList) > 0)
-            
-            @php
-                // Récupération PROPRE du poste pour l'affichage (gère Enum et String)
-                $userPoste = auth()->user()->poste;
-                $userPosteValue = is_object($userPoste) && property_exists($userPoste, 'value') 
-                                  ? $userPoste->value 
-                                  : (string)$userPoste;
-            @endphp
+                                @if($memo_type === 'standard')
+                                    <div class="bg-blue-50 rounded-lg p-4 border border-blue-100 animate-fade-in-down">
+                                        
+                                        {{-- CAS 1 : MODE SÉLECTION LISTE --}}
+                                        {{-- On affiche ce bloc SI la liste contient des gens (Secrétaires pour le Directeur, ou Managers pour la Secrétaire) --}}
+                                        @if(!empty($standardRecipientsList) && count($standardRecipientsList) > 0)
+                                            
+                                            @php
+                                                // Récupération PROPRE du poste pour l'affichage (gère Enum et String)
+                                                $userPoste = auth()->user()->poste;
+                                                $userPosteValue = is_object($userPoste) && property_exists($userPoste, 'value') 
+                                                                ? $userPoste->value 
+                                                                : (string)$userPoste;
+                                            @endphp
 
-            <p class="text-xs font-bold text-blue-500 uppercase mb-3">
-                @if($userPosteValue == 'Directeur')
-                    Transmettre au Secrétariat (Assistante)
-                @else
-                    Sélectionner le destinataire
-                @endif
-            </p>
+                                            <p class="text-xs font-bold text-blue-500 uppercase mb-3">
+                                                @if($userPosteValue == 'Directeur')
+                                                    Transmettre au Secrétariat (Assistante)
+                                                @else
+                                                    Sélectionner le destinataire
+                                                @endif
+                                            </p>
 
-            <select wire:model.live="selected_standard_users" multiple class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm h-32">
-                @foreach($standardRecipientsList as $uData)
-                    <option value="{{ $uData['original']->id }}">
-                        {{ $uData['original']->first_name }} {{ $uData['original']->last_name }} 
-                        ({{ $uData['original']->poste }})
-                        @if($uData['is_replaced']) [En Intérim] @endif
-                    </option>
-                @endforeach
-            </select>
+                                            <select wire:model.live="selected_standard_users" multiple class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm h-32">
+                                                @foreach($standardRecipientsList as $uData)
+                                                    <option value="{{ $uData['original']->id }}">
+                                                        {{ $uData['original']->first_name }} {{ $uData['original']->last_name }} 
+                                                        ({{ $uData['original']->poste }})
+                                                        @if($uData['is_replaced']) [En Intérim] @endif
+                                                    </option>
+                                                @endforeach
+                                            </select>
 
-            <p class="mt-2 text-[10px] text-blue-400 italic">
-                @if($userPosteValue == 'Directeur')
-                    Sélectionnez votre assistante pour lui envoyer le dossier.
-                @else
-                    Maintenez Ctrl pour sélectionner plusieurs personnes.
-                @endif
-            </p>
-            @error('selected_standard_users') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                                            <p class="mt-2 text-[10px] text-blue-400 italic">
+                                                @if($userPosteValue == 'Directeur')
+                                                    Sélectionnez votre assistante pour lui envoyer le dossier.
+                                                @else
+                                                    Maintenez Ctrl pour sélectionner plusieurs personnes.
+                                                @endif
+                                            </p>
+                                            @error('selected_standard_users') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
 
-        {{-- CAS 2 : MODE AUTOMATIQUE (Manager N+1 trouvé) --}}
-        @elseif($managerData)
-            <p class="text-xs font-bold text-blue-500 uppercase mb-3">Destinataire Final (N+1)</p>
-            <div class="flex items-start">
-                <div class="flex-shrink-0">
-                    <div class="h-10 w-10 rounded-full {{ $managerData['is_replaced'] ? 'bg-orange-200 text-orange-700' : 'bg-blue-200 text-blue-700' }} flex items-center justify-center font-bold shadow-sm">
-                        {{ substr($managerData['effective']->first_name, 0, 1) }}{{ substr($managerData['effective']->last_name, 0, 1) }}
-                    </div>
-                </div>
-                <div class="ml-3 flex-1">
-                    <p class="text-sm font-bold text-gray-900">
-                        {{ $managerData['effective']->first_name }} {{ $managerData['effective']->last_name }}
-                    </p>
-                    <p class="text-xs text-gray-500">{{ $managerData['original']->poste }}</p>
-                    @if($managerData['is_replaced'])
-                         <span class="text-[10px] text-orange-600 font-bold">Remplace {{ $managerData['original']->first_name }}</span>
-                    @endif
-                </div>
-            </div>
+                                        {{-- CAS 2 : MODE AUTOMATIQUE (Manager N+1 trouvé) --}}
+                                        @elseif($managerData)
+                                            <p class="text-xs font-bold text-blue-500 uppercase mb-3">Destinataire Final (N+1)</p>
+                                            <div class="flex items-start">
+                                                <div class="flex-shrink-0">
+                                                    <div class="h-10 w-10 rounded-full {{ $managerData['is_replaced'] ? 'bg-orange-200 text-orange-700' : 'bg-blue-200 text-blue-700' }} flex items-center justify-center font-bold shadow-sm">
+                                                        {{ substr($managerData['effective']->first_name, 0, 1) }}{{ substr($managerData['effective']->last_name, 0, 1) }}
+                                                    </div>
+                                                </div>
+                                                <div class="ml-3 flex-1">
+                                                    <p class="text-sm font-bold text-gray-900">
+                                                        {{ $managerData['effective']->first_name }} {{ $managerData['effective']->last_name }}
+                                                    </p>
+                                                    <p class="text-xs text-gray-500">{{ $managerData['original']->poste }}</p>
+                                                    @if($managerData['is_replaced'])
+                                                        <span class="text-[10px] text-orange-600 font-bold">Remplace {{ $managerData['original']->first_name }}</span>
+                                                    @endif
+                                                </div>
+                                            </div>
 
-        {{-- CAS 3 : ERREUR DE CONFIGURATION --}}
-        @else
-            <div class="text-red-600 text-sm bg-red-50 p-3 rounded border border-red-200 flex flex-col gap-1">
-                <div class="flex items-center gap-2 font-bold">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Configuration introuvable
-                </div>
-                <p>
-                    Impossible de déterminer le destinataire. 
-                    Si vous êtes Directeur, assurez-vous qu'une assistante ("Secretaire") existe dans votre Direction.
-                    Sinon, vérifiez votre N+1.
-                </p>
-            </div>
-        @endif
-    </div>
-@endif
+                                        {{-- CAS 3 : ERREUR DE CONFIGURATION --}}
+                                        @else
+                                         
+                                                    <div class="text-orange-700 text-sm bg-orange-50 p-3 rounded border border-orange-200 flex flex-col gap-1">
+                                                        <div class="flex items-center gap-2 font-bold">
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                            Information
+                                                        </div>
+                                                        <p>
+                                                            Vous êtes sûrement sur le type de circuit Particulier.
+                                                        </p>
+                                                    </div>
+                                              
+                                        @endif
+                                    </div>
+                                @endif
+
+                                <!-- ... (code précédent du mode standard) ... -->
+
+                                <!-- B. AFFICHAGE MODE PROJET (NOUVEAU BLOC) -->
+                                @if($memo_type === 'projet')
+                                    <div class="bg-purple-50 rounded-lg p-4 border border-purple-100 animate-fade-in-down">
+                                        
+                                        <div class="flex items-center gap-2 mb-3">
+                                            <div class="p-1.5 bg-purple-100 rounded-md text-purple-600">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-bold text-purple-700 uppercase">Circuit Particulier Détecté</p>
+                                                <p class="text-[10px] text-purple-500">Le destinataire est défini par le chemin du circuit.</p>
+                                            </div>
+                                        </div>
+
+                                        @if($suggestedNextUser)
+                                            <!-- Affichage du Prochain Intervenant Suggéré -->
+                                            <div class="bg-white p-3 rounded-md border border-purple-200 shadow-sm">
+                                                <p class="text-[10px] font-bold text-gray-400 uppercase mb-2">Prochaine étape assignée à :</p>
+                                                
+                                                <div class="flex items-center">
+                                                    <!-- Avatar -->
+                                                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm border border-purple-200">
+                                                        {{ substr($suggestedNextUser->first_name, 0, 1) }}{{ substr($suggestedNextUser->last_name, 0, 1) }}
+                                                    </div>
+                                                    
+                                                    <!-- Infos User -->
+                                                    <div class="ml-3">
+                                                        <p class="text-sm font-bold text-gray-800">
+                                                            {{ $suggestedNextUser->first_name }} {{ $suggestedNextUser->last_name }}
+                                                        </p>
+                                                        <p class="text-xs text-gray-500">
+                                                            {{ $suggestedNextUser->poste ?? 'Poste non défini' }}
+                                                        </p>
+                                                    </div>
+                                                    
+                                                    <!-- Badge Lock (pour montrer que c'est fixé) -->
+                                                    <div class="ml-auto">
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">
+                                                            <svg class="mr-1.5 h-3 w-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" /></svg>
+                                                            Fixé
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Input caché pour assurer la liaison Livewire -->
+                                                <input type="hidden" wire:model="selected_project_users" value="{{ $suggestedNextUser->id }}">
+                                            </div>
+
+                                        @else
+                                            <!-- Cas d'erreur ou fin de circuit -->
+                                            <div class="text-red-600 text-sm bg-red-50 p-3 rounded border border-red-200 flex items-start gap-2">
+                                                <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                <div>
+                                                    <p class="font-bold">Impossible de déterminer le suivant.</p>
+                                                    <p class="text-xs mt-1">Vous êtes peut-être à la fin du circuit ou le chemin est incomplet.</p>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
 
                                 <!-- VISA & COMMENTAIRE (Commun) -->
                                 <div class="space-y-4 pt-2">

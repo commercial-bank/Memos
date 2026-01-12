@@ -36,6 +36,8 @@ class DraftedMemo extends Model
 
         //destinataires
         'destinataires',
+
+        'parent_id',
         
         'user_id',
 

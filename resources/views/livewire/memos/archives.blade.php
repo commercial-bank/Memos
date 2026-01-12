@@ -1,6 +1,7 @@
 <div class="min-h-screen bg-gray-50 py-8 font-sans">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 @if($isViewingPdf)
+                  
                     <!-- ========================================== -->
                     <!-- VUE 3 : APERÇU RÉEL PDF (DOMPDF)           -->
                     <!-- ========================================== -->
@@ -49,24 +50,27 @@
                         </div>
                     </div>
 
+             
+
                 @else
 
                     <!-- HEADER -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div class="flex items-center gap-2">
-                            <div class="bg-yellow-50 p-2 rounded-lg text-yellow-600">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                            <div class="bg-green-50 p-2 rounded-lg text-green-600">
+                                <!-- Icône Dossier Archivé (Check) -->
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             </div>
                             <div>
-                                <h2 class="text-lg font-bold text-gray-800">Mes Dossiers Finalisés</h2>
-                                <p class="text-xs text-gray-500">Mémos en cours de traitement global, mais terminés pour votre entité</p>
+                                <h2 class="text-lg font-bold text-gray-800">Archives Générales</h2>
+                                <p class="text-xs text-gray-500">Historique des mémos dont le circuit de validation est totalement terminé.</p>
                             </div>
                         </div>
 
                         <div class="relative w-full md:w-96">
                             <input wire:model.live.debounce.300ms="search" type="text" 
                                 class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-gray-50 placeholder-gray-400 focus:ring-1 focus:ring-blue-400 sm:text-sm transition" 
-                                placeholder="Rechercher dans vos archives...">
+                                placeholder="Rechercher (Objet, Réf)...">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             </div>
@@ -79,9 +83,9 @@
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Finalisé le</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Clôture</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Référence / Objet</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Votre Action</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut Entité</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expéditeur</th>
                                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
@@ -89,36 +93,66 @@
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     @forelse ($archives as $memo)
                                         @php
-                                            $myDest = $memo->destinataires->where('entity_id', Auth::user()->entity_id)->first();
-                                            $statusLabel = [
-                                                'traiter' => 'Traité',
-                                                'decision_prise' => 'Décidé',
-                                                'repondu' => 'Répondu'
-                                            ][$myDest->processing_status] ?? 'Terminé';
+                                            // 1. Récupération sécurisée de l'entité de l'utilisateur
+                                            $user = Auth::user();
+                                            $userEntityIds = array_filter([$user->dir_id, $user->sd_id]);
+
+                                            // 2. Recherche si mon entité était impliquée spécifiquement
+                                            $myDest = $memo->destinataires->whereIn('entity_id', $userEntityIds)->first();
+                                            
+                                            // 3. Définition du badge (Label + Couleur)
+                                            $statusLabel = 'Archivé';
+                                            $badgeClasses = 'bg-gray-100 text-gray-700 border-gray-200';
+
+                                            if ($myDest) {
+                                                switch($myDest->processing_status) {
+                                                    case 'decision_prise':
+                                                        $statusLabel = 'Décision Rendue';
+                                                        $badgeClasses = 'bg-purple-100 text-purple-700 border-purple-200';
+                                                        break;
+                                                    case 'repondu':
+                                                        $statusLabel = 'Répondu';
+                                                        $badgeClasses = 'bg-blue-100 text-blue-700 border-blue-200';
+                                                        break;
+                                                    case 'traiter':
+                                                        $statusLabel = 'Traité';
+                                                        $badgeClasses = 'bg-green-100 text-green-700 border-green-200';
+                                                        break;
+                                                    default:
+                                                        // Cas rare où c'est fini globalement mais pas marqué localement (force majeure)
+                                                        $statusLabel = 'Clos'; 
+                                                        break;
+                                                }
+                                            }
                                         @endphp
                                         <tr class="hover:bg-gray-50 transition-colors">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                {{ $myDest->completed_at ? \Carbon\Carbon::parse($myDest->completed_at)->format('d/m/Y H:i') : $memo->updated_at->format('d/m/Y H:i') }}
+                                                <!-- Date de mise à jour globale du mémo (clôture) -->
+                                                {{ $memo->updated_at->format('d/m/Y H:i') }}
                                             </td>
                                             <td class="px-6 py-4">
-                                                <span class="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded uppercase">{{ $memo->reference ?? 'SANS-REF' }}</span>
+                                                @if($memo->reference)
+                                                    <span class="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded uppercase">{{ $memo->reference }}</span>
+                                                @else
+                                                    <span class="text-[10px] font-mono font-bold text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded uppercase">SANS-REF</span>
+                                                @endif
                                                 <p class="text-sm font-bold text-gray-800 truncate mt-1">{{ $memo->object }}</p>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border {{ $badgeClasses }}">
                                                     {{ $statusLabel }}
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                {{ $memo->user->entity->ref }}
-                                                <div class="text-[10px] text-gray-400 uppercase"></div>
+                                                {{ $memo->user->entity->name ?? ($memo->user->dir->name ?? 'N/A') }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                                 <div class="flex justify-center gap-2">
-                                                    <button wire:click="viewMemo({{ $memo->id }})" class="p-1.5 text-gray-500 hover:text-blue-600 border rounded-md hover:bg-blue-50 transition" title="Consulter">
+                                                    <button wire:click="viewMemo({{ $memo->id }})" class="p-1.5 text-gray-500 hover:text-blue-600 border rounded-md hover:bg-blue-50 transition" title="Consulter le dossier">
                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                                     </button>
-                                                
+                                                    
+                                    
                                                 </div>
                                             </td>
                                         </tr>
@@ -127,15 +161,15 @@
                                             <td colspan="5" class="px-6 py-16 text-center">
                                                 <div class="flex flex-col items-center justify-center">
                                                     <!-- Icône Boîte d'Archive -->
-                                                    <div class="bg-amber-50 p-4 rounded-full mb-4">
-                                                        <svg class="h-12 w-12 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <div class="bg-gray-50 p-4 rounded-full mb-4">
+                                                        <svg class="h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                                                         </svg>
                                                     </div>
                                                     
                                                     <p class="text-lg font-bold text-gray-800">Aucun dossier archivé</p>
                                                     <p class="text-sm text-gray-500 max-w-xs mx-auto mt-1">
-                                                        Les mémos terminés ou classés par vous apparaîtront ici pour consultation historique.
+                                                        Les mémos dont le circuit de traitement est totalement terminé apparaîtront ici.
                                                     </p>
                                                 </div>
                                             </td>
@@ -145,7 +179,7 @@
                             </table>
                         </div>
                         <div class="px-6 py-4 border-t bg-gray-50">{{ $archives->links() }}</div>
-                   </div>
+                    </div>
                 @endif
     </div>
 

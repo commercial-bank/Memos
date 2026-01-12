@@ -22,6 +22,7 @@ return new class extends Migration
             $table->json('previous_holders')->nullable();
             $table->string('qr_code')->nullable();
             $table->string('workflow_direction')->default('sortant');
+            $table->foreignId('parent_id')->nullable();
             $table->json('pieces_jointes')->nullable();
             $table->json('destinataires')->nullable();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
