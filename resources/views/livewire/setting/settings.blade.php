@@ -381,7 +381,7 @@
                                         <div class="col-span-2">
                                             <label class="block text-[9px] font-black text-[#707173] uppercase mb-1 ml-1">Manager (N+1)</label>
                                             <select wire:model="manager_id" class="w-full bg-white border-gray-200 rounded-xl p-3 text-xs font-bold uppercase">
-                                                <option value="0">-- CHOISIR MANAGER --</option>
+                                                <option value="null">-- CHOISIR MANAGER --</option>
                                                 @foreach(\App\Models\User::where('id', '!=', $itemId)->where('is_active', true)->get() as $u) 
                                                     <option value="{{ $u->id }}">{{ $u->last_name }} {{ $u->first_name }}</option> 
                                                 @endforeach

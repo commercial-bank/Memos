@@ -608,19 +608,24 @@
                                                     <!-- ACTIONS TOUJOURS VISIBLES (CONSULTATION)                    -->
                                                     <!-- =========================================================== -->
 
-                                                    <!-- 1. ACTION : VOIR -->
-                                                    <button wire:click="viewMemo({{ $memo->id }})" class="text-gray-400 hover:text-blue-600 transition-colors" title="Aperçu">
-                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                                    <!-- 1. ACTION : VOIR (Bleu) -->
+                                                    <button wire:click="viewMemo({{ $memo->id }})" 
+                                                            class="group p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-all duration-200 focus:ring-2 focus:ring-blue-500/20" 
+                                                            title="Aperçu">
+                                                        <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                        </svg>
                                                     </button>
 
-                                                    <!-- 2. ACTION : FAVORIS -->
+                                                    <!-- 2. ACTION : FAVORIS (Jaune/Gris) -->
                                                     <button wire:click="toggleFavorite({{ $memo->id }})" 
-                                                        class="transition-colors duration-200 {{ $memo->is_favorited ? 'text-yellow-400 hover:text-yellow-500' : 'text-gray-300 hover:text-yellow-400' }}" 
+                                                        class="group p-2 rounded-lg transition-all duration-200 focus:ring-2 focus:ring-yellow-500/20 {{ $memo->is_favorited ? 'bg-yellow-50 text-yellow-500 hover:bg-yellow-100' : 'bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-yellow-500' }}" 
                                                         title="{{ $memo->is_favorited ? 'Retirer des favoris' : 'Ajouter aux favoris' }}">
                                                         @if($memo->is_favorited)
-                                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                                            <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
                                                         @else
-                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
+                                                            <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
                                                         @endif
                                                     </button>
                                                     
@@ -633,46 +638,61 @@
                                                     <!-- =========================================================== -->
                                                     @if($isTreatmentHolder)
 
-                                                        <!-- 3. ACTION : MODIFIER -->
-                                                        <button wire:click="editMemo({{ $memo->id }})" class="text-gray-400 hover:text-yellow-600 transition-colors" title="Modifier">
-                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                                        <!-- 3. ACTION : MODIFIER (Ambre) -->
+                                                        <button wire:click="editMemo({{ $memo->id }})" 
+                                                                class="group p-2 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 focus:ring-2 focus:ring-amber-500/20" 
+                                                                title="Modifier">
+                                                            <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                                                         </button>
 
                                                         {{-- CAS SECRÉTAIRE --}}
                                                         @if(auth()->user()->poste?->value == "Secretaire")
-                                                            <button wire:click="transMemo({{ $memo->id }})" class="p-2 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 transition" title="Enregistrer et Transmettre">
-                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-                                                            </button>  
+                                                            
+                                                            <!-- TRANSMETTRE SECRÉTAIRE (Indigo) -->
+                                                            <button wire:click="transMemo({{ $memo->id }})" 
+                                                                    class="group p-2 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20" 
+                                                                    title="Enregistrer et Transmettre">
+                                                                <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                                                            </button> 
 
                                                         {{-- CAS MANAGER / DÉCIDEUR --}}
                                                         @else
-                                                            <!-- ATTRIBUER & ENVOYER -->
-                                                            <button wire:click="assignMemo({{ $memo->id }})" class="text-gray-400 hover:text-green-600 transition-colors relative group" title="Attribuer & Envoyer">
-                                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                                                                @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-orange-100 text-orange-600 px-1 rounded border border-orange-200">P/O</span>@endif
+                                                            <!-- ATTRIBUER & ENVOYER (Vert / Émeraude) -->
+                                                            <button wire:click="assignMemo({{ $memo->id }})" 
+                                                                    class="group p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 transition-all duration-200 focus:ring-2 focus:ring-emerald-500/20 relative" 
+                                                                    title="Attribuer & Envoyer">
+                                                                <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                                                @if($isRep)<span class="absolute -top-1 -right-1 text-[8px] bg-white text-orange-600 px-1 rounded-full border border-orange-200 shadow-sm font-bold">P/O</span>@endif
                                                             </button>
                                                     
-                                                            <!-- RETOURNER -->
-                                                            <button wire:click="askReject({{ $memo->id }}, 'return')" class="text-gray-400 hover:text-orange-500 transition-colors relative" title="Retourner à l'auteur">
-                                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 0118 0z"></path></svg>
-                                                                @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-orange-100 text-orange-600 px-1 rounded border border-orange-200">P/O</span>@endif
-                                                            </button>
+                                                           <!-- RETOURNER (Orange) -->
+                                                            <button wire:click="askReject({{ $memo->id }}, 'return')" 
+                                                                    class="group p-2 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700 transition-all duration-200 focus:ring-2 focus:ring-orange-500/20 relative" 
+                                                                    title="Retourner à l'auteur">
+                                                                <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 0118 0z"></path></svg>
+                                                                @if($isRep)<span class="absolute -top-1 -right-1 text-[8px] bg-white text-orange-600 px-1 rounded-full border border-orange-200 shadow-sm font-bold">P/O</span>@endif
+                                                            </button>           
 
-                                                            <!-- REJETER (ARCHIVER) -->
-                                                            <button wire:click="askReject({{ $memo->id }}, 'archive')" class="text-gray-400 hover:text-red-600 transition-colors relative" title="Rejeter et Archiver">
-                                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                                @if($isRep)<span class="absolute -top-2 -right-2 text-[9px] bg-red-100 text-red-600 px-1 rounded border border-red-200">P/O</span>@endif
+                                                            <!-- REJETER (Rouge) -->
+                                                            <button wire:click="askReject({{ $memo->id }}, 'archive')" 
+                                                                    class="group p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-all duration-200 focus:ring-2 focus:ring-red-500/20 relative" 
+                                                                    title="Rejeter et Archiver">
+                                                                <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                                @if($isRep)<span class="absolute -top-1 -right-1 text-[8px] bg-white text-orange-600 px-1 rounded-full border border-orange-200 shadow-sm font-bold">P/O</span>@endif
                                                             </button>
                                                         @endif
 
                                                     @else {{-- Fin du check isTreatmentHolder --}}
 
-                                                        <!-- HISTORIQUE -->
-                                                        <button wire:click="viewHistory({{ $memo->id }})" class="text-gray-400 hover:text-purple-600 transition-colors" title="Historique & Workflow">
-                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                       <!-- HISTORIQUE (Violet) - Affiché si on n'a pas la main -->
+                                                        <button wire:click="viewHistory({{ $memo->id }})" 
+                                                                class="group p-2 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-700 transition-all duration-200 focus:ring-2 focus:ring-purple-500/20" 
+                                                                title="Historique & Workflow">
+                                                            <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                             </svg>
                                                         </button>
+                                                        
                                                     @endif
 
                                                 </div>
@@ -1056,7 +1076,7 @@
                                                 <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                                 <div>
                                                     <p class="font-bold">Impossible de déterminer le suivant.</p>
-                                                    <p class="text-xs mt-1">Vous êtes peut-être à la fin du circuit ou le chemin est incomplet.</p>
+                                                    <p class="text-xs mt-1">Vous êtes peut-être au circuit standard.</p>
                                                 </div>
                                             </div>
                                         @endif

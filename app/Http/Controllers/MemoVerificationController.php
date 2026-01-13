@@ -20,17 +20,6 @@ class MemoVerificationController extends Controller
             abort(404, 'Document introuvable ou signature invalide.');
         }
 
-        // 3. IDENTIFICATION DU SIGNATAIRE PRINCIPAL (celui du QR Code)
-        $signerRole = '';
-        $signerDate = null;
-
-        if ($memo->signature_sd === $token) {
-            $signerRole = 'Sous-Directeur';
-            $signerDate = $memo->updated_at; 
-        } elseif ($memo->signature_dir === $token) {
-            $signerRole = 'Directeur';
-            $signerDate = $memo->updated_at;
-        }
 
         // 4. PRÉPARATION DES LISTES (FILTRAGE)
         // On récupère tout l'historique
@@ -50,9 +39,6 @@ class MemoVerificationController extends Controller
         // 5. ENVOI A LA VUE
         return view('public.memo-verification', [
             'memo' => $memo,
-            'signerRole' => $signerRole,
-            'signerDate' => $signerDate,
-            'signatures' => $signatures, // Variable requise par la vue
             'visas' => $visas            // Variable filtrée (seulement ACCORD)
         ]);
     }

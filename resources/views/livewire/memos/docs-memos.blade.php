@@ -384,31 +384,47 @@
                                             @endif
                                         </td>
 
-                                        <!-- 4. ACTIONS (Boutons Icones) -->
+                                       <!-- 4. ACTIONS (Boutons Icones) -->
                                         <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                            <div class="flex items-center justify-center space-x-3">
+                                            <div class="flex items-center justify-center space-x-2">
                                                 
-                                                <!-- VOIR -->
-                                                <button wire:click="viewMemo({{ $memo->id }})" class="text-gray-400 hover:text-blue-600 transition-colors" title="Aperçu">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                                <!-- 1. APERÇU (Bleu) -->
+                                                <button wire:click="viewMemo({{ $memo->id }})" 
+                                                        class="group p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-all duration-200 focus:ring-2 focus:ring-blue-500/20" 
+                                                        title="Aperçu">
+                                                    <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                    </svg>
                                                 </button>
 
-                                                <!-- HISTORIQUE -->
-                                                <button wire:click="viewHistory({{ $memo->id }})" class="text-gray-400 hover:text-purple-600 transition-colors" title="Historique & Workflow">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <!-- 2. HISTORIQUE (Violet) -->
+                                                <button wire:click="viewHistory({{ $memo->id }})" 
+                                                        class="group p-2 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-700 transition-all duration-200 focus:ring-2 focus:ring-purple-500/20" 
+                                                        title="Historique & Workflow">
+                                                    <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                     </svg>
                                                 </button>
 
                                                 @if($memo->status == 'retourner')
                                                 
-                                                <button wire:click="assignMemo({{ $memo->id }})" class="text-gray-400 hover:text-green-600 transition-colors" title="Attribuer & Envoyer">
-                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                                    <!-- 3. TRANSMETTRE (Émeraude / Vert) -->
+                                                    <button wire:click="assignMemo({{ $memo->id }})" 
+                                                            class="group p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 transition-all duration-200 focus:ring-2 focus:ring-emerald-500/20" 
+                                                            title="Attribuer & Envoyer">
+                                                        <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                                        </svg>
                                                     </button>
 
-                                                <!-- MODIFIER -->
-                                                    <button wire:click="editMemo({{ $memo->id }})" class="text-gray-400 hover:text-yellow-600 transition-colors" title="Modifier">
-                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                                    <!-- 4. MODIFIER (Ambre / Jaune) -->
+                                                    <button wire:click="editMemo({{ $memo->id }})" 
+                                                            class="group p-2 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 transition-all duration-200 focus:ring-2 focus:ring-amber-500/20" 
+                                                            title="Modifier">
+                                                        <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                                                        </svg>
                                                     </button>
 
                                                 @endif
@@ -793,208 +809,7 @@
             </div>
         @endif    
 
-     @if($isOpen)
-        <!-- Modal Aperçu -->
-        <div class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            
-            <!-- Overlay -->
-            <div wire:click="closeModal" class="fixed inset-0 bg-gray-900 bg-opacity-90 transition-opacity backdrop-blur-sm cursor-pointer"></div>
-
-            <!-- Toolbar -->
-            <div class="fixed top-0 left-0 w-full z-50 pointer-events-none p-4 flex justify-between items-start print:hidden">
-                <button wire:click="closeModal" class="pointer-events-auto bg-gray-800 text-white hover:bg-gray-700 px-6 py-2 rounded-full shadow-xl font-bold flex items-center gap-2 border border-gray-600">
-                    <span>&larr; Retour</span>
-                </button>
-            </div>
-
-            <!-- LOGIQUE BACKEND POUR RÉCUPÉRER LES DONNÉES MANQUANTES -->
-            @php
-                // Récupération du mémo complet avec les relations pour l'affichage
-                $currentMemo = \App\Models\Memo::with('destinataires.entity')->find($memo_id);
-                
-                // Groupement des destinataires par leur Action
-                $recipientsByAction = $currentMemo 
-                    ? $currentMemo->destinataires->groupBy('action') 
-                    : collect([]);
-
-                // Helper pour formater la liste des entités (REF ou Nom)
-                $formatRecipients = function($group) {
-                    return $group->map(function($dest) {
-                        // Utilise 'ref' (acronyme) sinon 'name'
-                        return $dest->entity->ref ?? Str::limit($dest->entity->name, 15);
-                    })->join(', ');
-                };
-            @endphp
-
-            <!-- Conteneur Scrollable -->
-            <div class="fixed inset-0 z-10 w-screen overflow-y-auto pt-20 pb-10">
-                <div class="flex min-h-full items-start justify-center p-4 text-center sm:p-0">
-                    
-                    <div class="relative flex flex-col items-center font-sans w-full max-w-[210mm]">
-
-                            <!-- ========================================== -->
-                        <!-- BOUTON TÉLÉCHARGER (AJOUTER ICI)           -->
-                        <!-- ========================================== -->
-                        <button 
-                            wire:click="downloadMemoPDF" 
-                            wire:loading.attr="disabled"
-                            type="button" 
-                            class="mb-4 pointer-events-auto bg-red-600 text-white hover:bg-red-700 px-6 py-2.5 rounded-full shadow-lg font-bold flex items-center gap-3 border border-red-500 transition-transform transform hover:scale-105 disabled:opacity-50">
-                            
-                            <!-- Icone -->
-                            <svg wire:loading.remove wire:target="downloadMemoPDF" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            
-                            <!-- Spinner -->
-                            <svg wire:loading wire:target="downloadMemoPDF" class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            
-                            <span>Télécharger PDF</span>
-                        </button>
-
-                        <!-- ID GLOBAL POUR HTML2PDF -->
-                        <div id="export-container">
-
-                            <!-- PAGE 1 -->
-                            <div id="page-1" class="page-a4 bg-white w-[210mm] h-[297mm] shadow-2xl p-[10mm] text-black text-[13px] leading-snug relative text-left mx-auto mb-8">
-                                
-                                <!-- CADRE DORÉ -->
-                                <div class="gold-frame border-[3px] border-[#D4AF37] rounded-tr-[60px] rounded-bl-[60px] p-8 h-full flex flex-col relative">
-
-                                    <!-- EN-TÊTE LOGO + MEMORANDUM -->
-                                    <div class="header-section flex flex-col items-center justify-center mb-6 text-center">
-                                        <div class="mb-2">
-                                            <div class="w-17 h-16 flex items-center justify-center mx-auto mb-1">
-                                                <!-- Assurez-vous que l'image existe dans public/images/logo.jpg -->
-                                                <img src="{{ asset('images/logo.jpg') }}" alt="logo" class="w-full h-full object-contain">
-                                            </div>
-                                        </div>
-                                        <!-- Nom de l'entité de l'utilisateur connecté -->
-                                        <h2 class="font-bold text-xs uppercase text-gray-800">{{ $user_entity_name }}</h2>
-                                        <h1 class="font-['Arial'] font-extrabold text-2xl uppercase mt-2 italic inline-block">
-                                            Memorandum
-                                        </h1>
-                                    </div>
-
-                                    <!-- TABLEAU DESTINATAIRES -->
-                                    <div id="recipient-table" class="mb-6 text-sm w-full">
-                                        
-                                        <!-- LIGNE D'ALIGNEMENT -->
-                                        <div class="flex w-full text-[13px] font-bold font-['Arial'] pb-1 text-black">
-                                            <div class="w-[35%]"></div>
-                                            <div class="w-[30%] text-center">Prière de :</div>
-                                            <div class="w-[35%] pl-8">Destinataires :</div>
-                                        </div>
-                                        
-                                        <!-- TABLEAU COMPLET -->
-                                        <table class="w-full border-collapse border border-black text-[13px] font-['Arial'] text-black">
-                                            
-                                            <!-- LIGNE 1 : Faire le nécessaire -->
-                                            @php $recipients1 = $recipientsByAction['Faire le nécessaire'] ?? collect([]); @endphp
-                                            <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold w-[35%] align-top">
-                                                    Date : {{ $date }}
-                                                </td>
-                                                <td class="border border-black p-1 pl-2 w-[30%]">
-                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients1->count() > 0 ? 'bg-green-600' : '' }}"></span> 
-                                                    <span class="{{ $recipients1->count() > 0 ? 'font-bold' : '' }}">Faire le nécessaire</span>
-                                                </td>
-                                                <td class="border border-black p-1 text-center w-[35%] {{ $recipients1->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    {{ $recipients1->count() > 0 ? $formatRecipients($recipients1) : '' }}
-                                                </td>
-                                            </tr>
-
-                                            <!-- LIGNE 2 : Prendre connaissance -->
-                                            @php $recipients2 = $recipientsByAction['Prendre connaissance'] ?? collect([]); @endphp
-                                            <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">
-                                                    N° : {{ $currentMemo->reference ?? 'En attente' }}
-                                                </td>
-                                                <td class="border border-black p-1 pl-2">
-                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients2->count() > 0 ? 'bg-blue-600' : '' }}"></span> 
-                                                    <span class="{{ $recipients2->count() > 0 ? 'font-bold' : '' }}">Prendre connaissance</span>
-                                                </td>
-                                                <td class="border border-black p-1 text-center {{ $recipients2->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    {{ $recipients2->count() > 0 ? $formatRecipients($recipients2) : '' }}
-                                                </td>
-                                            </tr>
-
-                                            <!-- LIGNE 3 : Prendre position (Optionnel si vous l'utilisez) -->
-                                            @php $recipients3 = $recipientsByAction['Prendre position'] ?? collect([]); @endphp
-                                            <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">
-                                                    <!-- On affiche le nom de l'utilisateur ici ou son entité -->
-                                                    Emetteur : #
-                                                </td>
-                                                <td class="border border-black p-1 pl-2">
-                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients3->count() > 0 ? 'bg-orange-500' : '' }}"></span> 
-                                                    <span class="{{ $recipients3->count() > 0 ? 'font-bold' : '' }}">Prendre position</span>
-                                                </td>
-                                                <td class="border border-black p-1 text-center {{ $recipients3->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    {{ $recipients3->count() > 0 ? $formatRecipients($recipients3) : '' }}
-                                                </td>
-                                            </tr>
-
-                                            <!-- LIGNE 4 : Décider (ou autre action) -->
-                                            @php $recipients4 = $recipientsByAction['Décider'] ?? collect([]); @endphp
-                                            <tr>
-                                                <td class="border border-black p-1 pl-2 font-bold align-top">
-                                                    Service : {{ $user_service }}
-                                                </td>
-                                                <td class="border border-black p-1 pl-2">
-                                                    <span class="inline-block w-3 h-3 border border-black mr-1 align-middle {{ $recipients4->count() > 0 ? 'bg-yellow-400' : '' }}"></span> 
-                                                    <span class="{{ $recipients4->count() > 0 ? 'font-bold' : '' }}">Décider</span>
-                                                </td>
-                                                <td class="border border-black p-1 text-center {{ $recipients4->count() > 0 ? 'font-bold bg-gray-50' : '' }}">
-                                                    {{ $recipients4->count() > 0 ? $formatRecipients($recipients4) : '' }}
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </div>
-
-                                    <!-- OBJET & CONCERNE -->
-                                    <div class="mb-4">
-                                        <div class="mb-6">
-                                            <p class="mb-1">
-                                                <span class="font-bold text-[15px] underline">Objet :</span> 
-                                                <span class="uppercase font-bold"> {{ $object }} </span>
-                                            </p>
-                                        </div>
-                                        <div class="mb-6">
-                                            <p class="mb-1">
-                                                <span class="font-bold text-[15px] underline">Concerne :</span> 
-                                                <span class="lowercase text-gray-800"> {{ $concern }} </span>
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <!-- CORPS DU TEXTE -->
-                                    <div id="content-area" class="flex-grow px-2">
-                                        <div class="text-justify space-y-3 text-[14px] leading-relaxed font-serif text-gray-900">
-                                            {!! $content !!}
-                                        </div>
-                                    </div>
-
-                                    <!-- PIED DE PAGE AVEC QR CODE -->
-                                    <div class="absolute bottom-4 left-0 w-full flex flex-col items-center justify-center">
-                                        @if($currentMemo && $currentMemo->qr_code)
-                                            <div class="bg-white p-0.5 border border-gray-200 inline-block mb-2">
-                                                <!-- Génération du QR Code -->
-                                                {{ QrCode::size(50)->generate(route('memo.verify', $currentMemo->qr_code)) }}
-                                            </div>
-                                        @endif
-                                        
-                                        <!-- Numéro de version du formulaire -->
-                                        <div class="text-[10px] text-gray-500 italic">{{ $currentMemo->numero_ref }}</div>
-                                    </div>
-
-                                </div> 
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
+     
 
     @if($isOpen2)
        <!-- Modal Édition (Grand Format) -->

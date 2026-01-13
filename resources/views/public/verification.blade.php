@@ -101,7 +101,7 @@
                             <div class="flex-grow">
                                 <p class="text-gray-900 text-lg font-legal">
                                     <span class="font-bold">{{ $history->user->first_name }} {{ $history->user->last_name }}</span>
-                                    <span class="text-base text-gray-600 font-normal">a signé en qualité de</span>
+                                    <span class="text-base text-gray-600 font-normal">a valider en qualité de</span>
                                     <span class="font-bold text-gray-900 underline decoration-yellow-500/50 decoration-2 underline-offset-2">
                                         {{ $history->user->poste ?? 'Fonction non définie' }}
                                     </span>.
@@ -109,7 +109,7 @@
                                 
                                 <div class="flex items-center gap-4 mt-2">
                                     <span class="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded uppercase">
-                                        <i class="fas fa-check-circle mr-1"></i> Signé électroniquement
+                                        <i class="fas fa-check-circle mr-1"></i> Commentaire
                                     </span>
                                     <span class="text-xs text-gray-400 font-mono">
                                         {{ $history->created_at->format('d/m/Y à H:i') }}

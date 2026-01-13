@@ -94,21 +94,24 @@
             </div>
         </div>
         
-        <!-- Carte 4 : À Signer -->
+        <!-- Carte 4 : Archives -->
         <div class="rounded-2xl p-6 shadow-sm border transition-all border-dashed" style="background-color: var(--dash-bg-card); border-color: var(--dash-border);">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-xs font-bold uppercase tracking-widest" style="color: var(--dash-text-muted);">À Signer</p>
-                    <h3 class="text-4xl font-black mt-3" style="color: var(--dash-text-muted);">2</h3>
+                    <p class="text-xs font-bold uppercase tracking-widest" style="color: var(--dash-text-muted);">Mémos Archivés</p>
+                    <!-- Affichage dynamique du nombre d'archives -->
+                    <h3 class="text-4xl font-black mt-3" style="color: var(--dash-text-muted);">{{ $archivesCount }}</h3>
                 </div>
                 <div class="p-3 rounded-xl {{ $darkMode ? 'bg-white/5 text-gray-500' : 'bg-gray-100 text-gray-400' }}">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    <!-- Icône Archive (Boîte) -->
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
                 </div>
             </div>
             <div class="mt-4 text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                Action requise
+                Dossiers clôturés
             </div>
         </div>
+        
     </div>
 
     <!-- ============================================= -->

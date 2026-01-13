@@ -3,13 +3,15 @@
 namespace App\Livewire\Favorites;
 
 use App\Models\Memo;
+use App\Models\User;
 use App\Models\Entity;
-use App\Models\Historiques;
 use Livewire\Component;
+use App\Models\Historiques;
 use Livewire\WithPagination;
-use App\Traits\ManageFavorites;
-use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Title;
+use App\Traits\ManageFavorites;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
 
 #[Title('Mes Favoris')]
 class FavoriteMemos extends Component
@@ -32,6 +34,9 @@ class FavoriteMemos extends Component
     public $date = '';
     public $user_entity_name = '';
     public $user_service = '';
+    public $isViewingPdf = false;
+    public $isEditing = false;
+    public $pdfBase64 = '';
     
     // --- DONNÉES HISTORIQUE ---
     public $memoHistory = [];
@@ -44,34 +49,56 @@ class FavoriteMemos extends Component
         $this->resetPage();
     }
 
-    /**
-     * Ouvre l'aperçu du mémo (Style Papier)
-     * OPTIMISATION : Eager Loading de 'user.entity' pour éviter les requêtes N+1
-     */
-    public function viewMemo($id)
+    private function getPdfData($memo)
     {
-        // On récupère tout en une seule requête SQL groupée
-        $memo = Memo::with(['user.entity'])->findOrFail($id);
-        
-        $this->memo_id          = $memo->id;
-        $this->object           = $memo->object;
-        $this->concern          = $memo->concern;
-        $this->content          = $memo->content;
-        $this->date             = $memo->created_at->format('d/m/Y');
-        $this->user_service     = $memo->user->service ?? 'Service';
-        $this->user_entity_name = $memo->user->entity->name ?? 'Entité';
+        // On cherche le directeur de l'entité du créateur du mémo
+        $director = User::where('dir_id', $memo->user->dir_id)
+                        ->where('poste', 'Directeur')
+                        ->first();
 
-        $this->isOpen = true;
+        return [
+            'memo'               => $memo,
+            'recipientsByAction' => $memo->destinataires->groupBy('action'),
+            'date'               => $memo->created_at->format('d/m/Y'),
+            'logo'               => $this->getLogoBase64(),
+            'director'           => $director, // On passe l'objet director à la vue
+        ];
     }
 
     /**
-     * Ferme le modal et nettoie les propriétés pour réduire la taille des échanges réseau
+     * Ouvre l'aperçu du mémo
      */
-    public function closeModal()
+    public function viewMemo($id)
     {
-        $this->isOpen = false;
-        // On vide les variables lourdes pour alléger le prochain cycle Livewire
-        $this->reset(['memo_id', 'object', 'concern', 'content', 'date', 'user_entity_name', 'user_service']);
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
+        $this->memo_id = $memo->id;
+
+        // Utilisation de la méthode partagée
+        $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo))
+              ->setPaper('a4', 'portrait');
+
+        $this->pdfBase64 = base64_encode($pdf->output());
+        $this->isViewingPdf = true;
+        $this->isEditing = false;
+    }
+
+    public function closePdfView()
+    {
+        $this->isViewingPdf = false;
+        $this->pdfBase64 = '';
+    }
+
+    private function getLogoBase64() {
+        $path = public_path('images/logo.jpg');
+        return file_exists($path) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($path)) : null;
+    }
+
+    public function downloadMemoPDF()
+    {
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
+        $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo));
+        
+        return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
     }
 
     /**

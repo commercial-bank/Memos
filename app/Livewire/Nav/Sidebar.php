@@ -18,17 +18,20 @@ class Sidebar extends Component
     public function mount()
     {
         // Récupérer l'état du mode sombre depuis la session au chargement
-        $this->darkMode = session()->get('dark_mode', false);
+       $this->darkMode = Auth::user()->dark_mode ?? false;
     }
 
     public function toggleDarkMode()
     {
         $this->darkMode = !$this->darkMode;
         
-        // Sauvegarder en session pour la persistance
-        session()->put('dark_mode', $this->darkMode);
+        // CORRECTION : On sauvegarde en BDD pour que ça reste après déconnexion
+        $user = Auth::user();
+        if ($user) {
+            $user->update(['dark_mode' => $this->darkMode]);
+        }
         
-        // Notifier le navigateur pour changer la classe sur l'élément <html>
+        // On notifie les autres composants (Dashboard)
         $this->dispatch('dark-mode-toggled', darkMode: $this->darkMode);
     }
 

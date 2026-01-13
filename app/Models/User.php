@@ -47,10 +47,12 @@ class User extends Authenticatable implements LdapAuthenticatable
         'blocking_reason',
         'profile_locked',
         'manager_id',
+        'dark_mode'
     ];
 
     protected $casts = [
         'poste' => \App\Enums\Poste::class,
+        'dark_mode' => 'boolean',
         // ... vos autres casts
     ];
 

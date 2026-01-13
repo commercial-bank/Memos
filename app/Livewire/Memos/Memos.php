@@ -25,6 +25,8 @@ class Memos extends Component
     // 'keep: true' permet de garder le paramètre dans l'URL même après des actions Ajax
     #[Url(keep: true)] 
     public $activeTab = 'incoming';
+
+    
     public $darkMode = false;
 
     // --- Recherche Destinataire ---
@@ -69,13 +71,19 @@ class Memos extends Component
     
     public function mount()
     {
-        $this->darkMode = session()->get('dark_mode', false);
+         $this->darkMode = Auth::user()->dark_mode ?? false;
     }
 
     #[On('dark-mode-toggled')]
     public function updateDarkMode($darkMode)
     {
         $this->darkMode = $darkMode;
+
+        // AJOUT : Sauvegarde immédiate dans la base de données
+        $user = Auth::user();
+        if ($user) {
+            $user->update(['dark_mode' => $darkMode]);
+        }
     }
 
     public function selectTab(string $tab)

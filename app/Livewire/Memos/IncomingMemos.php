@@ -22,6 +22,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use PHPMailer\PHPMailer\PHPMailer;
 use App\Models\BlocEnregistrements;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Notifications\MemoActionNotification;
@@ -117,6 +118,10 @@ class IncomingMemos extends Component
         'Vu & Pas d\'accord' => 'Vu & Pas d\'accord',
     ];
 
+    #[Url(keep: true)] 
+    public $activeTab = 'incoming';
+    public $darkMode = false;
+
     public $isSecretary = false;
     public $standardRecipientsList = []; // Liste Director + Sous-directeurs
     public $selected_standard_users = []; // Les IDs sélectionnés en mode Standard
@@ -131,6 +136,19 @@ class IncomingMemos extends Component
     public function mount()
     {
         $this->allEntities = Entity::orderBy('name')->get();
+        $this->darkMode = Auth::user()->dark_mode ?? false;
+    }
+
+    #[On('dark-mode-toggled')]
+    public function updateDarkMode($darkMode)
+    {
+        $this->darkMode = $darkMode;
+
+        // AJOUT : Sauvegarde immédiate dans la base de données
+        $user = Auth::user();
+        if ($user) {
+            $user->update(['dark_mode' => $darkMode]);
+        }
     }
 
 
@@ -149,9 +167,19 @@ class IncomingMemos extends Component
     private function getPdfData($memo)
     {
         // On cherche le directeur de l'entité du créateur du mémo
+        // CRITÈRE AJOUTÉ : On s'assure qu'il n'a pas de manager (c'est le N+1 suprême de l'entité)
         $director = User::where('dir_id', $memo->user->dir_id)
                         ->where('poste', 'Directeur')
+                        ->whereNull('manager_id') // <--- C'est ici que se fait la distinction
                         ->first();
+
+        // Sécurité : Si aucun Directeur sans manager n'est trouvé (cas rare ou erreur de saisie),
+        // on peut tenter de prendre le premier Directeur trouvé tout court.
+        if (!$director) {
+            $director = User::where('dir_id', $memo->user->dir_id)
+                            ->where('poste', 'Directeur')
+                            ->first();
+        }
 
         return [
             'memo'               => $memo,
@@ -435,24 +463,230 @@ class IncomingMemos extends Component
         foreach (User::whereIn('id', $nextHolders)->get() as $recipient) {
             try {
                 $recipient->notify(new MemoActionNotification($memo, 'envoyer', $user));
-                $this->sendRejectEmail($memo, $author, $user, $emailTitle, $emailColor, $actionLabel);
-                
-                $this->sendMemoEmailNotification(
-                    $memo, 
-                    $recipient, // C'est lui qui reçoit le mail
-                    $user,      // C'est vous qui avez fait l'action
-                    $emailTitle, 
-                    $emailColor, 
-                    $actionLabel
-                );
+
+                // *** ENVOI EMAIL STANDARD ICI ***
+                $this->sendEmailNotification($memo, $nextHolders, $user);
 
             } catch (\Exception $e) {}
         }
+
 
         $this->closeModalTrois();
         $this->dispatch('notify', message: "Mémo envoyer avec succès.");
         
         
+    }
+
+
+    private function sendEmailNotification($memo, $nextHolders, $sender)
+    {
+        
+
+        // Récupérer tous les destinataires
+        $recipients = User::whereIn('id', $nextHolders)
+            ->whereNotNull('email')
+            ->get();
+
+        if ($recipients->isEmpty()) {
+            Log::warning("Aucun destinataire avec email valide pour le mémo #{$memo->id}");
+            return;
+        }
+
+        // Récupérer les entités destinataires pour l'affichage
+        $recipientsData = is_array($memo->destinataires) 
+            ? $memo->destinataires 
+            : json_decode($memo->destinataires, true) ?? [];
+        
+        $entitiesNames = collect($recipientsData)->map(function($dest) {
+            $entity = Entity::find($dest['entity_id']);
+            return $entity ? $entity->name : 'Inconnu';
+        })->implode(', ');
+
+        // Préparer les informations communes
+        $memoType = $this->memo_type === 'projet' ? 'Circuit Particulier' : 'Circuit Standard';
+        $actionRequired = $this->memo_type === 'projet' ? 'Validation requise dans le circuit' : 'Action requise';
+
+        foreach ($recipients as $recipient) {
+            try {
+                $mail = new PHPMailer(true);
+
+                // Configuration SMTP
+                $mail->isSMTP();
+                $mail->Host = env('MAIL_HOST', 'smtp.gie.local');
+                $mail->SMTPAuth = false;
+                $mail->Port = env('MAIL_PORT', 25);
+                $mail->SMTPSecure = false;
+                $mail->SMTPAutoTLS = false;
+                $mail->CharSet = 'UTF-8';
+                
+                $mail->SMTPOptions = [
+                    'ssl' => [
+                        'verify_peer' => false,
+                        'verify_peer_name' => false,
+                        'allow_self_signed' => true
+                    ]
+                ];
+
+                // Expéditeur
+                $mail->setFrom(
+                    env('MAIL_FROM_ADDRESS', 'cbc_infos@groupecommercialbank.com'),
+                    env('MAIL_FROM_NAME', 'CBC MEMOS')
+                );
+
+                // Destinataire
+                $mail->addAddress($recipient->email, $recipient->first_name . ' ' . $recipient->last_name);
+
+                // Contenu de l'email
+                $mail->isHTML(true);
+                $mail->Subject = "Nouveau Mémorandum : {$memo->object}";
+                
+                // Corps HTML de l'email
+                $mail->Body = $this->buildEmailBody($memo, $recipient, $sender, $memoType, $actionRequired, $entitiesNames);
+                
+                // Version texte brut (fallback)
+                $mail->AltBody = $this->buildEmailAltBody($memo, $recipient, $sender, $memoType);
+
+                // Envoi
+                $mail->send();
+                
+                Log::info("Email envoyé avec succès à {$recipient->email} pour le mémo #{$memo->id}");
+
+            } catch (Exception $e) {
+                Log::error("Erreur lors de l'envoi d'email à {$recipient->email} pour le mémo #{$memo->id}: {$mail->ErrorInfo}");
+            }
+        }
+    }
+
+    /**
+     * Construit le corps HTML de l'email
+     */
+    private function buildEmailBody($memo, $recipient, $sender, $memoType, $actionRequired, $entitiesNames)
+    {
+        $senderName = $sender->first_name . ' ' . $sender->last_name;
+        $senderPoste = is_object($sender->poste) ? $sender->poste->value : $sender->poste;
+        $recipientName = $recipient->first_name . ' ' . $recipient->last_name;
+        $memoUrl = route('dashboard', [
+            'view' => 'memos-content', // Pour charger le bon composant (selon votre logique de routing)
+            'tab'  => 'incoming'       // <--- C'est ici que la magie opère
+        ]);
+        
+        return "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset='UTF-8'>
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; background: #ffffff; }
+                .header { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 30px; text-align: center; }
+                .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; }
+                .header p { color: #dbeafe; margin: 5px 0 0 0; font-size: 14px; }
+                .content { padding: 30px; background: #f8fafc; }
+                .memo-box { background: white; border-left: 4px solid #daaf2c; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                .memo-title { font-size: 18px; font-weight: bold; color: #1e3a8a; margin-bottom: 15px; }
+                .info-row { margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
+                .info-label { font-weight: 600; color: #6b7280; font-size: 13px; text-transform: uppercase; }
+                .info-value { color: #111827; margin-top: 3px; }
+                .action-box { background: #fef3c7; border: 2px solid #daaf2c; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center; }
+                .action-box strong { color: #92400e; font-size: 16px; }
+                .btn { display: inline-block; padding: 12px 30px; background: #daaf2c; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+                .btn:hover { background: #b8941f; }
+                .footer { background: #1f2937; color: #9ca3af; padding: 20px; text-align: center; font-size: 12px; }
+                .footer a { color: #60a5fa; text-decoration: none; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>📋 CBC MEMOS</h1>
+                    <p>Système de Gestion des Mémorandums</p>
+                </div>
+                
+                <div class='content'>
+                    <p>Bonjour <strong>{$recipientName}</strong>,</p>
+                    
+                    <p>Vous avez reçu un nouveau mémorandum qui nécessite votre attention.</p>
+                    
+                    <div class='memo-box'>
+                        <div class='memo-title'>📄 {$memo->object}</div>
+                        
+                        <div class='info-row'>
+                            <div class='info-label'>Expéditeur</div>
+                            <div class='info-value'>{$senderName} - {$senderPoste}</div>
+                        </div>
+                        
+                        <div class='info-row'>
+                            <div class='info-label'>Concerne</div>
+                            <div class='info-value'>{$memo->concern}</div>
+                        </div>
+                        
+                        <div class='info-row'>
+                            <div class='info-label'>Type de Circuit</div>
+                            <div class='info-value'>{$memoType}</div>
+                        </div>
+                        
+                        <div class='info-row'>
+                            <div class='info-label'>Entités Destinataires</div>
+                            <div class='info-value'>{$entitiesNames}</div>
+                        </div>
+                        
+                        <div class='info-row'>
+                            <div class='info-label'>Date d'envoi</div>
+                            <div class='info-value'>" . now()->format('d/m/Y à H:i') . "</div>
+                        </div>
+                    </div>
+                    
+                    <div class='action-box'>
+                        <strong>⚠️ {$actionRequired}</strong>
+                    </div>
+                    
+                    <div style='text-align: center;'>
+                        <a href={$memoUrl}' class='btn'>Consulter le Mémo</a>
+                    </div>
+                    
+                    <p style='margin-top: 30px; font-size: 13px; color: #6b7280;'>
+                        <strong>Note :</strong> Ce mémo requiert votre traitement dans les meilleurs délais. 
+                        Veuillez vous connecter à la plateforme pour consulter le contenu complet et effectuer l'action requise.
+                    </p>
+                </div>
+                
+                <div class='footer'>
+                    <p><strong>Commercial Bank Cameroun</strong></p>
+                    <p>Cet email a été généré automatiquement par le système CBC MEMOS. Merci de ne pas y répondre.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+    }
+
+    /**
+     * Construit la version texte brut de l'email (fallback)
+     */
+    private function buildEmailAltBody($memo, $recipient, $sender, $memoType)
+    {
+        $senderName = $sender->first_name . ' ' . $sender->last_name;
+        $recipientName = $recipient->first_name . ' ' . $recipient->last_name;
+        
+        return "
+        CBC MEMOS - Nouveau Mémorandum
+
+        Bonjour {$recipientName},
+
+        Vous avez reçu un nouveau mémorandum :
+
+        OBJET : {$memo->object}
+        EXPÉDITEUR : {$senderName}
+        CONCERNE : {$memo->concern}
+        TYPE : {$memoType}
+        DATE : " . now()->format('d/m/Y à H:i') . "
+
+        Veuillez vous connecter à la plateforme CBC MEMOS pour consulter le contenu complet et effectuer l'action requise.
+
+        ---
+        Commercial Bank Cameroun
+        Cet email a été généré automatiquement. Merci de ne pas y répondre.
+            ";
     }
 
     // =========================================================
@@ -612,6 +846,9 @@ class IncomingMemos extends Component
                     'transmis', 
                     $user
                 ));
+
+                $this->sendEmailNotification($memo, $recipient, $user);
+                
             } catch (\Exception $e) {
                 // Log de l'erreur si la notification échoue, mais on ne bloque pas le processus
                 \Illuminate\Support\Facades\Log::error("Échec notification secrétaire ID {$recipient->id} : " . $e->getMessage());
@@ -1191,7 +1428,6 @@ class IncomingMemos extends Component
                 'concern'        => $this->concern,
                 'content'        => $this->content,
                 'pieces_jointes' => json_encode($finalAttachments),
-                'user_id'        => Auth::id(),
             ]
         );
 

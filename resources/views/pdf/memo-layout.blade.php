@@ -72,7 +72,7 @@
            3. TITRES ET TABLEAUX
            ========================================================= */
         .page-one-header { text-align: center; margin-bottom: 20px; margin-top: -20px; }
-        .direction { font-size: 10px; font-weight: bold; text-transform: uppercase; margin-bottom: 10px; }
+        .direction { font-size: 15px; font-weight: bold; text-transform: uppercase; margin-bottom: 10px; }
         .main-title { font-size: 18pt; font-weight: bold; text-transform: uppercase; font-style: italic; }
 
         .header-row-table {
@@ -216,7 +216,7 @@
             <div class="footer-validation">
                 <div class="validation-text">Le présent document a été validé par :</div>
                 <span class="validator-name">
-                    Monsieur {{ $director->first_name }} {{ $director->last_name }}
+                     M. / Mme / Mlle {{ $director->first_name }} {{ $director->last_name }}
                 </span>
                 <div class="validator-quality">
                     en qualité de Directeur {{ $director->dir->ref  }}
@@ -229,7 +229,7 @@
                 <img src="data:image/svg+xml;base64,{{ base64_encode(QrCode::format('svg')->size(50)->generate(route('memo.verify', $memo->qr_code))) }}" 
                      width="50" height="50">
             @else
-                <div class="qr-placeholder-empty">QR</div>
+                <div class="qr-placeholder-empty"></div>
             @endif
         </div>
         <div class="ref-text">
@@ -267,10 +267,20 @@
                 </td>
             </tr>
             <tr>
-                <td class="col-label">N° : {{ $memo->reference ?? '___/REF/___' }}</td>
+                <td style="
+                    word-wrap: break-word; 
+                    word-break: break-all; 
+                    white-space: normal; 
+                    max-width: 150px; /* Ajustez cette valeur selon la largeur de votre colonne */
+                    vertical-align: top;
+                " class="col-label">
+                    N° : {{ $memo->reference ?? '___/REF/___' }}
+                </td>
+
                 <td class="col-check">
                     <span class="checkbox {{ isset($recipientsByAction['Prendre connaissance']) ? 'checked' : '' }}"></span> Prendre connaissance
                 </td>
+
                 <td class="col-dest">
                     @foreach($recipientsByAction['Prendre connaissance'] ?? [] as $dest)
                         {{ $dest->entity->ref ?? Str::limit($dest->entity->name, 12) }}@if(!$loop->last), @endif

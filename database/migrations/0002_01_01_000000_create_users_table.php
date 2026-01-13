@@ -42,6 +42,7 @@ return new class extends Migration
                 $table->text('blocking_reason')->nullable();
                 $table->boolean('profile_locked')->default(false);
                 $table->unsignedBigInteger('manager_id')->nullable();
+                $table->boolean('dark_mode')->default(false);
                 $table->rememberToken();
                 $table->timestamps();
         });

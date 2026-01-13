@@ -130,9 +130,19 @@ class Incoming2Memos extends Component
     private function getPdfData($memo)
     {
         // On cherche le directeur de l'entité du créateur du mémo
+        // CRITÈRE AJOUTÉ : On s'assure qu'il n'a pas de manager (c'est le N+1 suprême de l'entité)
         $director = User::where('dir_id', $memo->user->dir_id)
                         ->where('poste', 'Directeur')
+                        ->whereNull('manager_id') // <--- C'est ici que se fait la distinction
                         ->first();
+
+        // Sécurité : Si aucun Directeur sans manager n'est trouvé (cas rare ou erreur de saisie),
+        // on peut tenter de prendre le premier Directeur trouvé tout court.
+        if (!$director) {
+            $director = User::where('dir_id', $memo->user->dir_id)
+                            ->where('poste', 'Directeur')
+                            ->first();
+        }
 
         return [
             'memo'               => $memo,
@@ -410,10 +420,11 @@ class Incoming2Memos extends Component
             'user_id' => $user->id,
             'memo_id' => $memo->id,
             'visa'    => 'Coté / Transmis', 
-            'workflow_comment' => $this->comment . " (Assigné à: " . $recipient->full_name . ")"
+            'workflow_comment' => $this->comment . " (Assigné à: " . $recipient->first_name . ")"
         ]);
         try { 
             $recipient->notify(new MemoActionNotification($memo, 'cotation', $user)); 
+            $this->sendEmailNotification($memo, $recipient, $user);
         } catch (\Exception $e) {}
     }
 
@@ -738,6 +749,132 @@ class Incoming2Memos extends Component
     {
         unset($this->recipients[$index]);
         $this->recipients = array_values($this->recipients);
+    }
+
+      /**
+     * Envoie l'email de Rejet ou de Retour via PHPMailer
+     */
+    private function sendMemoEmailNotification($memo, $recipient, $actor, $title, $color, $actionLabel)
+    {
+        if (empty($recipient->email)) return;
+
+        try {
+            $mail = new PHPMailer(true);
+
+            // Configuration SMTP
+            $mail->isSMTP();
+            $mail->Host = env('MAIL_HOST', 'smtp.gie.local');
+            $mail->SMTPAuth = false;
+            $mail->Port = env('MAIL_PORT', 25);
+            $mail->SMTPSecure = false;
+            $mail->SMTPAutoTLS = false;
+            $mail->CharSet = 'UTF-8';
+            
+            $mail->SMTPOptions = [
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                ]
+            ];
+
+            // Expéditeur
+            $mail->setFrom(
+                env('MAIL_FROM_ADDRESS', 'cbc_infos@groupecommercialbank.com'),
+                env('MAIL_FROM_NAME', 'CBC MEMOS')
+            );
+
+            // Destinataire
+            $mail->addAddress($recipient->email, $recipient->first_name . ' ' . $recipient->last_name);
+
+            // Contenu
+            $mail->isHTML(true);
+            $mail->Subject = "$title : " . $memo->object;
+            
+            $mail->Body = $this->buildSendMemoEmailBody($memo, $recipient, $actor, $title, $color, $actionLabel);
+            
+            // Texte brut (Fallback)
+            $mail->AltBody = "Bonjour, votre mémo '{$memo->object}' a été : $actionLabel par {$actor->first_name} {$actor->last_name}.\nMotif : {$this->reject_comment}";
+
+            $mail->send();
+
+        } catch (Exception $e) {
+            Log::error("Erreur envoi email send mémo #{$memo->id}: " . $mail->ErrorInfo);
+        }
+    }
+
+    /**
+     * Construit le HTML de l'email (Design Rouge ou Orange)
+     */
+    private function buildSendMemoEmailBody($memo, $recipient, $actor, $title, $color, $actionLabel)
+    {
+        $recipientName = $recipient->first_name . ' ' . $recipient->last_name;
+        $actorName = $actor->first_name . ' ' . $actor->last_name;
+        $actorPoste = $actor->poste->value ?? $actor->poste; // Gère Enum ou String
+        
+        
+        
+        $memoUrl = route('dashboard', [
+            'view' => 'memos-content', 
+            'tab' =>  'document'
+        ]);
+
+        return "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset='UTF-8'>
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f5; }
+                .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                .header { background-color: {$color}; padding: 30px; text-align: center; }
+                .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: bold; text-transform: uppercase; }
+                .content { padding: 30px; }
+                .alert-box { background-color: #fff1f2; border-left: 4px solid {$color}; padding: 15px; margin: 20px 0; border-radius: 4px; }
+                .info-label { font-size: 12px; font-weight: bold; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+                .info-value { font-size: 15px; color: #111827; margin-bottom: 12px; font-weight: 500; }
+                .comment-box { background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; font-style: italic; color: #4b5563; margin-top: 5px; }
+                .btn { display: inline-block; padding: 12px 24px; background-color: {$color}; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; }
+                .footer { background-color: #1f2937; color: #9ca3af; padding: 20px; text-align: center; font-size: 12px; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>{$title}</h1>
+                </div>
+                
+                <div class='content'>
+                    <p>Bonjour <strong>{$recipientName}</strong>,</p>
+                    
+                    <p>Le statut de votre mémorandum a été mis à jour par <strong>{$actorName}</strong> ({$actorPoste}).</p>
+                    
+                    <div class='alert-box'>
+                        <div class='info-label'>Objet du Mémo</div>
+                        <div class='info-value'>{$memo->object}</div>
+                        
+                        <div class='info-label'>Action</div>
+                        <div class='info-value' style='color: {$color};'>{$actionLabel}</div>
+                    </div>
+
+                    <div class='info-label'>Motif / Commentaire :</div>
+                    <div class='comment-box'>
+                        « {$this->reject_comment} »
+                    </div>
+
+                    <div style='text-align: center;'>
+                        <a href='{$memoUrl}' class='btn'>Accéder au Document</a>
+                    </div>
+                </div>
+                
+                <div class='footer'>
+                    <p><strong>Commercial Bank Cameroun</strong> - Système de Gestion des Mémos</p>
+                    <p>Ceci est un message automatique, merci de ne pas répondre.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
     }
 
     
