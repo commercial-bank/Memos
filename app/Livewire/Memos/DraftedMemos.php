@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Memos;
 
-
 use Carbon\Carbon;
 use App\Models\Memo;
 use App\Models\User;
@@ -25,39 +24,34 @@ use Illuminate\Support\Facades\Storage;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Notifications\MemoActionNotification;
 
-// ⭐ AJOUTEZ CES DEUX LIGNES ICI ⭐
+// ⭐ AJOUTEZ CES DEUX LIGNES ICI ⭐ 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
-
 
 class DraftedMemos extends Component
 {
     use WithPagination, WithFileUploads;
-   
+
+    // =================================================================================================
+    // 1. PROPRIÉTÉS D'ÉTAT DE L'INTERFACE (UI) & MODALS
+    // =================================================================================================
 
     // --- États de navigation ---
+    public $search = '';
     public $isEditing = false; 
     public $isViewingPdf = false;
-    public $search = '';
     public $darkMode = false;
 
-    // --- Recherche Destinataire ---
-    public $searchRecipient = '';
-    public $newRecipientEntity = null; // ID de l'entité sélectionnée
-    
-    // DRAPEAU CRUCIAL : Empêche le reset lors de la sélection
-    protected $isSelection = false; 
-
     // --- États des Modals ---
-    public $isOpen3 = false;     
-    public $isOpen4 = false;     
+    public $isOpen3 = false; // Modal Workflow/Assignation
+    public $isOpen4 = false; // Modal Suppression
 
-    // --- Données du Mémo (Formulaire) ---
+    
+    // =================================================================================================
+    // 2. PROPRIÉTÉS DU FORMULAIRE (MÉMO)
+    // =================================================================================================
+
     public $memo_id = null;
-
-    // --- Propriétés pour le circuit particulier ---
-    public $selected_project_path = []; // Tableau d'IDs ordonnés [ID_1, ID_2, ID_3]
-    public $search_project_user = '';   // Pour la recherche de membres
 
     #[Rule('required|string|max:255')]
     public string $object = '';
@@ -68,55 +62,90 @@ class DraftedMemos extends Component
     #[Rule('required|string')]
     public string $content = '';
 
-    // --- Gestion des Destinataires ---
-    public $recipients = []; 
-    public $newRecipientAction = '';
-    public $allEntities = []; 
-
-    // --- Gestion des Pièces Jointes ---
-    // $attachments est utilisé pour les nouveaux uploads (WithFileUploads)
-    public $attachments = []; 
-    // $existingAttachments stocke les chemins des fichiers déjà en base de données
-    public $existingAttachments = []; 
-
-    // --- Workflow & Assignation ---
-    public $memo_type = 'standard'; 
-    public $workflow_comment = '';
-    public $selected_visa = ''; 
-    public $managerData = null;     
-    public $projectUsersList = [];  
-    public $selected_project_users = [];
-
     // --- Données pour l'Aperçu PDF ---
     public $pdfBase64 = '';
     public $date;
     public $user_entity_name;
 
-    // --- Options Statiques ---
+
+    // =================================================================================================
+    // 3. PROPRIÉTÉS DE GESTION DES DESTINATAIRES (RECHERCHE & LISTE)
+    // =================================================================================================
+
+    public $recipients = []; 
+    public $allEntities = []; 
     public $actionsList = ['Faire le nécessaire', 'Prendre connaissance', 'Prendre position', 'Décider'];
 
+    // --- Recherche Destinataire ---
+    public $searchRecipient = '';
+    public $newRecipientEntity = null; // ID de l'entité sélectionnée
+    public $newRecipientAction = '';
+    
+    // Drapeau pour empêcher le reset lors de la sélection
+    protected $isSelection = false; 
+
+
+    // =================================================================================================
+    // 4. PROPRIÉTÉS DE WORKFLOW & CIRCUIT
+    // =================================================================================================
+
+    public $memo_type = 'standard'; 
+    public $workflow_comment = '';
+    public $selected_visa = ''; 
     public $isSecretary = false;
-    public $standardRecipientsList = []; // Liste Director + Sous-directeurs
+
+    // --- Listes d'utilisateurs ---
+    public $managerData = null;     
+    public $standardRecipientsList = [];  // Liste Director + Sous-directeurs
     public $selected_standard_users = []; // Les IDs sélectionnés en mode Standard
+    public $projectUsersList = [];  
+    public $selected_project_users = [];
+    
+    // --- Circuit Particulier (Projet) ---
+    public $selected_project_path = []; // Tableau d'IDs ordonnés [ID_1, ID_2, ID_3]
+    public $search_project_user = '';   // Pour la recherche de membres
+
+
+    // =================================================================================================
+    // 5. PROPRIÉTÉS DES PIÈCES JOINTES
+    // =================================================================================================
+
+    // $attachments est utilisé pour les nouveaux uploads (WithFileUploads)
+    public $attachments = []; 
+    // $existingAttachments stocke les chemins des fichiers déjà en base de données
+    public $existingAttachments = []; 
+
+
+    // =================================================================================================
+    // 6. INITIALISATION (LIFECYCLE)
+    // =================================================================================================
 
     public function mount()
     {
         $this->allEntities = Entity::orderBy('name', 'asc')->get(); 
     }
 
+
+    // =================================================================================================
+    // 7. GESTION DE L'INTERFACE & NAVIGATION
+    // =================================================================================================
+
     public function updatingSearch()
     {
         $this->resetPage();
     }
 
-    // =========================================================
-    // LOGIQUE D'ÉDITION
-    // =========================================================
+    public function closeModalTrois() { $this->isOpen3 = false; }
+    public function closeModalQuatre() { $this->isOpen4 = false; }
+
+
+    // =================================================================================================
+    // 8. LOGIQUE D'ÉDITION & SAUVEGARDE (CRUD)
+    // =================================================================================================
 
     public function editMemo($id)
     {
         // On utilise DraftedMemo au lieu de Memo
-        // Note: On ne charge plus 'destinataires.entity' car c'est du JSON maintenant
         $memo = DraftedMemo::findOrFail($id);
         
         $this->memo_id = $memo->id;
@@ -124,14 +153,13 @@ class DraftedMemos extends Component
         $this->concern = $memo->concern ?? '';
         $this->content = $memo->content;
         
-        // Gestion des pièces jointes (Déjà casté en array si configuré dans le Model)
+        // Gestion des pièces jointes
         $pj = $memo->pieces_jointes;
         $this->existingAttachments = is_array($pj) ? $pj : (json_decode($pj, true) ?? []);
         
         $this->attachments = [];
 
         // Chargement des destinataires depuis la colonne JSON
-        // On doit rajouter le nom de l'entité pour l'affichage dans le tableau de l'interface
         $this->recipients = collect($memo->destinataires ?? [])->map(function($dest) {
             $entity = \App\Models\Entity::find($dest['entity_id']);
             return [
@@ -156,6 +184,51 @@ class DraftedMemos extends Component
         $this->resetValidation();
     }
 
+    public function save()
+    {
+        $this->validate();
+
+        // 1. Gérer les fichiers
+        $finalPaths = $this->existingAttachments;
+        
+        if ($this->attachments) {
+            foreach ($this->attachments as $file) {
+                $finalPaths[] = $file->store('attachments/drafts', 'public');
+            }
+        }
+
+        // 2. Mise à jour ou Création dans DRAFTED_MEMOS
+        DraftedMemo::updateOrCreate(
+            ['id' => $this->memo_id],
+            [
+                'object'          => $this->object,
+                'concern'         => $this->concern,
+                'content'         => $this->content,
+                'pieces_jointes'  => $finalPaths,
+                'destinataires'   => $this->recipients, // On sauve le tableau directement en JSON
+                'user_id'         => Auth::id(),
+                'status'          => 'brouillon',
+                'workflow_direction' => 'sortant'
+            ]
+        );
+
+        $this->isEditing = false;
+        $this->dispatch('notify', message: "Brouillon mis à jour avec succès !");
+    }
+
+    public function deleteMemo($id) { $this->memo_id = $id; $this->isOpen4 = true; }
+    
+    public function del() {
+        DraftedMemo::where('id', $this->memo_id)->where('user_id', Auth::id())->delete();
+        $this->isOpen4 = false;
+        $this->dispatch('notify', message: "Mémo supprimé.");
+    }
+
+
+    // =================================================================================================
+    // 9. LOGIQUE DES PIÈCES JOINTES
+    // =================================================================================================
+
     // Supprimer un fichier qui est déjà sur le serveur
     public function removeExistingAttachment($index)
     {
@@ -174,46 +247,95 @@ class DraftedMemos extends Component
         }
     }
 
-    public function save()
-    {
-        $this->validate();
 
-        // 1. Gérer les fichiers
-        $finalPaths = $this->existingAttachments;
-        
-        if ($this->attachments) {
-            foreach ($this->attachments as $file) {
-                $finalPaths[] = $file->store('attachments/drafts', 'public');
-            }
+    // =================================================================================================
+    // 10. LOGIQUE DES DESTINATAIRES & RECHERCHE
+    // =================================================================================================
+
+    /**
+     * Détecte quand l'utilisateur tape dans le champ
+     */
+    public function updatedSearchRecipient()
+    {
+        // Si le changement vient d'un clic (flag true), on ne fait rien
+        if ($this->isSelection) {
+            $this->isSelection = false;
+            return;
         }
 
-        // 2. Mise à jour ou Création dans DRAFTED_MEMOS
-        // Si votre modèle DraftedMemo a le cast 'array' pour destinataires et pieces_jointes, 
-        // pas besoin de json_encode.
-        DraftedMemo::updateOrCreate(
-            ['id' => $this->memo_id],
-            [
-                'object'          => $this->object,
-                'concern'         => $this->concern,
-                'content'         => $this->content,
-                'pieces_jointes'  => $finalPaths,
-                'destinataires'   => $this->recipients, // On sauve le tableau directement en JSON
-                'user_id'         => Auth::id(),
-                'status'          => 'brouillon',
-                'workflow_direction' => 'sortant'
-            ]
-        );
-
-        // Suppression de l'ancienne logique de la table 'destinataires' 
-        // car tout est centralisé dans le JSON du brouillon.
-
-        $this->isEditing = false;
-        $this->dispatch('notify', message: "Brouillon mis à jour avec succès !");
+        // Sinon, c'est que l'utilisateur tape : on invalide l'ID précédent
+        $this->newRecipientEntity = null;
     }
 
-    // =========================================================
-    // LOGIQUE D'ENVOI (WORKFLOW)
-    // =========================================================
+    /**
+     * Sélectionne une entité depuis la liste
+     */
+    public function selectRecipientEntity($id, $name)
+    {
+        $this->isSelection = true; // On active le drapeau
+        $this->newRecipientEntity = $id;
+        $this->searchRecipient = $name; // Met à jour le texte affiché
+    }
+
+    public function getFilteredEntitiesProperty()
+    {
+        if (empty($this->searchRecipient)) {
+            return [];
+        }
+
+        $term = '%' . $this->searchRecipient . '%';
+
+        return Entity::whereIn('type', ['Direction', 'Sous-Direction'])
+            ->where(function($q) use ($term) {
+                $q->where('name', 'like', $term)
+                  ->orWhere('ref', 'like', $term);
+            })
+            ->orderBy('name', 'asc')
+            ->limit(10)
+            ->get();
+    }
+ 
+    public function addRecipient()
+    {
+        // Validation
+        $this->validate([
+            'newRecipientEntity' => 'required|integer|exists:entities,id',
+            'newRecipientAction' => 'required|string'
+        ], [
+            'newRecipientEntity.required' => 'Veuillez sélectionner une entité valide dans la liste.', 
+            'newRecipientAction.required' => 'Veuillez choisir une action.'
+        ]);
+
+        // Vérification doublon
+        if (collect($this->recipients)->contains('entity_id', $this->newRecipientEntity)) {
+            $this->addError('newRecipientEntity', 'Cette entité est déjà dans la liste.');
+            return;
+        }
+
+        $entity = Entity::find($this->newRecipientEntity);
+
+        if ($entity) {
+            $this->recipients[] = [
+                'entity_id'   => $entity->id,
+                'entity_name' => $entity->name,
+                'action'      => $this->newRecipientAction
+            ];
+
+            // Reset complet pour la prochaine entrée
+            $this->reset(['newRecipientEntity', 'newRecipientAction', 'searchRecipient']);
+        }
+    }
+
+    public function removeRecipient($index)
+    {
+        unset($this->recipients[$index]);
+        $this->recipients = array_values($this->recipients);
+    }
+
+
+    // =================================================================================================
+    // 11. LOGIQUE DE WORKFLOW (ASSIGNATION & ENVOI)
+    // =================================================================================================
 
     public function assignMemo($id)
     {
@@ -231,8 +353,6 @@ class DraftedMemos extends Component
 
         $posteString = $currentUser->poste->value ?? (string)$currentUser->poste;
         $this->isSecretary = Str::contains($posteString, 'Secretaire');
-
-
 
         if ($this->isSecretary) {
             // RÉCUPÉRATION : Manager + tous les Directeurs et Sous-Directeurs de la MÊME entité
@@ -254,7 +374,6 @@ class DraftedMemos extends Component
             }
         }
 
-
         $excludeIds = array_filter([$currentUser->id, $currentUser->manager_id]);
         $this->projectUsersList = User::whereNotIn('id', $excludeIds)
             ->orderBy('last_name')
@@ -264,7 +383,8 @@ class DraftedMemos extends Component
         $this->isOpen3 = true;
     }
 
-    // --- Méthodes de gestion de la liste ---
+    // --- Méthodes de gestion du circuit particulier ---
+    
     public function addToPath($userId)
     {
         if (!in_array($userId, $this->selected_project_path)) {
@@ -295,17 +415,16 @@ class DraftedMemos extends Component
 
     public function sendMemo()
     {
-            // 1. Validation
             // 1. DÉFINITION DES RÈGLES DE VALIDATION DYNAMIQUES
             $rules = [
                 'workflow_comment' => 'nullable|string|max:1000',
             ];
 
-            // Si on est en mode PROJET : On exige la liste du projet
+            // Si on est en mode PROJET
             if ($this->memo_type === 'projet') {
                 $rules['selected_project_path'] = 'required|array|min:1';
             } 
-            // Si on est en mode STANDARD et qu'on est SECRÉTAIRE : On exige la liste standard
+            // Si on est en mode STANDARD et qu'on est SECRÉTAIRE
             elseif ($this->memo_type === 'standard' && $this->isSecretary) {
                 $rules['selected_standard_users'] = 'required|array|min:1';
             }
@@ -317,7 +436,7 @@ class DraftedMemos extends Component
                 'selected_standard_users.required' => 'Veuillez sélectionner un destinataire dans la liste hiérarchique.',
             ]);
 
-            // 2. Récupérer le BROUILLON (DraftedMemo)
+            // 3. Récupérer le BROUILLON
             $draft = DraftedMemo::findOrFail($this->memo_id);
             $user = Auth::user();
             $today = Carbon::now()->format('Y-m-d');
@@ -336,7 +455,7 @@ class DraftedMemos extends Component
                 $finalComment = "[P/O " . $titulaire->poste . "] " . $this->workflow_comment;
             }
 
-            // 3. Déterminer les futurs détenteurs (Next Holders)
+            // 4. Déterminer les futurs détenteurs (Next Holders)
             $nextHolders = [];
 
             if ($this->memo_type === 'standard') {
@@ -359,8 +478,7 @@ class DraftedMemos extends Component
                 return;
             }
 
-            // 4. CRÉATION DU MÉMO (Transfert de DraftedMemo vers Memo)
-            // On convertit le brouillon en mémo officiel
+            // --- CRÉATION DU MÉMO (Transfert de DraftedMemo vers Memo) ---
             $memo = Memo::create([
                 'object'             => $draft->object,
                 'reference'          => $draft->reference,
@@ -368,19 +486,17 @@ class DraftedMemos extends Component
                 'content'            => $draft->content,
                 'status'             => 'envoyer',
                 'workflow_direction' => 'sortant',
-                'pieces_jointes'     => $draft->pieces_jointes, // Array ou JSON selon cast
+                'pieces_jointes'     => $draft->pieces_jointes,
                 'user_id'            => $draft->user_id,
                 'parent_id'          => $draft->parent_id,
-                // Gestion des détenteurs
                 'previous_holders'   => [$user->id], 
-                'current_holders'    => array_unique($nextHolders), // Puisque c'est le 1er envoi
+                'current_holders'    => array_unique($nextHolders), 
                 'treatment_holders'  => array_unique($nextHolders),
-                'circuit_type' => 'standard', // <--- AJOUT
-                'circuit_path' => null,       // <--- AJOUT
+                'circuit_type' => 'standard', 
+                'circuit_path' => null,       
             ]);
 
-            // 5. ENREGISTREMENT DES DESTINATAIRES DANS LA TABLE 'destinataires'
-            // On récupère les destinataires du JSON du brouillon
+            // Enregistrement des destinataires
             $recipientsData = is_array($draft->destinataires) ? $draft->destinataires : json_decode($draft->destinataires, true);
             
             if (!empty($recipientsData)) {
@@ -393,50 +509,46 @@ class DraftedMemos extends Component
                 }
             }
 
-            // 6. CRÉATION DE L'HISTORIQUE
+            // Création de l'historique
             Historiques::create([
                 'user_id'          => $user->id,
                 'memo_id'          => $memo->id,
-                'visa'             => 'valider', // Forcé en "valider"
+                'visa'             => 'valider', 
                 'workflow_comment' => $finalComment ?? 'R.A.S',
             ]);
 
-          
-             // 7. Notification uniquement au premier maillon de la chaîne
+            // Notifications
             foreach (User::whereIn('id', $nextHolders)->get() as $recipient) {
                 try {
                     $recipient->notify(new MemoActionNotification($memo, 'envoyer', $user));
                 } catch (\Exception $e) {}
             }
 
-            // *** ENVOI EMAIL STANDARD ICI ***
+            // Envoi Email
             $this->sendEmailNotification($memo, $nextHolders, $user);
 
-            // 8. SUPPRESSION DU BROUILLON
+            // Suppression et Finalisation
             $draft->delete();
-
-            // 9. FINALISATION
             $this->closeModalTrois();
             $this->isEditing = false;
             $this->dispatch('notify', message: "Mémo transmis et brouillon supprimé avec succès.");
 
 
-
             } elseif ($this->memo_type === 'projet') {
 
-            // 1. Identification de la secrétaire de direction (Dernier maillon par défaut)
+            // 1. Identification de la secrétaire de direction
             $directionSecretary = User::where('dir_id', $user->dir_id)
                 ->where('poste', 'like', '%Secretaire%')
                 ->first();
 
-            // 2. Construction de la chaîne complète (Ordre choisi + Secrétaire à la fin)
+            // 2. Construction de la chaîne complète
             $fullChainIds = $this->selected_project_path;
 
             if ($directionSecretary && !in_array($directionSecretary->id, $fullChainIds)) {
-                $fullChainIds[] = $directionSecretary->id; // On l'ajoute à la fin
+                $fullChainIds[] = $directionSecretary->id; 
             }
 
-            // 3. Le premier intervenant de la chaîne reçoit le mémo en premier (Logique Séquentielle)
+            // 3. Le premier intervenant reçoit le mémo
             $firstUserId = $fullChainIds[0];
             $firstInLine = User::find($firstUserId);  
             
@@ -462,15 +574,13 @@ class DraftedMemos extends Component
                 'user_id'            => $draft->user_id,
                 'parent_id'          => $draft->parent_id,
                 'previous_holders'   => [$user->id], 
-                // On met TOUTE la chaîne dans current_holders pour que tout le monde puisse suivre le mémo
                 'current_holders'    => array_values(array_unique(array_merge([$user->id], $fullChainIds))),
-                // Seul le PREMIER maillon peut traiter pour l'instant
                 'treatment_holders'  => $nextHolders, 
-                'circuit_type' => 'projet',           // <--- AJOUT
+                'circuit_type' => 'projet',           
                 'circuit_path' => $fullChainIds,
             ]);
 
-            // 5. Enregistrement des destinataires (Entités finales)
+            // 5. Enregistrement des destinataires
             $recipientsData = is_array($draft->destinataires) ? $draft->destinataires : json_decode($draft->destinataires, true);
             if (!empty($recipientsData)) {
                 foreach ($recipientsData as $dest) {
@@ -482,7 +592,7 @@ class DraftedMemos extends Component
                 }
             }
 
-            // 6. Création de l'historique spécifique au circuit particulier
+            // 6. Historique
             Historiques::create([
                 'user_id'          => $user->id,
                 'memo_id'          => $memo->id,
@@ -490,39 +600,34 @@ class DraftedMemos extends Component
                 'workflow_comment' => $finalComment ?? 'Démarrage de la chaîne de validation personnalisée',
             ]);
 
-            // 7. Notification uniquement au premier maillon de la chaîne
+            // 7. Notifications
             foreach (User::whereIn('id', $nextHolders)->get() as $recipient) {
                 try {
                     $recipient->notify(new MemoActionNotification($memo, 'envoyer', $user));
                 } catch (\Exception $e) {}
             }
 
-            // *** ENVOI EMAIL STANDARD ICI ***
+            // Envoi Email
             $this->sendEmailNotification($memo, $nextHolders, $user);
 
-            
-
-            // 8. Suppression du brouillon et finalisation
+            // 8. Finalisation
             $draft->delete();
             $this->closeModalTrois();
             $this->isEditing = false;
             $this->dispatch('notify', message: "Circuit particulier initié et transmis au premier intervenant.");
         }
-   
-        
     }
+
+
+    // =================================================================================================
+    // 12. GESTION DES EMAILS (PHPMAILER)
+    // =================================================================================================
 
     /**
      * Envoie une notification par email aux destinataires du mémo
-     * 
-     * @param Memo $memo Le mémo à notifier
-     * @param array $nextHolders IDs des utilisateurs destinataires
-     * @param User $sender L'utilisateur qui envoie le mémo
      */
     private function sendEmailNotification($memo, $nextHolders, $sender)
     {
-        
-
         // Récupérer tous les destinataires
         $recipients = User::whereIn('id', $nextHolders)
             ->whereNotNull('email')
@@ -581,10 +686,7 @@ class DraftedMemos extends Component
                 $mail->isHTML(true);
                 $mail->Subject = "Nouveau Mémorandum : {$memo->object}";
                 
-                // Corps HTML de l'email
                 $mail->Body = $this->buildEmailBody($memo, $recipient, $sender, $memoType, $actionRequired, $entitiesNames);
-                
-                // Version texte brut (fallback)
                 $mail->AltBody = $this->buildEmailAltBody($memo, $recipient, $sender, $memoType);
 
                 // Envoi
@@ -598,112 +700,177 @@ class DraftedMemos extends Component
         }
     }
 
-    /**
-     * Construit le corps HTML de l'email
-     */
     private function buildEmailBody($memo, $recipient, $sender, $memoType, $actionRequired, $entitiesNames)
     {
+        // Données préparées
         $senderName = $sender->first_name . ' ' . $sender->last_name;
         $senderPoste = is_object($sender->poste) ? $sender->poste->value : $sender->poste;
         $recipientName = $recipient->first_name . ' ' . $recipient->last_name;
-        $memoUrl = route('dashboard', [
-            'view' => 'memos-content', // Pour charger le bon composant (selon votre logique de routing)
-            'tab'  => 'incoming'       // <--- C'est ici que la magie opère
-        ]);
+        $dateEnvoi = now()->translatedFormat('d F Y à H:i'); // Format date plus naturel (ex: 12 Janvier 2024)
         
+        $memoUrl = route('dashboard', [
+            'view' => 'memos-content', 
+            'tab'  => 'incoming'      
+        ]);
+
+        // Charte Graphique CBC
+        $cBlue      = '#1e3a8a'; // Bleu Nuit
+        $cGold      = '#daaf2c'; // Or CBC
+        $cGoldLight = '#fefce8'; // Fond jaune très pâle pour l'alerte
+        $cText      = '#374151'; // Gris foncé (plus doux que noir)
+        $cLabel     = '#6b7280'; // Gris moyen
+        $cBg        = '#f1f5f9'; // Fond de la page (Gris-Bleu très clair)
+
         return "
         <!DOCTYPE html>
-        <html>
+        <html lang='fr'>
         <head>
             <meta charset='UTF-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+            <title>Notification CBC Memos</title>
             <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
-                .container { max-width: 600px; margin: 0 auto; background: #ffffff; }
-                .header { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 30px; text-align: center; }
-                .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; }
-                .header p { color: #dbeafe; margin: 5px 0 0 0; font-size: 14px; }
-                .content { padding: 30px; background: #f8fafc; }
-                .memo-box { background: white; border-left: 4px solid #daaf2c; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-                .memo-title { font-size: 18px; font-weight: bold; color: #1e3a8a; margin-bottom: 15px; }
-                .info-row { margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
-                .info-label { font-weight: 600; color: #6b7280; font-size: 13px; text-transform: uppercase; }
-                .info-value { color: #111827; margin-top: 3px; }
-                .action-box { background: #fef3c7; border: 2px solid #daaf2c; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center; }
-                .action-box strong { color: #92400e; font-size: 16px; }
-                .btn { display: inline-block; padding: 12px 30px; background: #daaf2c; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
-                .btn:hover { background: #b8941f; }
-                .footer { background: #1f2937; color: #9ca3af; padding: 20px; text-align: center; font-size: 12px; }
-                .footer a { color: #60a5fa; text-decoration: none; }
+                /* Reset */
+                body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+                table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+                img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+                
+                /* Global */
+                body { background-color: $cBg; font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; padding: 0; width: 100% !important; }
+                
+                /* Typography */
+                h1, h2, h3, p { margin: 0; }
+                
+                /* Components */
+                .wrapper { width: 100%; background-color: $cBg; padding: 40px 0; }
+                .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025); }
+                
+                /* Header */
+                .header { background-color: #ffffff; padding: 30px 40px; text-align: center; border-bottom: 1px solid #f3f4f6; }
+                .logo-text { font-size: 26px; font-weight: 800; color: $cBlue; letter-spacing: -0.5px; }
+                .logo-accent { color: $cGold; }
+                
+                /* Content */
+                .content { padding: 40px; }
+                .welcome-text { font-size: 16px; color: $cText; margin-bottom: 25px; line-height: 1.6; }
+                
+                /* The Memo Box */
+                .memo-container { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 30px; }
+                .memo-header { background-color: $cBlue; padding: 15px 25px; }
+                .memo-type { color: $cGold; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
+                
+                .memo-body { padding: 25px; }
+                .memo-title { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 20px; line-height: 1.4; }
+                
+                /* Grid Info */
+                .info-table { width: 100%; }
+                .info-td-icon { width: 24px; vertical-align: top; padding-right: 10px; padding-bottom: 12px; font-size: 18px; }
+                .info-td-content { padding-bottom: 15px; vertical-align: top; }
+                .info-label { font-size: 11px; color: $cLabel; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px; }
+                .info-value { font-size: 14px; color: $cText; font-weight: 500; }
+                
+                /* Action Box */
+                .action-wrapper { text-align: center; margin-top: 10px; padding: 20px; background-color: $cGoldLight; border-radius: 8px; border: 1px dashed $cGold; }
+                .action-label { color: #854d0e; font-size: 13px; font-weight: 600; margin-bottom: 15px; display: block; }
+                
+                /* Button */
+                .btn { background-color: $cGold; color: #000000; display: inline-block; padding: 14px 35px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 15px; transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(218, 175, 44, 0.2); }
+                
+                /* Footer */
+                .footer { background-color: $cBg; padding: 30px; text-align: center; font-size: 12px; color: #9ca3af; }
+                .footer-links a { color: $cBlue; text-decoration: none; font-weight: 500; }
+                
             </style>
         </head>
         <body>
-            <div class='container'>
-                <div class='header'>
-                    <h1>📋 CBC MEMOS</h1>
-                    <p>Système de Gestion des Mémorandums</p>
-                </div>
-                
-                <div class='content'>
-                    <p>Bonjour <strong>{$recipientName}</strong>,</p>
-                    
-                    <p>Vous avez reçu un nouveau mémorandum qui nécessite votre attention.</p>
-                    
-                    <div class='memo-box'>
-                        <div class='memo-title'>📄 {$memo->object}</div>
-                        
-                        <div class='info-row'>
-                            <div class='info-label'>Expéditeur</div>
-                            <div class='info-value'>{$senderName} - {$senderPoste}</div>
-                        </div>
-                        
-                        <div class='info-row'>
-                            <div class='info-label'>Concerne</div>
-                            <div class='info-value'>{$memo->concern}</div>
-                        </div>
-                        
-                        <div class='info-row'>
-                            <div class='info-label'>Type de Circuit</div>
-                            <div class='info-value'>{$memoType}</div>
-                        </div>
-                        
-                        <div class='info-row'>
-                            <div class='info-label'>Entités Destinataires</div>
-                            <div class='info-value'>{$entitiesNames}</div>
-                        </div>
-                        
-                        <div class='info-row'>
-                            <div class='info-label'>Date d'envoi</div>
-                            <div class='info-value'>" . now()->format('d/m/Y à H:i') . "</div>
-                        </div>
-                    </div>
-                    
-                    <div class='action-box'>
-                        <strong>⚠️ {$actionRequired}</strong>
-                    </div>
-                    
-                    <div style='text-align: center;'>
-                        <a href={$memoUrl}' class='btn'>Consulter le Mémo</a>
-                    </div>
-                    
-                    <p style='margin-top: 30px; font-size: 13px; color: #6b7280;'>
-                        <strong>Note :</strong> Ce mémo requiert votre traitement dans les meilleurs délais. 
-                        Veuillez vous connecter à la plateforme pour consulter le contenu complet et effectuer l'action requise.
-                    </p>
-                </div>
-                
-                <div class='footer'>
-                    <p><strong>Commercial Bank Cameroun</strong></p>
-                    <p>Cet email a été généré automatiquement par le système CBC MEMOS. Merci de ne pas y répondre.</p>
-                </div>
+            <div class='wrapper'>
+                <table role='presentation' border='0' cellpadding='0' cellspacing='0' width='100%'>
+                    <tr>
+                        <td align='center'>
+                            <div class='container'>
+                                
+                                <!-- HEADER : LOGO MINIMALISTE -->
+                                <div class='header'>
+                                    <div class='logo-text'>CBC <span class='logo-accent'>MEMOS</span></div>
+                                </div>
+
+                                <!-- BODY -->
+                                <div class='content'>
+                                    <p class='welcome-text'>
+                                        Bonjour <strong>{$recipientName}</strong>,<br>
+                                        Un nouveau document a été transmis à votre attention via le circuit <strong>{$memoType}</strong>.
+                                    </p>
+
+                                    <!-- CADRE DU MEMO -->
+                                    <div class='memo-container'>
+                                        <!-- Bandeau titre Bleu -->
+                                        <div class='memo-header'>
+                                            <span class='memo-type'>Mémorandum Interne</span>
+                                        </div>
+                                        
+                                        <div class='memo-body'>
+                                            <!-- Objet -->
+                                            <div class='memo-title'>{$memo->object}</div>
+
+                                            <!-- Détails avec icônes (HTML entities) -->
+                                            <table class='info-table' border='0' cellpadding='0' cellspacing='0'>
+                                                <tr>
+                                                    <td class='info-td-icon'>👤</td>
+                                                    <td class='info-td-content'>
+                                                        <span class='info-label'>Expéditeur</span>
+                                                        <div class='info-value'>{$senderName} <span style='color:#9ca3af; font-size:12px;'>— {$senderPoste}</span></div>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class='info-td-icon'>🎯</td>
+                                                    <td class='info-td-content'>
+                                                        <span class='info-label'>Concerne</span>
+                                                        <div class='info-value'>{$memo->concern}</div>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class='info-td-icon'>🏢</td>
+                                                    <td class='info-td-content'>
+                                                        <span class='info-label'>Entités Destinataires</span>
+                                                        <div class='info-value'>{$entitiesNames}</div>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class='info-td-icon'>📅</td>
+                                                    <td class='info-td-content' style='padding-bottom:0;'>
+                                                        <span class='info-label'>Date d'émission</span>
+                                                        <div class='info-value'>{$dateEnvoi}</div>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- ZONE D'ACTION -->
+                                    <div class='action-wrapper'>
+                                        <span class='action-label'>ACTION REQUISE : " . strtoupper($actionRequired) . "</span>
+                                        <a href='{$memoUrl}' class='btn'>Traiter le Mémorandum</a>
+                                    </div>
+                                    
+                                    <p style='text-align:center; font-size:12px; color:#9ca3af; margin-top:25px;'>
+                                        Pour des raisons de sécurité, ce lien expirera si votre session n'est pas active.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- FOOTER -->
+                            <div class='footer'>
+                                <p style='margin-bottom:10px;'><strong>Commercial Bank Cameroun</strong></p>
+                                <p style='margin-top:15px;'>Ceci est un message automatique, merci de ne pas y répondre.</p>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
             </div>
         </body>
         </html>
         ";
     }
 
-    /**
-     * Construit la version texte brut de l'email (fallback)
-     */
     private function buildEmailAltBody($memo, $recipient, $sender, $memoType)
     {
         $senderName = $sender->first_name . ' ' . $sender->last_name;
@@ -711,67 +878,34 @@ class DraftedMemos extends Component
         
         return "
         CBC MEMOS - Nouveau Mémorandum
-
         Bonjour {$recipientName},
-
         Vous avez reçu un nouveau mémorandum :
-
         OBJET : {$memo->object}
         EXPÉDITEUR : {$senderName}
         CONCERNE : {$memo->concern}
         TYPE : {$memoType}
         DATE : " . now()->format('d/m/Y à H:i') . "
-
         Veuillez vous connecter à la plateforme CBC MEMOS pour consulter le contenu complet et effectuer l'action requise.
-
         ---
         Commercial Bank Cameroun
         Cet email a été généré automatiquement. Merci de ne pas y répondre.
             ";
     }
 
-    public function getReplacementRights($memo)
-    {
-        $user = Auth::user();
-        $today = Carbon::now()->format('Y-m-d');
-        $prev = is_array($memo->previous_holders) ? $memo->previous_holders : json_decode($memo->previous_holders, true);
-        
-        if (empty($prev)) return null;
-        $lastSender = User::find(end($prev));
-        if (!$lastSender) return null;
 
-        $rep = ReplacesUser::where('user_id_replace', $user->id)
-            ->where('date_begin_replace', '<=', $today)
-            ->where('date_end_replace', '>=', $today)
-            ->where('user_id', $lastSender->manager_id)
-            ->first();
-
-        if ($rep) {
-            $replaced = User::find($rep->user_id);
-            return [
-                'is_active' => true,
-                'original_user' => $replaced,
-                'actions_allowed' => is_array($rep->action_replace) ? $rep->action_replace : explode(',', (string)$rep->action_replace),
-            ];
-        }
-        return null;
-    }
-
-    // =========================================================
-    // APERÇU PDF
-    // =========================================================
+    // =================================================================================================
+    // 13. LOGIQUE PDF & APERÇU
+    // =================================================================================================
 
     private function getPdfData($memo)
     {
         // 1. Transformer le JSON des destinataires en collection d'objets pour la vue PDF
-        // La vue PDF attend probablement $dest->entity->name et $dest->action
         $recipientsJson = is_array($memo->destinataires) 
             ? $memo->destinataires 
             : json_decode($memo->destinataires, true) ?? [];
 
         $formattedRecipients = collect($recipientsJson)->map(function($item) {
             $entity = Entity::find($item['entity_id']);
-            // On crée un objet "factice" qui imite le comportement du modèle Destinataire
             return (object)[
                 'action' => $item['action'],
                 'entity' => $entity
@@ -792,9 +926,6 @@ class DraftedMemos extends Component
         ];
     }
 
-    /**
-     * Ouvre l'aperçu du mémo
-     */
     public function viewMemo($id)
     {
         // On récupère le brouillon (on charge l'utilisateur et son entité pour le header du PDF)
@@ -827,9 +958,37 @@ class DraftedMemos extends Component
         );
     }
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
+
+    // =================================================================================================
+    // 14. HELPERS & UTILITAIRES
+    // =================================================================================================
+
+    public function getReplacementRights($memo)
+    {
+        $user = Auth::user();
+        $today = Carbon::now()->format('Y-m-d');
+        $prev = is_array($memo->previous_holders) ? $memo->previous_holders : json_decode($memo->previous_holders, true);
+        
+        if (empty($prev)) return null;
+        $lastSender = User::find(end($prev));
+        if (!$lastSender) return null;
+
+        $rep = ReplacesUser::where('user_id_replace', $user->id)
+            ->where('date_begin_replace', '<=', $today)
+            ->where('date_end_replace', '>=', $today)
+            ->where('user_id', $lastSender->manager_id)
+            ->first();
+
+        if ($rep) {
+            $replaced = User::find($rep->user_id);
+            return [
+                'is_active' => true,
+                'original_user' => $replaced,
+                'actions_allowed' => is_array($rep->action_replace) ? $rep->action_replace : explode(',', (string)$rep->action_replace),
+            ];
+        }
+        return null;
+    }
 
     private function getLogoBase64() {
         $path = public_path('images/logo.jpg');
@@ -857,104 +1016,10 @@ class DraftedMemos extends Component
         ];
     }
 
-     public function getFilteredEntitiesProperty()
-    {
-        if (empty($this->searchRecipient)) {
-            return [];
-        }
 
-        $term = '%' . $this->searchRecipient . '%';
-
-        return Entity::whereIn('type', ['Direction', 'Sous-Direction'])
-            ->where(function($q) use ($term) {
-                $q->where('name', 'like', $term)
-                  ->orWhere('ref', 'like', $term);
-            })
-            ->orderBy('name', 'asc')
-            ->limit(10)
-            ->get();
-    }
-
-    /**
-     * 4. Ajoute à la liste temporaire
-     * 
-     * 
-     */
-     /**
-     * 1. Détecte quand l'utilisateur tape dans le champ
-     */
-    public function updatedSearchRecipient()
-    {
-        // Si le changement vient d'un clic (flag true), on ne fait rien
-        // et on remet le flag à false pour la prochaine frappe.
-        if ($this->isSelection) {
-            $this->isSelection = false;
-            return;
-        }
-
-        // Sinon, c'est que l'utilisateur tape : on invalide l'ID précédent
-        $this->newRecipientEntity = null;
-    }
-
-    /**
-     * 2. Sélectionne une entité depuis la liste
-     */
-    public function selectRecipientEntity($id, $name)
-    {
-        $this->isSelection = true; // On active le drapeau
-        $this->newRecipientEntity = $id;
-        $this->searchRecipient = $name; // Met à jour le texte affiché
-    }
- 
-    public function addRecipient()
-    {
-        // Validation
-        $this->validate([
-            'newRecipientEntity' => 'required|integer|exists:entities,id',
-            'newRecipientAction' => 'required|string'
-        ], [
-            'newRecipientEntity.required' => 'Veuillez sélectionner une entité valide dans la liste.', 
-            'newRecipientAction.required' => 'Veuillez choisir une action.'
-        ]);
-
-        // Vérification doublon
-        if (collect($this->recipients)->contains('entity_id', $this->newRecipientEntity)) {
-            $this->addError('newRecipientEntity', 'Cette entité est déjà dans la liste.');
-            return;
-        }
-
-        $entity = Entity::find($this->newRecipientEntity);
-
-        if ($entity) {
-            $this->recipients[] = [
-                'entity_id'   => $entity->id,
-                'entity_name' => $entity->name,
-                'action'      => $this->newRecipientAction
-            ];
-
-            // Reset complet pour la prochaine entrée
-            $this->reset(['newRecipientEntity', 'newRecipientAction', 'searchRecipient']);
-        }
-    }
-
-    public function removeRecipient($index)
-    {
-        unset($this->recipients[$index]);
-        $this->recipients = array_values($this->recipients);
-    }
-
-    public function deleteMemo($id) { $this->memo_id = $id; $this->isOpen4 = true; }
-    
-    public function del() {
-        DraftedMemo::where('id', $this->memo_id)->where('user_id', Auth::id())->delete();
-        $this->isOpen4 = false;
-        $this->dispatch('notify', message: "Mémo supprimé.");
-    }
-
-    public function closeModalTrois() { $this->isOpen3 = false; }
-    public function closeModalQuatre() { $this->isOpen4 = false; }
-
-    
+    // =================================================================================================
+    // 15. RENDU FINAL
+    // =================================================================================================
 
     public function render()
     {

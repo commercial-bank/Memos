@@ -14,27 +14,43 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class BlockoutMemos extends Component
 {
-    // Propriétés d'état
-    public $isOpen = false;
+    // =================================================================================================
+    // 1. PROPRIÉTÉS D'ÉTAT DE L'INTERFACE (UI) & FILTRES
+    // =================================================================================================
+
     public $selectedYear;
     public $search = ''; 
+
+    // --- États des Modals ---
+    public $isOpen = false;
     public $isViewingPdf = false;
 
-    // Propriétés du formulaire/modal
+
+    // =================================================================================================
+    // 2. PROPRIÉTÉS DE DONNÉES DU MÉMO (AFFICHAGE)
+    // =================================================================================================
+
     public $memo_id;
+
+    // --- Champs de données ---
     public $object = '';
     public $content = '';
     public $concern = '';
     public $date = '';
+    
+    // --- Infos Utilisateur / Entité ---
     public $user_entity_name = '';
     public $user_service = '';
-
-    // --- Données d'Affichage ---
-
     public $user_first_name;
     public $user_last_name;
 
+    // --- Contenu PDF ---
     public $pdfBase64 = '';
+
+
+    // =================================================================================================
+    // 3. INITIALISATION & ÉVÉNEMENTS
+    // =================================================================================================
 
     /**
      * Initialisation du composant
@@ -52,25 +68,10 @@ class BlockoutMemos extends Component
         $this->reset('search');
     }
 
-    /**
-     * Visualisation du mémo
-     * OPTIMISATION : Eager loading de 'user.entity' pour éviter des requêtes SQL en boucle
-     */
-    private function getPdfData($memo)
-    {
-        // On cherche le directeur de l'entité du créateur du mémo
-        $director = User::where('dir_id', $memo->user->dir_id)
-                        ->where('poste', 'Directeur')
-                        ->first();
 
-        return [
-            'memo'               => $memo,
-            'recipientsByAction' => $memo->destinataires->groupBy('action'),
-            'date'               => $memo->created_at->format('d/m/Y'),
-            'logo'               => $this->getLogoBase64(),
-            'director'           => $director, // On passe l'objet director à la vue
-        ];
-    }
+    // =================================================================================================
+    // 4. LOGIQUE D'AFFICHAGE & PDF
+    // =================================================================================================
 
     /**
      * Ouvre l'aperçu du mémo
@@ -95,10 +96,47 @@ class BlockoutMemos extends Component
         $this->pdfBase64 = '';
     }
 
+    /**
+     * Génération du PDF pour téléchargement
+     * OPTIMISATION : Stream de la réponse pour réduire la consommation de RAM serveur
+     */
+     public function downloadMemoPDF()
+    {
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
+        $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo));
+        
+        return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
+    }
+
+    /**
+     * Préparation des données pour le PDF
+     * OPTIMISATION : Eager loading de 'user.entity' pour éviter des requêtes SQL en boucle
+     */
+    private function getPdfData($memo)
+    {
+        // On cherche le directeur de l'entité du créateur du mémo
+        $director = User::where('dir_id', $memo->user->dir_id)
+                        ->where('poste', 'Directeur')
+                        ->first();
+
+        return [
+            'memo'               => $memo,
+            'recipientsByAction' => $memo->destinataires->groupBy('action'),
+            'date'               => $memo->created_at->format('d/m/Y'),
+            'logo'               => $this->getLogoBase64(),
+            'director'           => $director, // On passe l'objet director à la vue
+        ];
+    }
+
     private function getLogoBase64() {
         $path = public_path('images/logo.jpg');
         return file_exists($path) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($path)) : null;
     }
+
+
+    // =================================================================================================
+    // 5. HELPER & GESTION DES MODALS
+    // =================================================================================================
 
     /**
      * Remplit les données pour le modal
@@ -127,17 +165,10 @@ class BlockoutMemos extends Component
         $this->reset(['memo_id', 'object', 'concern', 'content', 'user_entity_name', 'user_service']);
     }
 
-    /**
-     * Génération du PDF
-     * OPTIMISATION : Stream de la réponse pour réduire la consommation de RAM serveur
-     */
-     public function downloadMemoPDF()
-    {
-        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
-        $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo));
-        
-        return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
-    }
+
+    // =================================================================================================
+    // 6. RENDU FINAL
+    // =================================================================================================
 
     /**
      * Rendu de la liste avec filtrage

@@ -16,24 +16,40 @@ class Archives extends Component
 {
     use WithPagination;
 
-    // Propriétés de recherche et état du modal
-    public $search = '';
-    public $isViewingPdf = false;
-    public $isOpen = false;
+    // =================================================================================================
+    // 1. PROPRIÉTÉS D'ÉTAT DE L'INTERFACE (UI) & RECHERCHE
+    // =================================================================================================
 
-     // --- Données d'Affichage ---
+    public $search = '';
+    public $isOpen = false;
+    public $isViewingPdf = false;
+
+
+    // =================================================================================================
+    // 2. PROPRIÉTÉS DE DONNÉES DU MÉMO (AFFICHAGE)
+    // =================================================================================================
+
+    public $memo_id = null;
+
+    // --- Données d'Affichage Utilisateur ---
     public $user_service;
     public $user_first_name;
     public $user_last_name;
     public $user_entity_name;
-    public $pdfBase64 = '';
-    public $memo_id = null;
 
+    // --- Contenu PDF ---
+    public $pdfBase64 = '';
+
+    // --- Modèles & Objets ---
     // Note : Stocker des modèles entiers dans des propriétés publiques 
-    // peut ralentir Livewire (sérialisation). 
-    // Pour l'optimisation, on garde ces variables mais on s'assure qu'elles sont légères.
+    // peut ralentir Livewire (sérialisation).
     public $selectedMemo = null;
     public $myStatusInfo = null;
+
+
+    // =================================================================================================
+    // 3. NAVIGATION & ÉVÉNEMENTS
+    // =================================================================================================
 
     /**
      * Réinitialise la pagination lors d'une recherche
@@ -44,6 +60,48 @@ class Archives extends Component
         $this->resetPage();
     }
 
+
+    // =================================================================================================
+    // 4. LOGIQUE D'AFFICHAGE & PDF
+    // =================================================================================================
+
+    /**
+     * Ouvre l'aperçu du mémo
+     */
+    public function viewMemo($id)
+    {
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
+        $this->memo_id = $memo->id;
+
+        // Utilisation de la méthode partagée
+        $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo))
+              ->setPaper('a4', 'portrait');
+
+        $this->pdfBase64 = base64_encode($pdf->output());
+        $this->isViewingPdf = true;
+        $this->isEditing = false; // Sécurité pour s'assurer qu'on n'est pas en mode édition
+    }
+
+    public function closePdfView()
+    {
+        $this->isViewingPdf = false;
+        $this->pdfBase64 = '';
+    }
+
+    /**
+     * Génération et téléchargement du PDF
+     */
+    public function downloadMemoPDF()
+    {
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
+        $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo));
+        
+        return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
+    }
+
+    /**
+     * Prépare les données nécessaires à la vue PDF
+     */
     private function getPdfData($memo)
     {
         // On cherche le directeur de l'entité du créateur du mémo
@@ -60,28 +118,10 @@ class Archives extends Component
         ];
     }
 
-    /**
-     * Ouvre l'aperçu du mémo
-     */
-    public function viewMemo($id)
-    {
-        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($id);
-        $this->memo_id = $memo->id;
 
-        // Utilisation de la méthode partagée
-        $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo))
-              ->setPaper('a4', 'portrait');
-
-        $this->pdfBase64 = base64_encode($pdf->output());
-        $this->isViewingPdf = true;
-        $this->isEditing = false;
-    }
-
-    public function closePdfView()
-    {
-        $this->isViewingPdf = false;
-        $this->pdfBase64 = '';
-    }
+    // =================================================================================================
+    // 5. HELPER & GESTION DES MODALS
+    // =================================================================================================
 
     private function getLogoBase64() {
         $path = public_path('images/logo.jpg');
@@ -98,20 +138,13 @@ class Archives extends Component
         $this->myStatusInfo = null;
     }
 
-    /**
-     * Génération et téléchargement du PDF
-     * Optimisation : Traitement du logo et du QR Code
-     */
-    public function downloadMemoPDF()
-    {
-        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
-        $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo));
-        
-        return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
-    }
+
+    // =================================================================================================
+    // 6. RENDU FINAL
+    // =================================================================================================
 
     /**
-     * Rendu de la vue avec filtrage optimisé
+     * Rendu de la vue avec filtrage optimisé pour les archives
      */
     public function render()
     {
@@ -127,7 +160,7 @@ class Archives extends Component
             // CONDITION 2 : Le circuit est totalement terminé
             ->where('workflow_direction', 'terminer')
             
-            // Recherche (inchangée)
+            // Recherche
             ->when($this->search, function($query) {
                 $query->where(function($q) {
                     $searchTerm = '%' . $this->search . '%';

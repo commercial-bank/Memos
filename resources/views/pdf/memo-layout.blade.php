@@ -196,6 +196,29 @@
         .w-35 { width: 35%; } .w-40 { width: 40%; } .w-25 { width: 25%; }
         .text-center { text-align: center; }
         .pl-8 { padding-left: 32px; }
+
+        /* =========================================================
+           5. GESTION DES TABLEAUX UTILISATEUR (DANS LE CONTENU)
+           ========================================================= */
+        .content-body table {
+            width: 100%;              /* Force le tableau à prendre toute la largeur */
+            border-collapse: collapse; /* Colle les bordures entre elles */
+            margin-bottom: 15px;       /* Un peu d'espace après le tableau */
+            font-size: 10pt;           /* Optionnel : texte un peu plus petit dans les tableaux */
+        }
+
+        .content-body th, 
+        .content-body td {
+            border: 1px solid #000;    /* INDISPENSABLE : La bordure noire */
+            padding: 5px 8px;          /* Espacement interne pour que le texte ne touche pas les lignes */
+            vertical-align: top;       /* Aligne le texte en haut de la cellule */
+            text-align: left;
+        }
+
+        .content-body th {
+            background-color: #f0f0f0; /* Optionnel : fond gris pour les en-têtes */
+            font-weight: bold;
+        }
     </style>
 </head>
 

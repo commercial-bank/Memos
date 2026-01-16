@@ -103,55 +103,55 @@ class Dashboard extends Component
     }
 
    // ...
-public function render()
-{
-    $userId = Auth::id();
-    $user = Auth::user();
+    public function render()
+    {
+        $userId = Auth::id();
+        $user = Auth::user();
 
-    // ... (Code existant pour sortants et entrants) ...
-    $userEntityIds = array_filter([$user->serv_id, $user->dep_id, $user->sd_id, $user->dir_id]);
+        // ... (Code existant pour sortants et entrants) ...
+        $userEntityIds = array_filter([$user->serv_id, $user->dep_id, $user->sd_id, $user->dir_id]);
 
-    $totalMemosSortants = Memo::query()
-        ->whereHas('user', function($query) use ($user) {
-            $query->where('dir_id', $user->dir_id);
-        })
-        ->whereJsonContains('current_holders', $user->id)
-        ->count();
+        $totalMemosSortants = Memo::query()
+            ->whereHas('user', function($query) use ($user) {
+                $query->where('dir_id', $user->dir_id);
+            })
+            ->whereJsonContains('current_holders', $user->id)
+            ->count();
 
-    $totalMemosEntrants = Memo::query()
-        ->where('workflow_direction', 'entrant')
-        ->whereJsonContains('current_holders', $user->id)
-        ->whereHas('destinataires', function($query) use ($userEntityIds) {
-            $query->whereIn('entity_id', $userEntityIds);
-        })
-        ->count();
+        $totalMemosEntrants = Memo::query()
+            ->where('workflow_direction', 'entrant')
+            ->whereJsonContains('current_holders', $user->id)
+            ->whereHas('destinataires', function($query) use ($userEntityIds) {
+                $query->whereIn('entity_id', $userEntityIds);
+            })
+            ->count();
 
-    // === NOUVEAU CALCUL : MÉMOS ARCHIVÉS ===
-    // Condition 1 : Utilisateur dans current_holders
-    // Condition 2 : Workflow terminé
-    $archivesCount = Memo::query()
-        ->whereJsonContains('current_holders', $user->id)
-        ->where('workflow_direction', 'terminer')
-        ->count();
-    // =======================================
+        // === NOUVEAU CALCUL : MÉMOS ARCHIVÉS ===
+        // Condition 1 : Utilisateur dans current_holders
+        // Condition 2 : Workflow terminé
+        $archivesCount = Memo::query()
+            ->whereJsonContains('current_holders', $user->id)
+            ->where('workflow_direction', 'terminer')
+            ->count();
+        // =======================================
 
-    $favoritesCount = $user->favorites ? $user->favorites()->count() : 0;
-    $chartData = $this->getChartData();
+        $favoritesCount = $user->favorites ? $user->favorites()->count() : 0;
+        $chartData = $this->getChartData();
 
-    $recentMovements = Historiques::with('memo')
-        ->where('user_id', $userId)
-        ->orderBy('created_at', 'desc')
-        ->paginate(5);
+        $recentMovements = Historiques::with('memo')
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->paginate(5);
 
-    return view('livewire.nav.dashboard', [
-        'memosEntrantsCount'  => $totalMemosEntrants,
-        'memosSortantsCount'  => $totalMemosSortants,
-        'favoritesCount'      => $favoritesCount,
-        'archivesCount'       => $archivesCount, // On passe la variable à la vue
-        'chartCategories'     => $chartData['categories'],
-        'chartSortants'       => $chartData['series'],
-        'recentMovements'     => $recentMovements 
-    ]);
-}
+        return view('livewire.nav.dashboard', [
+            'memosEntrantsCount'  => $totalMemosEntrants,
+            'memosSortantsCount'  => $totalMemosSortants,
+            'favoritesCount'      => $favoritesCount,
+            'archivesCount'       => $archivesCount, // On passe la variable à la vue
+            'chartCategories'     => $chartData['categories'],
+            'chartSortants'       => $chartData['series'],
+            'recentMovements'     => $recentMovements 
+        ]);
+    }
 // ...
 }

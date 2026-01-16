@@ -1,7 +1,10 @@
 <div class="min-h-screen transition-colors duration-300 {{ $darkMode ? 'bg-[#121212] text-white' : 'bg-[#f9fafb] text-[#000000]' }} font-sans">
 
-    <!-- Styles Dynamiques -->
+    <!-- ======================================================================= -->
+    <!-- 1. STYLES CSS GLOBAUX & CONFIGURATION QUILL -->
+    <!-- ======================================================================= -->
     <style>
+        /* --- VARIABLES CSS & THÈME --- */
         :root {
             --c-gold: #daaf2c;
             --c-grey: {{ $darkMode ? '#a0a0a0' : '#707173' }};
@@ -9,147 +12,119 @@
             --c-bg-card: {{ $darkMode ? '#1e1e1e' : '#ffffff' }};
             --c-border: {{ $darkMode ? '#2d2d2d' : '#e5e7eb' }};
         }
+
+        /* --- UTILITAIRES --- */
         .focus-gold:focus { --tw-ring-color: var(--c-gold); border-color: var(--c-gold); outline: none; box-shadow: 0 0 0 2px var(--c-gold); }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--c-gold); border-radius: 20px; }
         
-        /* Quill */
-        .ql-editor table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-        .ql-editor table td, .ql-editor table th { border: 1px solid #000; padding: 8px; min-width: 30px; height: 25px; }
+        /* --- QUILL : CONFIGURATION DE BASE --- */
+        .ql-container.ql-snow { border: none !important; }
         .ql-toolbar.ql-snow { background-color: {{ $darkMode ? '#2d2d2d' : '#ffffff' }}; border-color: var(--c-border) !important; }
+        
+        /* Couleurs des icônes Quill selon le mode */
         .ql-snow .ql-stroke { stroke: {{ $darkMode ? '#ffffff' : '#444' }}; }
         .ql-snow .ql-fill { fill: {{ $darkMode ? '#ffffff' : '#444' }}; }
         .ql-snow .ql-picker { color: {{ $darkMode ? '#ffffff' : '#444' }}; }
-        .ql-container.ql-snow { border: none !important; }
-        .ql-editor { padding: 50px 70px !important; min-height: 29.7cm; font-family: 'Tahoma', sans-serif; line-height: 1.5; font-size: 12pt; }
 
-        /* --- CONFIGURATION QUILL --- */
+        /* --- QUILL : ZONE D'ÉDITION (SIMULATION PAPIER A4) --- */
+        .ql-editor {
+            padding: 2.5cm 2cm !important; /* Marges standard A4 */
+            min-height: 29.7cm;
+            background-color: white;
+            
+            /* Police par défaut stricte */
+            font-family: 'Tahoma', sans-serif; 
+            font-size: 14px; 
+            line-height: 1.5;
+            color: #000000;
+        }
 
-/* 1. Supprimer la bordure par défaut de Quill */
-.ql-container.ql-snow { 
-    border: none !important; 
-}
+        /* --- QUILL : TABLEAUX --- */
+        .ql-editor table {
+            width: 100%;
+            border-collapse: collapse; /* Essentiel pour des bordures nettes */
+            margin-bottom: 15px;
+            table-layout: fixed; /* Force les colonnes à respecter la largeur */
+        }
+        .ql-editor table td, .ql-editor table th {
+            border: 1px solid #000; /* Bordure noire pour l'impression */
+            padding: 6px 8px;
+            min-width: 30px;
+            height: 25px;
+            vertical-align: top;
+        }
 
-/* 2. Configurer la zone d'édition pour ressembler à du papier A4 */
-.ql-editor {
-    padding: 2.5cm 2cm !important; /* Marges standard A4 */
-    min-height: 29.7cm;
-    background-color: white;
-    
-    /* Police par défaut stricte */
-    font-family: 'Tahoma', sans-serif; 
-    font-size: 14px; 
-    line-height: 1.5;
-    color: #000000;
-}
+        /* --- QUILL : MENU DÉROULANT POLICES (FIX) --- */
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Tahoma"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Tahoma"]::before { content: 'Tahoma'; font-family: 'Tahoma'; }
 
-    /* 3. Forcer l'affichage correct des polices dans le menu déroulant */
-    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Tahoma"]::before,
-    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Tahoma"]::before { content: 'Tahoma'; font-family: 'Tahoma'; }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Arial"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Arial"]::before { content: 'Arial'; font-family: 'Arial'; }
 
-    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Arial"]::before,
-    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Arial"]::before { content: 'Arial'; font-family: 'Arial'; }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Times New Roman"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Times New Roman"]::before { content: 'Times New Roman'; font-family: 'Times New Roman'; }
 
-    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Times New Roman"]::before,
-    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Times New Roman"]::before { content: 'Times New Roman'; font-family: 'Times New Roman'; }
+        .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Verdana"]::before,
+        .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Verdana"]::before { content: 'Verdana'; font-family: 'Verdana'; }
 
-    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="Verdana"]::before,
-    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="Verdana"]::before { content: 'Verdana'; font-family: 'Verdana'; }
+        /* --- QUILL : MENU DÉROULANT TAILLES (FIX) --- */
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="12px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="12px"]::before { content: '12 pt'; }
 
-    /* 4. Forcer l'affichage correct des tailles */
-    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="12px"]::before,
-    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="12px"]::before { content: '12 pt'; }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="14px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="14px"]::before { content: '14 pt'; }
 
-    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="14px"]::before,
-    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="14px"]::before { content: '14 pt'; }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="16px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="16px"]::before { content: '16 pt'; }
 
-    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="16px"]::before,
-    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="16px"]::before { content: '16 pt'; }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="18px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="18px"]::before { content: '18 pt'; }
 
-    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="18px"]::before,
-    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="18px"]::before { content: '18 pt'; }
+        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="20px"]::before,
+        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="20px"]::before { content: '20 pt'; }
 
-    .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="20px"]::before,
-    .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="20px"]::before { content: '20 pt'; }
+        /* --- QUILL : MENU DÉROULANT TITRES (HEADERS) --- */
+        .ql-snow .ql-picker.ql-header .ql-picker-label::before,
+        .ql-snow .ql-picker.ql-header .ql-picker-item::before { content: 'Normal'; }
 
+        .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="1"]::before,
+        .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="1"]::before { content: 'Titre 1 (H1)'; font-size: 18px; font-weight: bold; }
 
-    /* --- PERSONNALISATION DES TITRES (HEADERS) --- */
+        .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="2"]::before,
+        .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="2"]::before { content: 'Titre 2 (H2)'; font-size: 16px; font-weight: bold; padding-left: 10px; }
 
-    /* Apparence dans le menu déroulant */
-    .ql-snow .ql-picker.ql-header .ql-picker-label::before,
-    .ql-snow .ql-picker.ql-header .ql-picker-item::before {
-        content: 'Normal'; /* Par défaut */
-    }
+        .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="3"]::before,
+        .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="3"]::before { content: 'Titre 3 (H3)'; font-size: 14px; font-weight: bold; padding-left: 20px; }
 
-    .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="1"]::before,
-    .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="1"]::before {
-        content: 'Titre 1 (H1)';
-        font-size: 18px;
-        font-weight: bold;
-    }
+        .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="4"]::before,
+        .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="4"]::before { content: 'Titre 4'; padding-left: 30px; }
+        .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="5"]::before,
+        .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="5"]::before { content: 'Titre 5'; padding-left: 40px; }
+        .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="6"]::before,
+        .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="6"]::before { content: 'Titre 6'; padding-left: 50px; }
 
-    .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="2"]::before,
-    .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="2"]::before {
-        content: 'Titre 2 (H2)';
-        font-size: 16px;
-        font-weight: bold;
-        padding-left: 10px;
-    }
+        /* --- QUILL : RENDU VISUEL DES TITRES DANS L'EDITEUR --- */
+        .ql-editor h1 { font-size: 2em; margin-bottom: 0.5em; font-weight: bold; }
+        .ql-editor h2 { font-size: 1.5em; margin-bottom: 0.5em; font-weight: bold; }
+        .ql-editor h3 { font-size: 1.17em; margin-bottom: 0.5em; font-weight: bold; }
+        .ql-editor h4 { font-size: 1em; margin-bottom: 0.5em; font-weight: bold; text-decoration: underline; }
+        .ql-editor h5 { font-size: 0.83em; margin-bottom: 0.5em; font-weight: bold; }
+        .ql-editor h6 { font-size: 0.67em; margin-bottom: 0.5em; font-weight: bold; }
 
-    .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="3"]::before,
-    .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="3"]::before {
-        content: 'Titre 3 (H3)';
-        font-size: 14px;
-        font-weight: bold;
-        padding-left: 20px;
-    }
-
-    .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="4"]::before,
-    .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="4"]::before { content: 'Titre 4'; padding-left: 30px; }
-    .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="5"]::before,
-    .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="5"]::before { content: 'Titre 5'; padding-left: 40px; }
-    .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="6"]::before,
-    .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="6"]::before { content: 'Titre 6'; padding-left: 50px; }
-
-    /* --- RENDU VISUEL DANS L'EDITEUR (Simulation A4) --- */
-    /* Pour que l'utilisateur voie à quoi ressemblent les titres */
-    .ql-editor h1 { font-size: 2em; margin-bottom: 0.5em; font-weight: bold; }
-    .ql-editor h2 { font-size: 1.5em; margin-bottom: 0.5em; font-weight: bold; }
-    .ql-editor h3 { font-size: 1.17em; margin-bottom: 0.5em; font-weight: bold; }
-    .ql-editor h4 { font-size: 1em; margin-bottom: 0.5em; font-weight: bold; text-decoration: underline; }
-    .ql-editor h5 { font-size: 0.83em; margin-bottom: 0.5em; font-weight: bold; }
-    .ql-editor h6 { font-size: 0.67em; margin-bottom: 0.5em; font-weight: bold; }
-
-
-    /* --- GESTION DES TABLEAUX (AFFICHAGE & IMPRESSION) --- */
-    .ql-editor table {
-        width: 100%;
-        border-collapse: collapse; /* Essentiel pour des bordures nettes */
-        margin-bottom: 15px;
-        table-layout: fixed; /* Force les colonnes à respecter la largeur */
-    }
-
-    .ql-editor table td {
-        border: 1px solid #000; /* Bordure noire pour l'impression */
-        padding: 6px 8px;
-        min-width: 30px;
-        vertical-align: top;
-    }
-
-    /* En mode sombre, on adapte pour l'éditeur, mais l'impression restera nette */
-    @media (prefers-color-scheme: dark) {
-        /* Si vous voulez que le tableau soit blanc en mode sombre dans l'éditeur,
-        laissez tel quel car .ql-editor a background-color: white */
-    }
-
+        /* Adaptation Mode Sombre (optionnel pour la zone blanche A4) */
+        @media (prefers-color-scheme: dark) {
+            /* .ql-editor reste blanc pour simuler le papier */
+        }
     </style>
 
-    <!-- ========================================================== -->
-    <!-- VUE 1 : LISTE DES MÉMOS -->
-    <!-- ========================================================== -->
+    <!-- ======================================================================= -->
+    <!-- 2. VUE : LISTE DES MÉMOS (DASHBOARD) -->
+    <!-- ======================================================================= -->
     @if(!$isCreating)
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Header -->
+            
+            <!-- A. En-tête de la page -->
             <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight" style="color: var(--c-black);">Mémorandums</h1>
@@ -167,7 +142,7 @@
                 </div>
             </div>
 
-            <!-- Onglets -->
+            <!-- B. Barre de Navigation (Onglets) -->
             <div class="border-b mb-8" style="border-color: {{ $darkMode ? '#2d2d2d' : '#ebe5e9' }}; width: 1300px;">
                 <nav class="-mb-px flex space-x-6 overflow-x-auto custom-scrollbar pb-1" aria-label="Tabs">
                     @php
@@ -197,6 +172,7 @@
                 </nav>
             </div>
 
+            <!-- C. Contenu Dynamique (Switch) -->
             <div class="rounded-xl shadow-sm border min-h-[400px] p-6 transition-all" style="background-color: var(--c-bg-card); border-color: var(--c-border);">
                 @switch($activeTab)
                     @case('drafted') <livewire:memos.drafted-memos wire:key="tab-drafted"/> @break
@@ -211,13 +187,13 @@
             </div>
         </div>
 
-    <!-- ========================================================== -->
-    <!-- VUE 2 : CRÉATION / ÉDITION -->
-    <!-- ========================================================== -->
+    <!-- ======================================================================= -->
+    <!-- 3. VUE : CRÉATION / ÉDITION DE MÉMO -->
+    <!-- ======================================================================= -->
     @else
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
             
-            <!-- Actions -->
+            <!-- A. Actions (Annuler / Sauvegarder) -->
             <div class="mb-8 border rounded-xl shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all" style="background-color: var(--c-bg-card); border-color: var(--c-border);">
                 <button wire:click="cancelCreation" type="button" class="group flex items-center transition-colors">
                     <div class="mr-3 h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 {{ $darkMode ? 'bg-white/5 group-hover:bg-[#daaf2c]/20' : 'bg-gray-100 group-hover:bg-[#daaf2c]/20' }}">
@@ -237,7 +213,7 @@
                 </div>
             </div>
 
-            <!-- Errors -->
+            <!-- B. Affichage des Erreurs -->
             @if ($errors->any())
                 <div class="mb-6 rounded-md bg-red-50 p-4 border-l-4 border-red-500 shadow-sm">
                     <div class="flex"><div class="flex-shrink-0"><svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg></div>
@@ -245,9 +221,10 @@
                 </div>
             @endif
 
-            <!-- Formulaire Papier -->
+            <!-- C. Formulaire Papier (Le Document) -->
             <div class="bg-white rounded-lg shadow-2xl overflow-hidden relative" style="border: 1px solid var(--c-border);">
                 
+                <!-- En-tête du document -->
                 <div class="px-8 py-6 flex justify-between items-center" style="background-color: {{ $darkMode ? '#1e1e1e' : '#000000' }}; color: white; border-bottom: 4px solid var(--c-gold);">
                     <div><h2 class="text-2xl font-bold tracking-wider uppercase" style="font-family: 'Times New Roman', serif;">Mémorandum</h2><p class="text-xs font-bold tracking-widest mt-1" style="color: var(--c-gold);">INTERNE / CONFIDENTIEL</p></div>
                     <div class="text-right opacity-80"><p class="text-sm">Date : {{ now()->format('d/m/Y') }}</p></div>
@@ -255,6 +232,7 @@
 
                 <div class="p-8 md:p-12 space-y-10">
                     
+                    <!-- Champs Concerne & Objet -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
                         <div class="space-y-2">
                             <label class="block text-xs font-bold uppercase tracking-wide mb-1" style="color: #707173;">Pour (Concerne)</label>
@@ -268,7 +246,8 @@
 
                     <!-- RECHERCHE DESTINATAIRES INTELLIGENTE -->
                     <div class="flex flex-col md:flex-row gap-4 mb-4 items-end">
-                        <!-- Champ Recherche -->
+                        
+                        <!-- 1. Champ Recherche -->
                         <div class="flex-1 w-full relative">
                             <label class="block text-xs font-bold uppercase tracking-wide mb-1" style="color: var(--c-grey);">Destinataire <span class="text-red-500">*</span></label>
                             <div x-data="{ open: false }" class="relative">
@@ -316,7 +295,7 @@
                             @error('newRecipientEntity') <span class="text-red-500 text-xs mt-1 block font-bold">{{ $message }}</span> @enderror
                         </div>
 
-                        <!-- Champ Action -->
+                        <!-- 2. Champ Action -->
                         <div class="flex-1 w-full">
                             <label class="block text-xs font-bold uppercase tracking-wide mb-1" style="color: var(--c-grey);">Action Requise <span class="text-red-500">*</span></label>
                             <select wire:model="newRecipientAction" class="block w-full rounded-md shadow-sm p-2.5 border sm:text-sm focus:ring-[#daaf2c] focus:border-[#daaf2c]" style="background-color: var(--c-bg-card); border-color: var(--c-border); color: var(--c-black);">
@@ -326,7 +305,7 @@
                             @error('newRecipientAction') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
 
-                        <!-- Bouton Ajouter -->
+                        <!-- 3. Bouton Ajouter -->
                         <div class="w-full md:w-auto">
                             <button wire:click="addRecipient" type="button" class="w-full inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-sm font-bold rounded-md shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#daaf2c] hover:opacity-90" style="background-color: var(--c-black); color: white;">
                                 <svg wire:loading.remove wire:target="addRecipient" class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
@@ -373,22 +352,21 @@
                                 content: @entangle('content'), 
                                 quill: null, 
                                 initQuill() { 
-                                    // 1. FORCER L'UTILISATION DES STYLES INLINE (Vital pour PDF/Impression)
-                                    // Cela transforme <span class='ql-font-arial'> en <span style='font-family: Arial'>
+                                    // FORCER L'UTILISATION DES STYLES INLINE
                                     var Font = Quill.import('attributors/style/font');
                                     var Size = Quill.import('attributors/style/size');
                                     var Align = Quill.import('attributors/style/align');
                                     
-                                    // 2. DÉFINIR LES WHITELISTS (Doit correspondre exactement aux options du select HTML)
+                                    // DÉFINIR LES WHITELISTS
                                     Font.whitelist = ['Tahoma', 'Arial', 'Times New Roman', 'Verdana'];
-                                    Size.whitelist = ['12px', '14px', '16px', '18px', '20px'];
+                                    Size.whitelist = ['12pt', '14pt', '16pt', '18pt', '20pt'];
                                     
-                                    // 3. ENREGISTRER LES FORMATS
+                                    // ENREGISTRER LES FORMATS
                                     Quill.register(Font, true);
                                     Quill.register(Size, true);
                                     Quill.register(Align, true);
 
-                                    // 4. INITIALISER L'ÉDITEUR
+                                    // INITIALISER L'ÉDITEUR
                                     this.quill = new Quill(this.$refs.quillEditor, { 
                                         theme: 'snow', 
                                         placeholder: 'Saisissez le contenu du mémorandum...', 
@@ -397,12 +375,12 @@
                                         } 
                                     });
 
-                                    // 5. CHARGER LE CONTENU
+                                    // CHARGER LE CONTENU
                                     if (this.content) { 
                                         this.quill.root.innerHTML = this.content; 
                                     } 
 
-                                    // 6. SYNCHRONISER AVEC LIVEWIRE
+                                    // SYNCHRONISER AVEC LIVEWIRE
                                     this.quill.on('text-change', () => { 
                                         this.content = this.quill.root.innerHTML; 
                                     }); 
@@ -413,7 +391,7 @@
                             <!-- BARRE D'OUTILS PERSONNALISÉE -->
                             <div id="toolbar-container" class="w-full max-w-4xl mb-6 bg-white rounded-t-lg shadow-sm flex flex-wrap items-center justify-center gap-2 border border-gray-200 p-2 z-20 sticky top-0">
                                 
-                                <!-- TITRES (NIVEAUX) -->
+                                <!-- TITRES -->
                                 <span class="ql-formats">
                                     <select class="ql-header" style="width: 130px;">
                                         <option selected>Normal</option>
@@ -479,9 +457,8 @@
 
                             <!-- ZONE D'ÉDITION (FEUILLE A4) -->
                             <div class="relative w-full max-w-[21cm] bg-white shadow-2xl border border-gray-300">
-                                <!-- Calque visuel des sauts de page A4 (optionnel pour repère visuel) -->
+                                <!-- Calque visuel des sauts de page A4 (optionnel) -->
                                 <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-50">
-                                    <!-- Ligne pointillée tous les ~1123px (hauteur A4 en px à 96dpi) -->
                                     <div class="w-full border-b border-dashed border-gray-300 absolute top-[1123px]"></div>
                                     <div class="w-full border-b border-dashed border-gray-300 absolute top-[2246px]"></div>
                                 </div>
@@ -499,7 +476,7 @@
                             <div class="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-yellow-50/20 hover:border-[#daaf2c] transition-colors relative">
                                 <div class="space-y-1 text-center">
                                     <div class="flex text-sm text-gray-600 justify-center"><label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-bold text-[#daaf2c] focus-within:ring-2 focus-within:ring-[#daaf2c]"><span>Téléverser des fichiers</span><input id="file-upload" wire:model="attachments" type="file" class="sr-only" multiple></label></div>
-                                    <p class="text-xs text-gray-500">PDF, DOCX, PNG, JPG jusqu'à 10MB</p>
+                                    <p class="text-xs text-gray-500">PDF, DOCX, PNG, JPG ,Excl </p>
                                 </div>
                             </div>
                             @if($attachments)
@@ -526,6 +503,7 @@
                     </div>
                 </div>
 
+                <!-- Footer Document -->
                 <div class="bg-gray-50 px-8 py-4 border-t border-gray-200 flex justify-between items-center text-xs text-gray-500">
                     <span>Auteur: <strong class="text-gray-900">{{ Auth::user()->name }}</strong></span><span>Document généré par le système</span>
                 </div>

@@ -260,6 +260,16 @@
                                                             </svg>
                                                         </button>
 
+                                                        <!-- 3. ACTION : UTILISER COMME MODÈLE (Orange) -->
+                                                        <button wire:click="useAsModel({{ $memo->id }})"
+                                                                wire:loading.attr="disabled"
+                                                                class="group p-2 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700 transition-all duration-200 focus:ring-2 focus:ring-orange-500/20"
+                                                                title="Utiliser comme modèle">
+                                                            <svg class="w-5 h-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path>
+                                                            </svg>
+                                                        </button>
+
                                                     </div>
                                                 </td>
                                             </tr>
@@ -291,9 +301,6 @@
                         </div>
                     </div>
                 @endif
-    <!-- ========================================================== -->
-    <!-- 1. MODAL APERÇU (STYLE PAPIER / A4) -->
-    <!-- ========================================================== -->
     
 
     <!-- ========================================================== -->

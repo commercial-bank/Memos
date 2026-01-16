@@ -160,6 +160,7 @@
     @vite(['resources/js/app.js'])
 
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('searchableSelect', (config) => ({

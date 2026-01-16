@@ -18,25 +18,27 @@ class Memos extends Component
 {
     use WithFileUploads;
 
-    // --- État de la vue ---
-    public $isCreating = false;
-
-     // 2. AJOUTER L'ATTRIBUT #[Url]
-    // 'keep: true' permet de garder le paramètre dans l'URL même après des actions Ajax
+    // =================================================================================================
+    // 1. PROPRIÉTÉS D'ÉTAT DE L'INTERFACE (UI) & NAVIGATION
+    // =================================================================================================
+    
+    // Onglet actif (conservé dans l'URL)
     #[Url(keep: true)] 
     public $activeTab = 'incoming';
 
-    
+    // Indicateur du mode création (affiche/masque le formulaire)
+    public $isCreating = false;
+
+    // Préférence utilisateur (Dark Mode)
     public $darkMode = false;
 
-    // --- Recherche Destinataire ---
-    public $searchRecipient = '';
-    public $newRecipientEntity = null; // ID de l'entité sélectionnée
-    
-    // DRAPEAU CRUCIAL : Empêche le reset lors de la sélection
-    protected $isSelection = false; 
 
-    // --- Champs du Mémo ---
+    // =================================================================================================
+    // 2. PROPRIÉTÉS DU FORMULAIRE (CHAMPS PRINCIPAUX)
+    // =================================================================================================
+
+    public $memoId = null;
+
     #[Rule('required|min:5')]
     public string $object = '';
 
@@ -46,18 +48,18 @@ class Memos extends Component
     #[Rule('required')]
     public string $content = '';
 
-    public $memoId = null;
 
-    // --- Gestion des Pièces Jointes ---
-    #[Rule(['attachments.*' => 'nullable|file|max:10240'])] 
-    public $attachments = []; 
+    // =================================================================================================
+    // 3. PROPRIÉTÉS DE GESTION DES DESTINATAIRES & RECHERCHE
+    // =================================================================================================
 
-    public $existingAttachments = []; 
-
-    // --- Gestion des Destinataires (Liste finale) ---
+    // Liste finale des destinataires ajoutés
     public $recipients = []; 
+
+    // Action choisie pour le nouveau destinataire
     public $newRecipientAction = '';
 
+    // Liste statique des actions possibles
     public $actionsList = [
         'Faire le nécessaire',
         'Prendre connaissance',
@@ -65,13 +67,83 @@ class Memos extends Component
         'Décider'
     ];
 
-    // =========================================================
-    // INITIALISATION
-    // =========================================================
+    // --- Variables de recherche dynamique ---
+    
+    // Champ de saisie pour la recherche
+    public $searchRecipient = '';
+    
+    // ID de l'entité sélectionnée après recherche
+    public $newRecipientEntity = null; 
+    
+    // Drapeau pour empêcher le reset lors du clic de sélection
+    protected $isSelection = false; 
+
+
+    // =================================================================================================
+    // 4. PROPRIÉTÉS DE GESTION DES PIÈCES JOINTES
+    // =================================================================================================
+
+    #[Rule(['attachments.*' => 'nullable|file|max:10240'])] 
+    public $attachments = []; 
+
+    public $existingAttachments = []; 
+
+
+    // =================================================================================================
+    // 5. INITIALISATION (LIFECYCLE)
+    // =================================================================================================
     
     public function mount()
     {
          $this->darkMode = Auth::user()->dark_mode ?? false;
+    }
+
+
+    // =================================================================================================
+    // 6. GESTION DES ÉVÉNEMENTS UI & NAVIGATION
+    // =================================================================================================
+
+    // AJOUTER CETTE MÉTHODE POUR ÉCOUTER L'ÉVÉNEMENT
+    #[On('load-model-data')]
+    public function loadDraftFromModel($memoId)
+    {
+        // 1. Récupérer le mémo favori
+        $sourceMemo = Memo::with(['destinataires.entity'])->findOrFail($memoId);
+
+        // 2. Réinitialiser le formulaire pour éviter les résidus
+        $this->reset([
+            'object', 'content', 'concern', 'memoId', 'recipients', 
+            'attachments', 'existingAttachments', 'searchRecipient'
+        ]);
+        $this->resetValidation();
+
+        // 3. Charger les données textuelles
+        $this->object = $sourceMemo->object; // (Optionnel: "Copie de " . ...)
+        $this->concern = $sourceMemo->concern;
+        $this->content = $sourceMemo->content;
+
+        // 4. Charger les destinataires (Conversion du format BD vers format Formulaire)
+        // Le formulaire attend : ['entity_id', 'entity_name', 'action']
+        if ($sourceMemo->destinataires) {
+            foreach ($sourceMemo->destinataires as $dest) {
+                if ($dest->entity) {
+                    $this->recipients[] = [
+                        'entity_id'   => $dest->entity->id,
+                        'entity_name' => $dest->entity->name,
+                        'action'      => $dest->action
+                    ];
+                }
+            }
+        }
+
+        // 5. Ouvrir le formulaire
+        $this->isCreating = true;
+
+        // 6. Notification visuelle (Optionnel)
+        $this->dispatch('notify', 
+            message: "Modèle chargé ! Vous pouvez maintenant le modifier.", 
+            type: 'info'
+        );
     }
 
     #[On('dark-mode-toggled')]
@@ -79,19 +151,25 @@ class Memos extends Component
     {
         $this->darkMode = $darkMode;
 
-        // AJOUT : Sauvegarde immédiate dans la base de données
+        // Sauvegarde immédiate dans la base de données
         $user = Auth::user();
         if ($user) {
             $user->update(['dark_mode' => $darkMode]);
         }
     }
 
+    /**
+     * Change l'onglet actif et ferme le mode création
+     */
     public function selectTab(string $tab)
     {
         $this->activeTab = $tab;
         $this->isCreating = false;
     }
 
+    /**
+     * Ouvre le formulaire de création et réinitialise les données
+     */
     public function createMemo()
     {
         $this->reset([
@@ -102,6 +180,9 @@ class Memos extends Component
         $this->isCreating = true;
     }
 
+    /**
+     * Annule la création et ferme le formulaire
+     */
     public function cancelCreation()
     {
         $this->isCreating = false;
@@ -111,17 +192,17 @@ class Memos extends Component
         ]);
     }
 
-    // =========================================================
-    // LOGIQUE DE RECHERCHE ET SELECTION (CORRIGÉE)
-    // =========================================================
+
+    // =================================================================================================
+    // 7. LOGIQUE DE RECHERCHE ET SÉLECTION (AUTOCOMPLETE)
+    // =================================================================================================
 
     /**
-     * 1. Détecte quand l'utilisateur tape dans le champ
+     * Détecte quand l'utilisateur tape dans le champ de recherche
      */
     public function updatedSearchRecipient()
     {
         // Si le changement vient d'un clic (flag true), on ne fait rien
-        // et on remet le flag à false pour la prochaine frappe.
         if ($this->isSelection) {
             $this->isSelection = false;
             return;
@@ -132,7 +213,7 @@ class Memos extends Component
     }
 
     /**
-     * 2. Sélectionne une entité depuis la liste
+     * Sélectionne une entité depuis la liste déroulante
      */
     public function selectRecipientEntity($id, $name)
     {
@@ -142,7 +223,7 @@ class Memos extends Component
     }
 
     /**
-     * 3. Filtre dynamique (Propriété calculée)
+     * Filtre dynamique des entités (Propriété calculée)
      */
     public function getFilteredEntitiesProperty()
     {
@@ -162,12 +243,17 @@ class Memos extends Component
             ->get();
     }
 
+
+    // =================================================================================================
+    // 8. MANIPULATION DES LISTES (DESTINATAIRES & FICHIERS)
+    // =================================================================================================
+
     /**
-     * 4. Ajoute à la liste temporaire
+     * Ajoute un destinataire à la liste temporaire
      */
     public function addRecipient()
     {
-        // Validation
+        // Validation spécifique
         $this->validate([
             'newRecipientEntity' => 'required|integer|exists:entities,id',
             'newRecipientAction' => 'required|string'
@@ -196,20 +282,27 @@ class Memos extends Component
         }
     }
 
+    /**
+     * Retire un destinataire de la liste
+     */
     public function removeRecipient($index)
     {
         unset($this->recipients[$index]);
         $this->recipients = array_values($this->recipients);
     }
 
+    /**
+     * Retire une pièce jointe de la liste
+     */
     public function removeAttachment($index)
     {
         array_splice($this->attachments, $index, 1);
     }
 
-    // =========================================================
-    // SAUVEGARDE
-    // =========================================================
+
+    // =================================================================================================
+    // 9. PERSISTANCE DES DONNÉES (SAUVEGARDE)
+    // =================================================================================================
 
     public function save()
     {
@@ -222,7 +315,7 @@ class Memos extends Component
         $isUpdate = !empty($this->memoId);
 
         DB::transaction(function () {
-            // Fichiers
+            // Traitement des fichiers
             $finalAttachments = $this->existingAttachments;
             if (!empty($this->attachments)) {
                 foreach ($this->attachments as $file) {
@@ -236,7 +329,7 @@ class Memos extends Component
                 }
             }
 
-            // Destinataires JSON
+            // Préparation des destinataires en JSON
             $destinatairesJson = array_map(function($recipient) {
                 return [
                     'entity_id'         => $recipient['entity_id'],
@@ -246,7 +339,7 @@ class Memos extends Component
                 ];
             }, $this->recipients);
 
-            // DB Update/Create
+            // Mise à jour ou Création en base
             $memo = DraftedMemo::updateOrCreate(
                 ['id' => $this->memoId],
                 [
@@ -274,6 +367,11 @@ class Memos extends Component
         
         $this->reset(['object', 'content', 'concern', 'memoId', 'recipients', 'attachments', 'searchRecipient']);
     }
+
+
+    // =================================================================================================
+    // 10. AFFICHAGE (RENDER)
+    // =================================================================================================
 
     public function render()
     {

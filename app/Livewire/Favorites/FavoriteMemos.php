@@ -82,6 +82,15 @@ class FavoriteMemos extends Component
         $this->isEditing = false;
     }
 
+    // Dans FavoriteMemos.php
+
+    public function useAsModel($id)
+    {
+        // On émet l'événement vers le haut (vers Memos.php)
+        // 'load-model-data' est le nom écouté par #[On(...)] dans le parent
+        $this->dispatch('load-model-data', memoId: $id);
+    }
+
     public function closePdfView()
     {
         $this->isViewingPdf = false;

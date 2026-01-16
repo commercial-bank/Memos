@@ -26,37 +26,33 @@ class Incoming2Memos extends Component
     use WithPagination;
     use WithFileUploads;
 
-    // =========================================================
-    // 1. PROPRIÉTÉS DU COMPOSANT
-    // =========================================================
+    // =================================================================================================
+    // 1. PROPRIÉTÉS D'ÉTAT DE L'INTERFACE (UI) & MODALS
+    // =================================================================================================
 
     public $search = '';
-    public $isViewingPdf = false;
-    public $comment = ''; 
-    public $date;
+    
+    // --- États d'ouverture des Modals ---
+    public $isOpen = false;                 // Modal générique
+    public $isOpenHistory = false;          // Modal Historique
+    public $isViewingPdf = false;           // Modal Visionneuse PDF
+    
+    // --- Modals Workflow Entrant ---
+    public $isRegistrationModalOpen = false; // Modal d'enregistrement (Secrétariat)
+    public $isTransModalOpen = false;        // Modal de transmission
+    public $isOpenTrans = false;             // (Similaire, conservé selon instruction)
+    public $isCloseModalOpen = false;        // Modal de clôture simple
+    public $isDecisionModalOpen = false;     // Modal de Prise de Décision
+    public $isCreatingReply = false;         // Mode Réponse
 
-    // 1. Ajoutez ces propriétés en haut de la classe
-    public $isDecisionModalOpen = false;
-    public $decisionChoice = ''; // 'accord' ou 'refus'
-    public $decisionComment = ''; // Optionnel : pour ajouter une note à la décision
 
-    // --- Données d'Affichage ---
-    public $user_service;
-    public $user_first_name;
-    public $user_last_name;
-    public $user_entity_name;
-
-    public $pdfBase64 = '';
-
-    public $isOpen = false;                 
-    public $isRegistrationModalOpen = false; 
-    public $isTransModalOpen = false;        
-    public $isCloseModalOpen = false;        
-    public $isOpenTrans = false;             
+    // =================================================================================================
+    // 2. PROPRIÉTÉS DE DONNÉES DU MÉMO (AFFICHAGE & FORMULAIRE)
+    // =================================================================================================
 
     public $memo_id = null;
-    public $isOpenHistory = false;
     
+    // --- Champs principaux ---
     #[Rule('required|string|max:255')]
     public string $object = '';
 
@@ -66,8 +62,22 @@ class Incoming2Memos extends Component
     #[Rule('required|string')]
     public string $content = '';
 
-    public $selections = [];
+    // --- Données d'affichage (Vue) ---
+    public $date;
+    public $user_service;
+    public $user_first_name;
+    public $user_last_name;
+    public $user_entity_name;
+    public $pdfBase64 = '';
+    public $memoHistory = [];
+    public $selections = []; // Variable conservée
 
+
+    // =================================================================================================
+    // 3. PROPRIÉTÉS DE WORKFLOW (TRANSMISSION & ENREGISTREMENT)
+    // =================================================================================================
+
+    // --- Variables d'Enregistrement (Secrétariat) ---
     #[Rule('required|string')]
     public $reg_reference = ''; 
     #[Rule('required|string')]
@@ -79,43 +89,54 @@ class Incoming2Memos extends Component
     #[Rule('required|string')]
     public $reg_date = '';
 
+    // --- Variables de Transmission ---
     public $memoIdToTrans = null;
-    public $targetRecipients = [];    // Sera une liste d'objets stdClass
-    public $selectedRecipients = [];  
-    public $targetRoleName = '';      
+    public $targetRecipients = [];    // Liste d'objets stdClass (cibles potentielles)
+    public $selectedRecipients = [];  // IDs sélectionnés
+    public $targetRoleName = '';      // Titre du rôle cible (ex: Directeur)
+    public $comment = '';             // Commentaire de transmission
+    public $transRecipients = [];
     public $managerData = null; 
+    
+    // --- Variables de Clôture & Décision ---
+    public $memoIdToClose = null;
+    public $closingComment = ''; 
+    public $decisionChoice = '';      // 'accord' ou 'refus'
+    public $decisionComment = '';     // Note de décision
+
+    // --- Configuration ---
     public $memo_type = 'standard';
     public $projectUsersList = []; 
     public $selected_project_users = [];
-    public $transRecipients = [];
     public $generatedReference = '';
-    public $memoHistory = [];
 
-    public $memoIdToClose = null;
-    public $closingComment = ''; 
 
-    public $isCreatingReply = false; 
+    // =================================================================================================
+    // 4. PROPRIÉTÉS DE RÉPONSE & PIÈCES JOINTES
+    // =================================================================================================
+
+    // --- Réponse ---
     public $parent_id = null;        
     public $new_object = '';
     public $new_concern = '';
     public $new_content = '';
+    
+    // --- Destinataires & Listes ---
     public $recipients = [];         
-    public $attachments = [];        
     public $newRecipientEntity = '';
     public $newRecipientAction = '';
     public $allEntities = []; 
     public $actionsList = ['Faire le nécessaire', 'Prendre connaissance', 'Prendre position', 'Décider'];
 
-      // --- Gestion des Pièces Jointes ---
+    // --- Pièces Jointes ---
     #[Rule(['attachments.*' => 'nullable|file|max:10240'])] 
-
-
+    public $attachments = [];        
     public $existingAttachments = []; 
 
 
-    // =========================================================
-    // 2. INITIALISATION & NAVIGATION
-    // =========================================================
+    // =================================================================================================
+    // 5. INITIALISATION & NAVIGATION
+    // =================================================================================================
 
     public function mount()
     {
@@ -127,31 +148,29 @@ class Incoming2Memos extends Component
         $this->resetPage();
     }
 
-    private function getPdfData($memo)
-    {
-        // On cherche le directeur de l'entité du créateur du mémo
-        // CRITÈRE AJOUTÉ : On s'assure qu'il n'a pas de manager (c'est le N+1 suprême de l'entité)
-        $director = User::where('dir_id', $memo->user->dir_id)
-                        ->where('poste', 'Directeur')
-                        ->whereNull('manager_id') // <--- C'est ici que se fait la distinction
-                        ->first();
+    // --- Fermeture des Modals Génériques ---
 
-        // Sécurité : Si aucun Directeur sans manager n'est trouvé (cas rare ou erreur de saisie),
-        // on peut tenter de prendre le premier Directeur trouvé tout court.
-        if (!$director) {
-            $director = User::where('dir_id', $memo->user->dir_id)
-                            ->where('poste', 'Directeur')
-                            ->first();
-        }
-
-        return [
-            'memo'               => $memo,
-            'recipientsByAction' => $memo->destinataires->groupBy('action'),
-            'date'               => $memo->created_at->format('d/m/Y'),
-            'logo'               => $this->getLogoBase64(),
-            'director'           => $director, // On passe l'objet director à la vue
-        ];
+    public function closeModal() 
+    { 
+        $this->isOpen = false; 
+        $this->reset(['memo_id', 'content', 'object', 'user_entity_name']); 
     }
+
+    public function closeHistoryModal() 
+    { 
+        $this->isOpenHistory = false; $this->memoHistory = []; 
+    }
+
+    public function closePdfView()
+    {
+        $this->isViewingPdf = false;
+        $this->pdfBase64 = '';
+    }
+
+
+    // =================================================================================================
+    // 6. LOGIQUE D'AFFICHAGE & PDF
+    // =================================================================================================
 
     /**
      * Ouvre l'aperçu du mémo
@@ -170,15 +189,27 @@ class Incoming2Memos extends Component
         $this->isEditing = false;
     }
 
-    public function closePdfView()
+    private function getPdfData($memo)
     {
-        $this->isViewingPdf = false;
-        $this->pdfBase64 = '';
-    }
+        // On cherche le directeur de l'entité du créateur du mémo
+        $director = User::where('dir_id', $memo->user->dir_id)
+                        ->where('poste', 'Directeur')
+                        ->whereNull('manager_id') 
+                        ->first();
 
-    private function getLogoBase64() {
-        $path = public_path('images/logo.jpg');
-        return file_exists($path) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($path)) : null;
+        if (!$director) {
+            $director = User::where('dir_id', $memo->user->dir_id)
+                            ->where('poste', 'Directeur')
+                            ->first();
+        }
+
+        return [
+            'memo'               => $memo,
+            'recipientsByAction' => $memo->destinataires->groupBy('action'),
+            'date'               => $memo->created_at->format('d/m/Y'),
+            'logo'               => $this->getLogoBase64(),
+            'director'           => $director, 
+        ];
     }
 
     public function viewHistory($id)
@@ -198,10 +229,10 @@ class Incoming2Memos extends Component
         $this->isOpenHistory = true;
     }
 
-    public function closeHistoryModal() { 
-        $this->isOpenHistory = false; $this->memoHistory = []; 
+    private function getLogoBase64() {
+        $path = public_path('images/logo.jpg');
+        return file_exists($path) ? 'data:image/jpg;base64,' . base64_encode(file_get_contents($path)) : null;
     }
-    
 
     private function fillMemoDataView($memo)
     {
@@ -214,15 +245,18 @@ class Incoming2Memos extends Component
         $this->user_service = $memo->user->service;
     }
 
-    public function closeModal() 
-    { 
-        $this->isOpen = false; 
-        $this->reset(['memo_id', 'content', 'object', 'user_entity_name']); 
+    public function downloadMemoPDF()
+    {
+        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
+        $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo));
+        
+        return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
     }
 
-    // =========================================================
-    // 3. LOGIQUE D'ENREGISTREMENT (SECRÉTARIAT)
-    // =========================================================
+
+    // =================================================================================================
+    // 7. LOGIQUE D'ENREGISTREMENT (SECRÉTARIAT)
+    // =================================================================================================
 
     public function transMemo($id)
     {
@@ -296,9 +330,10 @@ class Incoming2Memos extends Component
         $this->memoIdToTrans = null;
     }
 
-    // =========================================================
-    // 4. TRANSMISSION ET COTATION (HIÉRARCHIE)
-    // =========================================================
+
+    // =================================================================================================
+    // 8. TRANSMISSION ET COTATION (HIÉRARCHIE)
+    // =================================================================================================
 
     private function prepareTransmission($id)
     {
@@ -338,7 +373,7 @@ class Incoming2Memos extends Component
             return;
         }
 
-        // CORRECTIF : On convertit en liste d'objets stdClass pour supporter la syntaxe $recipient->id dans le Blade
+        // CORRECTIF : On convertit en liste d'objets stdClass
         $this->targetRecipients = $query->orderBy('first_name')->get()->map(function($u) {
             return (object) $u->toArray();
         })->all();
@@ -356,81 +391,64 @@ class Incoming2Memos extends Component
     }
 
     public function confirmTransmission()
-{
-    // Validation
-    $this->validate(['selectedRecipients' => 'required|array|min:1']);
+    {
+        // Validation
+        $this->validate(['selectedRecipients' => 'required|array|min:1']);
 
-    // Récupération
-    $memo = Memo::findOrFail($this->memo_id ?? $this->memoIdToTrans);
-    $user = Auth::user(); 
-    
-    // Conversion des destinataires choisis en entiers
-    $newRecipientsIds = array_map('intval', $this->selectedRecipients);
+        // Récupération
+        $memo = Memo::findOrFail($this->memo_id ?? $this->memoIdToTrans);
+        $user = Auth::user(); 
+        
+        // Conversion des destinataires choisis en entiers
+        $newRecipientsIds = array_map('intval', $this->selectedRecipients);
 
-    // =========================================================
-    // 1. GESTION DES DÉTENTEURS (CURRENT_HOLDERS - Historique cumulatif)
-    // =========================================================
-    // On garde tout le monde, on ajoute juste les nouveaux.
-    
-    $existingHolders = is_array($memo->current_holders) 
-        ? $memo->current_holders 
-        : (json_decode($memo->current_holders, true) ?? []);
+        // 1. GESTION DES DÉTENTEURS (CURRENT_HOLDERS)
+        $existingHolders = is_array($memo->current_holders) 
+            ? $memo->current_holders 
+            : (json_decode($memo->current_holders, true) ?? []);
 
-    // Fusion sans doublons
-    $updatedCurrentHolders = array_values(array_unique(array_merge($existingHolders, $newRecipientsIds)));
+        // Fusion sans doublons
+        $updatedCurrentHolders = array_values(array_unique(array_merge($existingHolders, $newRecipientsIds)));
 
+        // 2. GESTION DES TRAITEURS (TREATMENT_HOLDERS)
+        $currentTreatmentHolders = is_array($memo->treatment_holders) 
+            ? $memo->treatment_holders 
+            : (json_decode($memo->treatment_holders, true) ?? []);
 
-    // =========================================================
-    // 2. GESTION DES TRAITEURS (TREATMENT_HOLDERS - Droit actif)
-    // =========================================================
-    // LOGIQUE : 
-    // - On retire MOI ($user->id) car je transmets le dossier.
-    // - On garde LES AUTRES (ex: le user de l'Entité B qui n'a pas fini).
-    // - On ajoute LES NOUVEAUX (mes collaborateurs à qui je donne le dossier).
+        // A. On retire l'utilisateur courant de la liste des traiteurs
+        $remainingHolders = array_diff($currentTreatmentHolders, [$user->id]);
 
-    $currentTreatmentHolders = is_array($memo->treatment_holders) 
-        ? $memo->treatment_holders 
-        : (json_decode($memo->treatment_holders, true) ?? []);
+        // B. On ajoute les nouveaux destinataires aux restants
+        $mergedTreatmentHolders = array_merge($remainingHolders, $newRecipientsIds);
 
-    // A. On retire l'utilisateur courant de la liste des traiteurs
-    $remainingHolders = array_diff($currentTreatmentHolders, [$user->id]);
+        // C. Nettoyage
+        $updatedTreatmentHolders = array_values(array_unique($mergedTreatmentHolders));
 
-    // B. On ajoute les nouveaux destinataires aux restants
-    $mergedTreatmentHolders = array_merge($remainingHolders, $newRecipientsIds);
-
-    // C. Nettoyage (Unique + Réindexation)
-    $updatedTreatmentHolders = array_values(array_unique($mergedTreatmentHolders));
-
-
-    // =========================================================
-    // 3. SAUVEGARDE EN BASE
-    // =========================================================
-    $memo->update([
-        'current_holders'   => $updatedCurrentHolders,
-        'treatment_holders' => $updatedTreatmentHolders
-    ]);
-
-    // =========================================================
-    // 4. HISTORIQUE ET NOTIFICATIONS
-    // =========================================================
-    $recipients = User::whereIn('id', $this->selectedRecipients)->get();
-    
-    foreach ($recipients as $recipient) {
-        Historiques::create([
-            'user_id' => $user->id,
-            'memo_id' => $memo->id,
-            'visa'    => 'Coté / Transmis', 
-            'workflow_comment' => $this->comment . " (Assigné à: " . $recipient->first_name . ")"
+        // 3. SAUVEGARDE EN BASE
+        $memo->update([
+            'current_holders'   => $updatedCurrentHolders,
+            'treatment_holders' => $updatedTreatmentHolders
         ]);
-        try { 
-            $recipient->notify(new MemoActionNotification($memo, 'cotation', $user)); 
-            $this->sendEmailNotification($memo, $recipient, $user);
-        } catch (\Exception $e) {}
-    }
 
-    $this->dispatch('notify', message: "Mémo transmis avec succès.");
-    $this->closeTransModal();
-}
+        // 4. HISTORIQUE ET NOTIFICATIONS
+        $recipients = User::whereIn('id', $this->selectedRecipients)->get();
+        
+        foreach ($recipients as $recipient) {
+            Historiques::create([
+                'user_id' => $user->id,
+                'memo_id' => $memo->id,
+                'visa'    => 'Coté / Transmis', 
+                'workflow_comment' => $this->comment . " (Assigné à: " . $recipient->first_name . ")"
+            ]);
+            try { 
+                $recipient->notify(new MemoActionNotification($memo, 'cotation', $user)); 
+                $this->sendEmailNotification($memo, $recipient, $user);
+            } catch (\Exception $e) {}
+        }
+
+        $this->dispatch('notify', message: "Mémo transmis avec succès.");
+        $this->closeTransModal();
+    }
 
     public function closeTransModal()
     {
@@ -438,9 +456,10 @@ class Incoming2Memos extends Component
         $this->reset(['selectedRecipients', 'comment', 'memoIdToTrans', 'targetRecipients']);
     }
 
-    // =========================================================
-    // 5. GESTION DE LA CLÔTURE
-    // =========================================================
+
+    // =================================================================================================
+    // 9. GESTION DE LA CLÔTURE & DÉCISION
+    // =================================================================================================
 
     public function openCloseModal($id)
     {
@@ -457,7 +476,7 @@ class Incoming2Memos extends Component
     
     public function confirmCloseMemo()
     {
-        // 1. Correction de la vérification du blocage (On doit aussi corriger ici)
+        // 1. Correction de la vérification du blocage
         if ($errorMessage = $this->checkDecisionBlock($this->memoIdToClose)) {
             $this->dispatch('notify', message: $errorMessage);
             $this->cancelCloseModal();
@@ -466,11 +485,7 @@ class Incoming2Memos extends Component
 
         $user = Auth::user();
 
-        // ====================================================================
-        // CORRECTION ICI : Gestion des multiples entités (Direction / Sous-Dir)
-        // ====================================================================
-        
-        // On récupère les IDs valides de l'utilisateur (ex: [5, null] devient [5])
+        // Gestion des multiples entités (Direction / Sous-Dir)
         $userEntityIds = array_filter([$user->dir_id, $user->sd_id]);
 
         if (empty($userEntityIds)) {
@@ -480,19 +495,14 @@ class Incoming2Memos extends Component
 
         // On cherche si L'UNE des entités de l'utilisateur est destinataire
         $myDestinataireRecord = Destinataires::where('memo_id', $this->memoIdToClose)
-            ->whereIn('entity_id', $userEntityIds) // Utilisation de whereIn
+            ->whereIn('entity_id', $userEntityIds) 
             ->first();
 
-        // ====================================================================
-
         if (!$myDestinataireRecord) {
-            // Debugging optionnel : affichez les IDs pour comprendre
-            // $this->dispatch('notify', message: "Debug: Cherché dans " . implode(',', $userEntityIds));
             $this->dispatch('notify', message: "Erreur : Entité non destinataire.");
             return;
         }
 
-        // Le reste du code reste inchangé...
         $myDestinataireRecord->update([
             'processing_status' => 'traiter',
         ]);
@@ -516,7 +526,6 @@ class Incoming2Memos extends Component
         $this->cancelCloseModal();
     }
 
-    // 2. Ajoutez cette méthode pour ouvrir le modal
     public function openDecisionModal($id, $choice)
     {
         $this->memo_id = $id;
@@ -525,18 +534,17 @@ class Incoming2Memos extends Component
         $this->isDecisionModalOpen = true;
     }
 
-    // 3. Modifiez la méthode submitDecision existante pour fermer le modal
     public function submitDecision($id, $decision) 
     {
         $user = Auth::user();
         $comment = $this->decisionComment ?: ($decision === 'accord' ? "Accord donné." : "Refus signifié.");
 
-        // IMPORTANT : On récupère les entités de l'utilisateur (Direction et Sous-Direction)
+        // IMPORTANT : On récupère les entités de l'utilisateur
         $userEntityIds = array_filter([$user->dir_id, $user->sd_id]);
 
         // On cherche l'enregistrement dans 'destinataires' qui correspond à l'entité du user
         $destRecord = Destinataires::where('memo_id', $id)
-            ->whereIn('entity_id', $userEntityIds) // Correction ici : on utilise dir_id/sd_id
+            ->whereIn('entity_id', $userEntityIds) 
             ->where(function($q) {
                 $q->where('action', 'like', '%Décider%')
                 ->orWhere('action', 'like', '%Prendre position%');
@@ -559,7 +567,7 @@ class Incoming2Memos extends Component
                 
                 $visa = 'REFUS DÉCISIF';
             } else {
-                // CAS ACCORD : On marque cette entité comme ayant pris sa décision
+                // CAS ACCORD
                 $destRecord->update([
                     'processing_status' => 'decision_prise', 
                 ]);
@@ -569,7 +577,6 @@ class Incoming2Memos extends Component
                     ->whereNotIn('processing_status', ['traiter', 'decision_prise', 'repondu'])
                     ->exists();
 
-                // Si plus personne n'est en attente, on termine le mémo globalement
                 if (!$isStillPending) {
                     Memo::where('id', $id)->update(['workflow_direction' => 'terminer']);
                 }
@@ -590,9 +597,10 @@ class Incoming2Memos extends Component
         $this->dispatch('notify', message: "Décision enregistrée et dossier mis à jour.");
     }
 
-    // =========================================================
-    // 6. GESTION DES RÉPONSES
-    // =========================================================
+
+    // =================================================================================================
+    // 10. GESTION DES RÉPONSES
+    // =================================================================================================
 
     public function replyMemo($id)
     {
@@ -619,8 +627,6 @@ class Incoming2Memos extends Component
         $this->isCreatingReply = true; 
     }
 
-    
-
     public function saveReply()
     {
         // 1. Validation rigoureuse
@@ -639,15 +645,11 @@ class Incoming2Memos extends Component
             $filePaths = [];
             if ($this->attachments) {
                 foreach ($this->attachments as $file) {
-                    // On stocke les fichiers. Notez que pour un brouillon, on garde le même dossier
-                    // ou on peut mettre dans 'attachments/drafts' si vous préférez.
                     $filePaths[] = $file->store('attachments/memos', 'public');
                 }
             }
 
             // 3. Mise à jour du Mémo Parent (Entrant)
-            // On considère que puisque vous avez rédigé le brouillon, 
-            // l'action est "traitée" de votre côté pour le flux entrant.
             $userEntityIds = array_filter([$user->dir_id, $user->sd_id]);
             
             Destinataires::where('memo_id', $this->parent_id)
@@ -666,23 +668,18 @@ class Incoming2Memos extends Component
             }
 
             // 5. Création du BROUILLON (DraftedMemo)
-            // Contrairement au Memo, on stocke les destinataires en JSON direct ici
             $draft = DraftedMemo::create([
                 'object'             => $this->new_object,
                 'concern'            => $this->new_concern,
                 'content'            => $this->new_content,
                 'user_id'            => $user->id,
-                'parent_id'          => $this->parent_id, // Lien vers le mémo entrant
+                'parent_id'          => $this->parent_id, 
                 'workflow_direction' => 'sortant',        
                 'status'             => 'brouillon',       
-                'current_holders'    => [$user->id], // Vous détenez le brouillon
+                'current_holders'    => [$user->id], 
                 'pieces_jointes'     => json_encode($filePaths),
-                // ICI : On sauvegarde les destinataires dans la colonne JSON prévue
                 'destinataires'      => json_encode($this->recipients), 
             ]);
-
-            // NOTE : On n'insère RIEN dans la table 'destinataires' (SQL) pour l'instant
-            // car cette table attend un 'memo_id' qui n'existe pas encore.
 
             // 6. Enregistrement de l'historique sur le mémo parent
             Historiques::create([
@@ -692,10 +689,6 @@ class Incoming2Memos extends Component
                 'workflow_comment' => "Projet de réponse initié (Brouillon)."
             ]);
         });
-
-        // 7. Pas de notification immédiate
-        // On ne notifie généralement pas lors de la création d'un brouillon.
-        // La notification partira quand le brouillon sera validé/envoyé.
 
         $this->dispatch('notify', message: "Memo de réponse enregistré dans vos brouillons.");
         $this->cancelReply();
@@ -707,14 +700,15 @@ class Incoming2Memos extends Component
         $this->reset(['new_object', 'new_concern', 'new_content', 'recipients', 'parent_id']);
     }
 
-     public function removeAttachment($index)
+    public function removeAttachment($index)
     {
         array_splice($this->attachments, $index, 1);
     }
 
-    // =========================================================
-    // 7. FONCTIONS OUTILS & EXPORT
-    // =========================================================
+
+    // =================================================================================================
+    // 11. HELPERS & UTILITAIRES
+    // =================================================================================================
 
     private function checkDecisionBlock($memoId)
     {
@@ -727,14 +721,6 @@ class Incoming2Memos extends Component
             ->first();
 
         return $block ? "En attente de décision : " . $block->entity->name : null;
-    }
-
-    public function downloadMemoPDF()
-    {
-        $memo = Memo::with(['user.entity', 'destinataires.entity'])->findOrFail($this->memo_id);
-        $pdf = Pdf::loadView('pdf.memo-layout', $this->getPdfData($memo));
-        
-        return response()->streamDownload(fn() => print($pdf->output()), "Memo_{$memo->id}.pdf");
     }
 
     public function addRecipient()
@@ -750,6 +736,11 @@ class Incoming2Memos extends Component
         unset($this->recipients[$index]);
         $this->recipients = array_values($this->recipients);
     }
+
+
+    // =================================================================================================
+    // 12. GESTION DES EMAILS
+    // =================================================================================================
 
       /**
      * Envoie l'email de Rejet ou de Retour via PHPMailer
@@ -811,8 +802,6 @@ class Incoming2Memos extends Component
         $recipientName = $recipient->first_name . ' ' . $recipient->last_name;
         $actorName = $actor->first_name . ' ' . $actor->last_name;
         $actorPoste = $actor->poste->value ?? $actor->poste; // Gère Enum ou String
-        
-        
         
         $memoUrl = route('dashboard', [
             'view' => 'memos-content', 
@@ -877,24 +866,22 @@ class Incoming2Memos extends Component
         ";
     }
 
-    
 
-    // =========================================================
-    // 8. RENDU FINAL
-    // =========================================================
+    // =================================================================================================
+    // 13. RENDU FINAL
+    // =================================================================================================
 
     public function render()
     {
         $user = Auth::user();
         
         // On prépare les IDs des entités de l'utilisateur (Direction et Sous-Direction)
-        // array_filter permet d'ignorer les valeurs nulles
         $userEntityIds = array_filter([$user->dir_id, $user->sd_id]);
 
         $memos = Memo::with(['user', 'destinataires.entity','historiques.user'])
             ->where('workflow_direction', 'entrant')
             
-            // 1. Vérifier que l'utilisateur est un détenteur actuel (Circuit de main en main)
+            // 1. Vérifier que l'utilisateur est un détenteur actuel
             ->whereJsonContains('current_holders', $user->id)
             
             // 2. Vérifier que l'entité du user (DIR ou SD) est bien dans la liste des destinataires
@@ -902,7 +889,7 @@ class Incoming2Memos extends Component
                 $query->whereIn('entity_id', $userEntityIds);
             })
             
-            // 3. Gestion de la recherche (avec le "use ($term)" pour éviter l'erreur de variable)
+            // 3. Gestion de la recherche
             ->when($this->search, function($q) {
                 $term = '%'.$this->search.'%';
                 $q->where(function($sub) use ($term) {

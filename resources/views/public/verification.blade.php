@@ -131,7 +131,7 @@
             @if($visas->count() > 0)
                 <div class="space-y-4 pt-4">
                     <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider border-b border-gray-200 pb-2 mb-4">
-                        <i class="fas fa-eye mr-2"></i> Circuit de Contrôle (Visas)
+                        <i class="fas fa-eye mr-2"></i> Circuit de Cotation et d'Assignation
                     </h3>
 
                     <ul class="relative border-l-2 border-gray-200 ml-3 space-y-8">

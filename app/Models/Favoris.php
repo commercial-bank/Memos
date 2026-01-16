@@ -11,4 +11,6 @@ class Favoris extends Model
         'memo_id',
         'user_id',
     ];
+
+    
 }

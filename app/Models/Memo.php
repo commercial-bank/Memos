@@ -70,6 +70,12 @@ class Memo extends Model
     {
         return $this->belongsTo(Memo::class, 'parent_id');
     }
+
+    // Relation vers les enfants (INDISPENSABLE POUR LE DNA)
+    public function children()
+    {
+        return $this->hasMany(Memo::class, 'parent_id');
+    }
     
 
     public function destinataires()
